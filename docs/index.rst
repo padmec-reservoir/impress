@@ -3,12 +3,21 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Intuitive Multilevel Preprocessor for Smart Simulation - IMPRESS
-================================================================
+
+
+
+
+
+
+
+Intuitive Multilevel Preprocessor for Smart Simulation
+======================================================
+.. image:: /logo.png
+
 
 Introduction
 ------------
-The IMPRESS is a general purpose preprocessor.
+IMPRESS, the Intuitive Multilevel Preprocessor for Smart Simulation.
 
 
 Documentation coming soon!
