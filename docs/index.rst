@@ -6,6 +6,11 @@
 Intuitive Multilevel Preprocessor for Smart Simulation - IMPRESS
 ================================================================
 
+Introduction
+------------
+The IMPRESS is a general purpose preprocessor.
+
+
 Documentation coming soon!
 
 .. toctree::
