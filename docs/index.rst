@@ -1,23 +1,10 @@
-.. IMPRESS documentation master file, created by
-   sphinx-quickstart on Wed Mar 20 15:32:28 2019.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. rst-class:: hide-header
 
+.. image:: logo.png
+    :align: center
+    :scale: 120%
 
-
-
-
-
-
-
-Intuitive Multilevel Preprocessor for Smart Simulation
-======================================================
-.. image:: /logo.png
-
-
-Introduction
-------------
-IMPRESS, the Intuitive Multilevel Preprocessor for Smart Simulation.
+IMPRESS, Intuitive Multilevel Preprocessor for Smart Simulation, is a preprocessor for general purpose capable of handling meshes 2D and 3D meshes. It uses the robustness of PyMoab allied to a simple interface to generate all required mesh entities in a simulation (multilevel or not) by receiving only coarsening parameters (if necessary) and a .msh or .h5m mesh file.
 
 
 Documentation coming soon!
