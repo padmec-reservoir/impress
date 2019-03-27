@@ -32,7 +32,19 @@ class FineScaleMeshMS(FineScaleMesh):
         if self.dim == 3:
             self.volumes = MeshEntitiesMS(self.core, entity_type = "volumes")
 
-    def init_variables(self):
+    def init_variables(self, config_input="variable_settings.yml"):
+        with open("variable_settings.yml", 'r') as f:
+            config_file = yaml.safe_load(f)
+
+        scale = config['scale']
+        nodes = config['nodes']
+        edges = config['edges']
+        faces = config['faces']
+        volumes = config['volumes']
+
+
+
+
         #self.alma = MoabVariableMS(self.core,data_size=1,var_type= "volumes",  data_format="int", name_tag="alma")
         #self.ama = MoabVariableMS(self.core,data_size=1,var_type= "faces",  data_format="float", name_tag="ama",data_density="sparse")
         #self.arma = MoabVariableMS(self.core,data_size=3,var_type= "edges",  data_format="float", name_tag="arma", data_density="sparse")

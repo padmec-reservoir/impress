@@ -1,17 +1,9 @@
 # Input file for variable settings
 
-# May your variable be stored in the fine scale mesh entities or in the coarse mesh entities? (0 for fine scale, 1 for coarse scale)
-
-scale:
-
-# Inform us the name of the variable you want to create, its data size and format in the following form:
+# Inform us the name of the variable you want to create, its data size, format and the level of mesh in which the variable must be stored:
 
 # name of entity:
-#   - name of variable
-#     - data size (must be an integer)
-#     - data format (must be a string: 'int', 'float')
-
-# Pay attention to identation!
+#   - name of variable: {data size (must be an integer): , data format (must be a string): ,level: (must be an integer, the fine scale is level 0): }
 
 nodes:
 
@@ -20,3 +12,4 @@ edges:
 faces:
 
 volumes:
+  pressure: data size: 1, data format: 'float', level: 0
