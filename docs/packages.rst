@@ -2,4 +2,3 @@ Packages
 ========
 
 .. toctree::
-  :caption: Packages:

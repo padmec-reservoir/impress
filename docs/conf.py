@@ -88,7 +88,15 @@ html_theme = 'alabaster'
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+html_theme_options = {
+    'logo': 'impress.png',
+    'github_user': 'arturcastiel',
+    'github_repo': 'impress',
+    'fixed_sidebar': True,
+    'font_family':'Bitstream Vera Sans Mono',
+    'caption_font_family': 'Bitstream Vera Sans Mono',
+    'caption_font_size': 5,
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

@@ -4,4 +4,4 @@ Examples
 .. toctree::
   :caption: Examples:
 
-  examples/examples.rst
+  examples/case1.rst
