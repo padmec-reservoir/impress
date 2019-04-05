@@ -2,7 +2,7 @@
 Module for implementation of multiscale mesh and CoarseVolumes objects functionalities
 """
 #import time
-#import pdb
+import pdb
 from . finescaleMesh import FineScaleMesh
 from ..msCoarseningLib import algoritmo
 from . meshComponents import MoabVariable
@@ -32,31 +32,47 @@ class FineScaleMeshMS(FineScaleMesh):
         if self.dim == 3:
             self.volumes = MeshEntitiesMS(self.core, entity_type = "volumes")
 
-    def init_variables(self, config_input="variable_settings.yml"):
-        with open("variable_settings.yml", 'r') as f:
-            config_file = yaml.safe_load(f)
+    def init_variables(self):
+        config = self.read_config('variable_settings.yml')
 
-        scale = config['scale']
         nodes = config['nodes']
         edges = config['edges']
         faces = config['faces']
         volumes = config['volumes']
+        not_empty = []
+        parameters = [0,1]
 
-
-
-
-        #self.alma = MoabVariableMS(self.core,data_size=1,var_type= "volumes",  data_format="int", name_tag="alma")
-        #self.ama = MoabVariableMS(self.core,data_size=1,var_type= "faces",  data_format="float", name_tag="ama",data_density="sparse")
-        #self.arma = MoabVariableMS(self.core,data_size=3,var_type= "edges",  data_format="float", name_tag="arma", data_density="sparse")
-        self.permeability = MoabVariableMS(self.core,data_size=1,var_type= "volumes",  data_format="int", name_tag="permeability")
-        self.pressao_3d = MoabVariableMS(self.core,data_size=1,var_type= "volumes",  data_format="float", name_tag="pressao_3d")
-        self.velocidade_2d = MoabVariableMS(self.core,data_size=3,var_type= "edges",  data_format="float", name_tag="velocidade_2d")
-        self.velocidade_3d = MoabVariableMS(self.core,data_size=3,var_type= "faces",  data_format="float", name_tag="velocidade_3d")
-        self.pressao_2d = MoabVariableMS(self.core,data_size=1,var_type= "faces",  data_format="float", name_tag="pressao_2d")
-
+        if nodes is not None:
+            names = nodes.keys()
+            for i in names:
+                size = str(nodes[i]['data size'])
+                format = nodes[i]['data format']
+                command = 'self.' + i + ' = MoabVariableMS(self.core, data_size = ' + size + ', var_type = "nodes", data_format = ' + "'" + format + "'" + ', name_tag =' + "'" + i + "'" + ')'
+                exec(command)
+        if edges is not None:
+            names = edges.keys()
+            for i in names:
+                size = str(edges[i]['data size'])
+                format = edges[i]['data format']
+                command = 'self.' + i + ' = MoabVariableMS(self.core, data_size = ' + size + ', var_type = "edges", data_format = ' + "'" + format + "'" + ', name_tag =' + "'" + i + "'" + ')'
+                exec(command)
+        if faces is not None:
+            names = faces.keys()
+            for i in names:
+                size = str(faces[i]['data size'])
+                format = faces[i]['data format']
+                command = 'self.' + i + ' = MoabVariableMS(self.core, data_size = ' + size + ', var_type = "faces", data_format = ' + "'" + format + "'" + ', name_tag =' + "'" + i + "'" + ')'
+                exec(command)
+        if volumes is not None:
+            names = volumes.keys()
+            for i in names:
+                size = str(volumes[i]['data size'])
+                format = volumes[i]['data format']
+                command = 'self.' + i + ' = MoabVariableMS(self.core, data_size = ' + size + ', var_type = "volumes", data_format = ' + "'" + format + "'" + ', name_tag =' + "'" + i + "'" + ')'
+                exec(command)
 
     def init_partition(self):
-        config = self.read_config()
+        config = self.read_config('msCoarse.yml')
         particionador_type = config["Partitioner Scheme"]
         specific_attributes = config["Coarsening"]
         if particionador_type != '0':
@@ -94,8 +110,8 @@ class FineScaleMeshMS(FineScaleMesh):
             partition = MoabVariable(self.core,data_size=1,var_type= "faces",  data_format="int", name_tag="Parallel", data_density="sparse")
         return partition
 
-    def read_config(self, config_input="msCoarse.yml"):
-        with open("msCoarse.yml", 'r') as f:
+    def read_config(self, config_input):
+        with open(config_input, 'r') as f:
             config_file = yaml.safe_load(f)
         return config_file
 
@@ -125,6 +141,4 @@ class CoarseVolume(FineScaleMeshMS):
             self.volumes.enhance(i,general)
 
     def init_coarse_variables(self):
-        #self.lama = MoabVariableMS(self.core,data_size=1,var_type= "faces",  data_format="int", name_tag="lama", level=self.level, coarse_num=self.coarse_num)
-        self.pressure_coarse = MoabVariableMS(self.core,data_size=1,var_type= "volumes",  data_format="float", name_tag="pressure_coarse", level=self.level, coarse_num=self.coarse_num)
-        self.permeability_coarse = MoabVariableMS(self.core,data_size=1,var_type= "volumes",  data_format="float", name_tag="permeability_coarse", level=self.level, coarse_num=self.coarse_num)
+        pass

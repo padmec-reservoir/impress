@@ -1,15 +1,27 @@
 # Input file for variable settings
 
-# Inform us the name of the variable you want to create, its data size, format and the level of mesh in which the variable must be stored:
-
-# name of entity:
-#   - name of variable: {data size (must be an integer): , data format (must be a string): ,level: (must be an integer, the fine scale is level 0): }
+# Inform us the name of the variable you want to create, its data size, format and the level of mesh in which the variable must be stored (pay attetion to the identation!):
 
 nodes:
+  happiness:
+    data size: 1
+    data format: 'float'
+    level: 0
 
 edges:
+  joy:
+    data size: 1
+    data format: 'float'
+    level: 0
 
 faces:
+  pride:
+    data size: 1
+    data format: 'float'
+    level: 0
 
 volumes:
-  pressure: data size: 1, data format: 'float', level: 0
+  dreams:
+    data size: 1
+    data format: 'float'
+    level: 0
