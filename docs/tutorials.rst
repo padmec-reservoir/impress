@@ -2,6 +2,5 @@ Tutorials
 =========
 
 .. toctree::
-  :caption: Packages:
 
-  tutorials/test.rst
+  tutorials/run.rst

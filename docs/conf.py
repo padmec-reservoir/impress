@@ -74,7 +74,7 @@ language = None
 exclude_patterns = [u'_build', 'Thumbs.db', '.DS_Store']
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = None
+pygments_style = 'sphinx'
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -82,13 +82,32 @@ pygments_style = None
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = 'sphinx_rtd_theme'
+
+html_context = {
+    'github_user': 'arturcastiel',
+    'github_repo': 'impress',
+    'display_github': True,
+    }
+
+# The name of an image file (relative to this directory) to place at the top
+# of the sidebar.
+html_logo = 'logo.png'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+html_theme_options = {
+    'logo_only': True,
+    'style_nav_header_background': 'white',
+#     'github_user': 'arturcastiel',
+#     'github_repo': 'impress',
+#     'fixed_sidebar': True,
+#     'font_family':'Bitstream Vera Sans Mono',
+#     'caption_font_family': 'Bitstream Vera Sans Mono',
+#     'logo': 'logo.png'
+ }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

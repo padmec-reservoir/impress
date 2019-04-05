@@ -49,8 +49,10 @@ class FineScaleMeshMS(FineScaleMesh):
         #self.ama = MoabVariableMS(self.core,data_size=1,var_type= "faces",  data_format="float", name_tag="ama",data_density="sparse")
         #self.arma = MoabVariableMS(self.core,data_size=3,var_type= "edges",  data_format="float", name_tag="arma", data_density="sparse")
         self.permeability = MoabVariableMS(self.core,data_size=1,var_type= "volumes",  data_format="int", name_tag="permeability")
-        self.pressure = MoabVariableMS(self.core,data_size=1,var_type= "volumes",  data_format="float", name_tag="pressure")
-        self.erro = MoabVariableMS(self.core,data_size=1,var_type= "volumes",  data_format="float", name_tag="erro")
+        self.pressao_3d = MoabVariableMS(self.core,data_size=1,var_type= "volumes",  data_format="float", name_tag="pressao_3d")
+        self.velocidade_2d = MoabVariableMS(self.core,data_size=3,var_type= "edges",  data_format="float", name_tag="velocidade_2d")
+        self.velocidade_3d = MoabVariableMS(self.core,data_size=3,var_type= "faces",  data_format="float", name_tag="velocidade_3d")
+        self.pressao_2d = MoabVariableMS(self.core,data_size=1,var_type= "faces",  data_format="float", name_tag="pressao_2d")
 
 
     def init_partition(self):
@@ -72,15 +74,13 @@ class FineScaleMeshMS(FineScaleMesh):
                 partition = MoabVariable(self.core,data_size=1,var_type= "faces",  data_format="int", name_tag="Partition",
                                              data_density="sparse")
                 name_function = "scheme" + particionador_type
-                key = "Coarsening_" + particionador_type + "_Input"
-                specific_attributes = config.items(key)
+                specific_attributes = config["Coarsening"]
                 used_attributes = []
-                for at in specific_attributes:
-                    used_attributes.append(float(at[1]))
-                [partition[:],coarse_center]  = getattr(msCoarseningLib.algoritmo, name_function)(self.faces.center[:],
+                used_attributes.append(specific_attributes[0]["nx"])
+                used_attributes.append(specific_attributes[1]["ny"])
+                [partition[:],coarse_center]  = getattr(algoritmo, name_function)(self.faces.center[:],
                            len(self), self.rx, self.ry, self.rz,*used_attributes)
             return partition
-
 
     def init_partition_parallel(self):
         if self.dim == 3:
