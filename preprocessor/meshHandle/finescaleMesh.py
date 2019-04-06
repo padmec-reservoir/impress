@@ -156,13 +156,6 @@ class FineScaleMesh:
         return vol_eval
 
     def get_piram_volume(self,tet_nodes):
-        #PRIMEIRA ATIVIDADE PARA RENATINHA
-        # atividade para renata
-        #input: 5 handles para os 5 nós da piramide
-        #output: volume da piramide
-
-        #ler biblioteca do numpy para isso
-        #metodo get_tetravolume como base
         pass
 
     @staticmethod
