@@ -2,6 +2,11 @@
 import configparser as cp
 import yaml
 
+class initMoabVariable(object):
+    def __init__(self, file_path="variable_settings.yml"):
+
+    pass
+
 class partitionManager(object):
     def __init__(self, file_path = "test_file3.card"):
         pass

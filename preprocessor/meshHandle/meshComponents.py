@@ -209,7 +209,7 @@ class MeshEntities(object):
 
     def create_range_vec(self, index):
         range_vec = None
-        if isinstance(index, int):
+        if isinstance(index, int) or isinstance(index, np.integer):
             range_vec = np.array([index]).astype("uint")
         elif isinstance(index, np.ndarray):
             if index.dtype == "bool":
