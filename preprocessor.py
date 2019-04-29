@@ -12,7 +12,7 @@ import preprocessor.geoUtil.geoTools as gtool
 #foobar = imp.load_source('20.h5m', '/mesh')
 
 start = time.time()
-M = msh('mesh/erro.h5m', dim = 3)
+M = msh('mesh/semi2.msh', dim = 3)
 end = time.time()
 print("The preprocessing step lasted {0}s".format(end-start))
-dual(M)
+l = dual(M)
