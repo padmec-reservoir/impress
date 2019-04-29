@@ -83,7 +83,7 @@ class CoreMoab:
 
             nodes_in_volumes = ([self.mb.get_adjacencies(el_handle,0) for el_handle in self.all_volumes])
 
-            import pdb; pdb.set_trace()
+            #import pdb; pdb.set_trace()
 
             #check_volumes = np.asarray([rng.intersect(el_handle,nodes_on_skin_handles) for el_handle in nodes_in_volumes])
 
