@@ -9,6 +9,6 @@ Partitioner Scheme: '1'
 
 # Coarsening ratio in directions x, y e z
 Coarsening:
-    - nx: 5
-    - ny: 5
-    - nz: 5
+    - nx: 3
+    - ny: 3
+    - nz: 3
