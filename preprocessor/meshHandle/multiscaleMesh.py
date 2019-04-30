@@ -55,6 +55,7 @@ class FineScaleMeshMS(FineScaleMesh):
                 size = str(edges[i]['data size'])
                 format = edges[i]['data format']
                 command = 'self.' + i + ' = MoabVariableMS(self.core, data_size = ' + size + ', var_type = "edges", data_format = ' + "'" + format + "'" + ', name_tag =' + "'" + i + "'" + ')'
+                print(command)
                 exec(command)
         if faces is not None:
             names = faces.keys()
@@ -62,6 +63,7 @@ class FineScaleMeshMS(FineScaleMesh):
                 size = str(faces[i]['data size'])
                 format = faces[i]['data format']
                 command = 'self.' + i + ' = MoabVariableMS(self.core, data_size = ' + size + ', var_type = "faces", data_format = ' + "'" + format + "'" + ', name_tag =' + "'" + i + "'" + ')'
+                print(command)
                 exec(command)
         if volumes is not None:
             names = volumes.keys()
@@ -69,6 +71,7 @@ class FineScaleMeshMS(FineScaleMesh):
                 size = str(volumes[i]['data size'])
                 format = volumes[i]['data format']
                 command = 'self.' + i + ' = MoabVariableMS(self.core, data_size = ' + size + ', var_type = "volumes", data_format = ' + "'" + format + "'" + ', name_tag =' + "'" + i + "'" + ')'
+                print(command)
                 exec(command)
 
     def init_partition(self):
@@ -131,6 +134,8 @@ class CoarseVolume(FineScaleMeshMS):
         self.macro_dim()
 
     def init_variables(self):
+        #self.pressure = MoabVariableMS(self.core,data_size=1,var_type= "volumes",  data_format="float", name_tag="pressure", level=self.level, coarse_num=self.coarse_num)
+
         pass
 
     def __call__(self,i,general):

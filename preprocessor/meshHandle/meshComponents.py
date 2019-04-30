@@ -30,8 +30,14 @@ class MeshEntities(object):
         string = {0: "nodes", 1: "edges", 2: "faces", 3: "volumes"}
         if core.level == 0:
             self.id_name = "GLOBAL_ID"
-        else:
+            self.father_id_name = "GLOBAL_ID"
+            self.id_name = "GLOBAL_ID"
+        elif core.level == 1:
+            self.father_id_name = core.father_core.id_name
             self.id_name = "LOCAL_ID_L" + str(core.level) + "-" + str(core.coarse_num)
+        else:
+            self.father_id_name = core.father_core.id_name
+            self.id_name = self.father_id_name + str("L") + str(self.level) + "-" + str(self.coarse_num)
         entity_num = self.num[entity_type]
         if entity_num == 0:
             self.elements_handle = core.all_nodes
@@ -56,6 +62,7 @@ class MeshEntities(object):
         self.entity_type = string[entity_num]
         self.tag_handle = core.handleDic[self.id_name]
         self.global_handle = core.handleDic['GLOBAL_ID']
+        self.father_handle = core.handleDic[self.father_id_name]
         if self.vID == 0:
             self.adjacencies = GetItem(self._adjacencies_for_nodes)
             self.coords =  GetItem(self._coords)
@@ -65,6 +72,7 @@ class MeshEntities(object):
         self.classify_element = GetItem(self._classify_element)
         self.center = GetItem(self._center)
         self.global_id = GetItem(self._global_id)
+        self.father_id = GetItem(self._father_id)
         if (self.vID == 1) & (core.dimension == 2):
             self.normal = GetItem(self._normal)
         elif (self.vID == 2) & (core.dimension == 3):
@@ -115,6 +123,10 @@ class MeshEntities(object):
         range_vec = self.create_range_vec(index)
         element_handle = self.range_index(range_vec)
         return self.mb.tag_get_data(self.global_handle, element_handle).ravel()
+    def _father_id(self, index):
+        range_vec = self.create_range_vec(index)
+        element_handle = self.range_index(range_vec)
+        return self.mb.tag_get_data(self.father_handle, element_handle).ravel()
 
     def _adjacencies_for_nodes(self, index):
         return self.create_range_vec(index)
@@ -239,7 +251,7 @@ class MeshEntities(object):
         range_vec = self.create_range_vec(index)
         range = self.range_index(range_vec)
         type_list = np.array([self.mb.type_from_handle(el) for el in range])
-        return  type_list
+        return type_list
 
     def range_index(self, vec_index, flag_nodes=False):
         if not flag_nodes:

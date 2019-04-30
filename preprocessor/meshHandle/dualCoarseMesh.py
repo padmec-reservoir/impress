@@ -11,6 +11,7 @@ import numpy as np
 import scipy.spatial
 print('Dual Coarse Mesh Module initialized')
 
+
 class DualCoarseMesh:
     def __init__(self, M):
         self.M = M

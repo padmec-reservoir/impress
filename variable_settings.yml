@@ -28,4 +28,4 @@ volumes:
   dreams:
     data size: 1
     data format: 'float'
-    level: 0
+    level: 1

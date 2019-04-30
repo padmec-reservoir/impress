@@ -46,7 +46,7 @@ class MeshEntitiesMS(MeshEntities):
 
     @property
     def all_elements_in_coarse_neighborhood(self):
-            return self.read(self.all_coarse_neighbors_range)
+        return self.read(self.all_coarse_neighbors_range)
 
 
 class MoabVariableMS(MoabVariable):
@@ -86,10 +86,16 @@ class MoabVariableMS(MoabVariable):
             data_format = types.MB_TYPE_BIT
         self.level = level
         self.coarse_num = coarse_num
-        self.name_tag = self.name_tag  + "-L" + str(self.level) + "-" + str(self.coarse_num)
-
+        name = core.id_name
+        name = name[(name.find("ID") + 3):]
+        self.name_tag = self.name_tag  + name
+        #import pdb; pdb.set_trace()
+        print(self.name_tag)
+        print(data_size)
+        print(data_format)
+        print(data_density)
+        #"-L" + str(self.level) + "-" + str(self.coarse_num)
         self.tag_handle = self.mb.tag_get_handle(self.name_tag, data_size, data_format, data_density, True)
-
         print("Component class {0} successfully intialized".format(self.name_tag))
 
 

@@ -13,15 +13,7 @@ class CoreMoab:
         self.dimension = dim
         self.mb = core.Core()
         self.root_set = self.mb.get_root_set()
-
-        # self.root_set = self.mb.create_meshset() #types.MESHSET_TRACK_OWNER)
-        # all_entities = self.mb.get_entities_by_handle(self.mb.get_root_set())
-        # self.mb.add_entities(self.root_set, all_entities)
-
-
-
         self.father_root_set = self.root_set
-
         self.mtu = topo_util.MeshTopoUtil(self.mb)
         self.mb.load_file(mesh_file)
         self.level = 0
@@ -52,16 +44,7 @@ class CoreMoab:
         self.create_parallel_tag()
 
     def init_id(self):
-        # delete previous IDs
-        # Gmesh standard counts from 1
-        # GLOBAL_ID_tag = self.mb.tag_get_handle(
-        #    "Global_ID", 1, types.MB_TYPE_INTEGER, types.MB_TAG_DENSE, False)
-        # global_tag = self.mb.tag_get_handle(
-        #     name, 1, types.MB_TYPE_INTEGER, types.MB_TAG_DENSE, False)
-        # self.handleDic[name] = global_tag
-
         self.create_tag_handle(self.id_name, data_size = 1, data_text = "int", data_density = "sparse")
-
         # create volume ids
         self.set_data(self.id_name, np.arange(len(self.all_volumes)))
         # create face ids
@@ -77,22 +60,12 @@ class CoreMoab:
 
         if self.dimension == 3:
             faces_on_skin_handles = skin.find_skin(self.root_set, self.all_volumes[:])
-            # pdb.set_trace()
             edges_on_skin_handles = self.access_handle(faces_on_skin_handles)
             nodes_on_skin_handles = self.access_handle(edges_on_skin_handles)
-
             nodes_in_volumes = ([self.mb.get_adjacencies(el_handle,0) for el_handle in self.all_volumes])
-
-            #import pdb; pdb.set_trace()
-
-            #check_volumes = np.asarray([rng.intersect(el_handle,nodes_on_skin_handles) for el_handle in nodes_in_volumes])
-
             check_volumes = ([ rng.intersect(el_handle,nodes_on_skin_handles) for el_handle in nodes_in_volumes])
-
             external_volumes_index = np.array([el_handle.empty() for el_handle in check_volumes]).astype(bool)
             volumes_on_skin_handles = self.range_index(np.bitwise_not(external_volumes_index),self.all_volumes)
-
-
         elif self.dimension == 2:
             edges_on_skin_handles = skin.find_skin(self.root_set, self.all_faces[:])
             nodes_on_skin_handles = self.access_handle(edges_on_skin_handles)
@@ -244,21 +217,6 @@ class CoreMoab:
             range_el = self.range_index(index_vec, range_el)
         handle_tag = self.handleDic[name_tag]
         self.mb.tag_set_data(handle_tag, range_el, data)
-    #
-    # def init_tag(self, name_tag, dtype="int", entity_type=4):
-    #     # initialize a tag
-    #     # zeros nodes, edges, faces and volumes
-    #     # by default it zeros all geometric entities
-    #     if dtype == "int":
-    #         var_type = int
-    #     elif dtype == "float":
-    #         var_type = float
-    #     elif dtype == "bool":
-    #         var_type = bool
-    #     el = [[self.all_nodes], [self.all_edges], [self.all_faces], [self.all_volumes],
-    #           [self.all_nodes, self.all_edges, self.all_faces, self.all_volumes]]
-    #     range_temp = self.range_merge(*el[entity_type])
-    #     self.set_data(name_tag,data = np.zeros(len(range_temp)).astype(var_type),range_el = range_temp)
 
     def check_range_by_dimm(self, handle):
         # INPUT: handle or range
@@ -306,48 +264,37 @@ class CoreMoab:
                 range_merged.merge(arg)
         return range_merged
 
-    def print(self, text=None, config_input="print_settings.yml"):
+    def print(self, text=None, extension=".h5m", config_input="print_settings.yml"):
         with open("print_settings.yml", 'r') as f:
             data = yaml.safe_load(f)
-
         nodes = data['nodes']
         edges = data['edges']
         faces = data['faces']
         volumes = data['volumes']
         all_entities = data['all entities']
-
         m1 = self.mb.create_meshset()
         self.mb.add_entities(m1, self.all_nodes)
-
         m2 = self.mb.create_meshset()
         self.mb.add_entities(m2, self.all_faces)
         self.mb.remove_entities(m2, self.all_nodes)
-
         m3 = self.mb.create_meshset()
         self.mb.add_entities(m3, self.all_volumes)
-
         m4 = self.mb.create_meshset()
         self.mb.add_entities(m4, self.all_edges)
         if text is None:
             text = "output"
-        extension = ".vtk"
         text1 = text + "-nodes" + extension
         text2 = text + "-face" + extension
         text3 = text + "-volume" + extension
         text4 = text + "-edges" + extension
         text5 = text + "-all" + extension
-
         if nodes != 0:
             self.mb.write_file(text1, [m1])
-
         if faces != 0:
             self.mb.write_file(text2, [m2])
-
         if self.dimension == 3 and volumes != 0:
             self.mb.write_file(text3, [m3])
-
         if edges != 0:
             self.mb.write_file(text4, [m4])
-
         if all_entities != 0:
             self.mb.write_file(text5)
