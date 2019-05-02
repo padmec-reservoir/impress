@@ -24,11 +24,9 @@ class DualCoarseMesh:
     def find_primal_coarse_centers(self):
         self.coarse_center = np.zeros(len(self.M.coarse_volumes)).astype("uint64")
         index = 0
-
         for coarse_volume in self.M.coarse_volumes:
             center_coord = np.array(hd.geomedian(coarse_volume.faces.center[coarse_volume.faces.boundary].T))
             center_coord = center_coord.reshape((1,3))
-            #print(center_coord)
             distance = scipy.spatial.distance.cdist(coarse_volume.volumes.center[:],center_coord)
             tag = np.nonzero(distance == distance.min())[0]
             if len(tag) != 1:
@@ -37,11 +35,9 @@ class DualCoarseMesh:
             self.coarse_center[index] = coarse_volume.volumes.global_id[center_volume]
             index += 1
 
-            # = scipy.spatial.distance.cdist(L.T,coarse_volume.volumes.center[:])
-
-            #L = volume.faces.center[volume.faces.boundary]
-
     def find_interface_centers(self):
+
+
         pass
     def find_coarse_edges(self):
         pass

@@ -7,8 +7,9 @@ from . finescaleMesh import FineScaleMesh
 from ..msCoarseningLib import algoritmo
 from . meshComponents import MoabVariable
 from . mscorePymoab import MsCoreMoab
-from . meshComponentsMS import MultiscaleMeshEntities, MoabVariableMS,  MeshEntitiesMS
+from . meshComponentsMS import MoabVariableMS,  MeshEntitiesMS
 from pymoab import core, types, rng
+import numpy as np
 import yaml
 
 
@@ -18,12 +19,11 @@ print('Initializing Finescale Mesh for Multiscale Methods')
 class FineScaleMeshMS(FineScaleMesh):
     def __init__(self,mesh_file, dim = 3):
         super().__init__(mesh_file,dim)
-        self.partition = self.init_partition()
-        self.coarse_volumes = [CoarseVolume(self.core, self.dim, i, self.partition[:] == i) for i in range(self.partition[:].max()+1 )]
-        print("Creating object general")
-        self.general = MultiscaleMeshEntities(self.core,self.coarse_volumes)
-        for i,el in zip(range(len(self.coarse_volumes)),self.coarse_volumes):
-            el(i,self.general)
+
+        print("Creating Coarse Grid")
+        self.coarse = MultiscaleCoarseGrid(self)
+        # for i,el in zip(range(len(self.coarse_volumes)),self.coarse_volumes):
+        #     el(i,self.general)
 
     def init_entities(self):
         self.nodes = MeshEntitiesMS(self.core, entity_type = "node")
@@ -106,9 +106,6 @@ class FineScaleMeshMS(FineScaleMesh):
             partition = MoabVariable(self.core,data_size=1,var_type= "volumes",  data_format="int", name_tag="Parallel",
                                          data_density="sparse")
 
-            # partition[:]
-            # [partition[:],coarse_center]  = getattr(msCoarseningLib.algoritmo, name_function)(self.volumes.center[:],
-            #            len(self), self.rx, self.ry, self.rz,*used_attributes)
         elif self.dim == 2:
             partition = MoabVariable(self.core,data_size=1,var_type= "faces",  data_format="int", name_tag="Parallel", data_density="sparse")
         return partition
@@ -147,3 +144,171 @@ class CoarseVolume(FineScaleMeshMS):
 
     def init_coarse_variables(self):
         pass
+
+
+
+class MultiscaleCoarseGrid(object):
+    def __init__(self, M):
+        print(M)
+        self.mb = M.core.mb
+        self.partition = M.init_partition()
+        self.volumes = [CoarseVolume(M.core, M.dim, i, self.partition[:] == i) for i in range(self.partition[:].max()+1 )]
+        self.num = {"nodes": 0, "node": 0, "edges": 1, "edge": 1, "faces": 2, "face": 2, "volumes": 3, "volume": 3,
+                             0: 0, 1: 1, 2: 2, 3: 3}
+
+        self.local_tag = [volume.core.handleDic[volume.core.id_name]  for volume in self.volumes]
+        #self.local_tag =  [el.core.handleDic["LOCAL_ID_L" + str(el.core.level) + "-" + str(el.core.coarse_num)] for el in coarse_list]
+
+
+
+        # for i,el in zip(range(len(self.coarse_volumes)),self.coarse_volumes):
+        #     el(i,self.general)
+
+
+        # for i,el in zip(range(len(self.coarse_volumes)),self.coarse_volumes):
+        #     el(i,self.general)
+        #self.num_coarse = len(coarse_list)
+    #     self.find_coarse_neighbours(coarse_list)
+
+        # self.local_tag = coarse_list[0].core.handleDic[coarse_list[0].core.id_name]
+        self.global_tag = father_core.handleDic["GLOBAL_ID"]
+        self.all_volumes = father_core.all_volumes
+        self.all_faces = father_core.all_faces
+        self.all_edges = father_core.all_edges
+        self.all_nodes = father_core.all_nodes
+        self.create_coarse_connectivities()
+
+        #
+
+    #     # self.id_name = "LOCAL_ID_L" + str(self.level) + "-" + str(self.coarse_num)
+    #
+    #     #pass
+    #
+    # def create_coarse_connectivities(self):
+    #     self.connectivities = np.zeros((self.num_coarse,self.num_coarse))
+    #     for x in range(self.num_coarse):
+    #         for y in range(x+1,self.num_coarse):
+    #             if not self.nodes_neighbors[x,y].empty():
+    #                 self.connectivities[x,y]  =  True
+    #                 self.connectivities[y,x]  =  True
+    #
+    # def find_coarse_neighbours(self,coarse_list):
+    #     self.nodes_neighbors  = {}
+    #     self.edges_neighbors  = {}
+    #     self.faces_neighbors  = {}
+    #     self.volumes_neighbors  = {}
+    #     self.all_nodes_neighbors = rng.Range()
+    #     self.all_edges_neighbors = rng.Range()
+    #     self.all_faces_neighbors = rng.Range()
+    #     self.all_volumes_neighbors = rng.Range()
+    #     for x in range(self.num_coarse):
+    #         for y in range(x+1,self.num_coarse):
+    #             self.nodes_neighbors[x,y] = rng.intersect(coarse_list[x].core.boundary_nodes, coarse_list[y].core.boundary_nodes)
+    #             self.nodes_neighbors[y,x] = self.nodes_neighbors[x,y]
+    #             temp = self.nodes_neighbors[x,y]
+    #             [self.all_nodes_neighbors.insert(e) for e in temp]
+    #
+    #             self.edges_neighbors[x,y] = rng.intersect(coarse_list[x].core.boundary_edges, coarse_list[y].core.boundary_edges)
+    #             self.edges_neighbors[y,x] = self.edges_neighbors[x,y]
+    #             temp = self.edges_neighbors[x,y]
+    #             [self.all_edges_neighbors.insert(e) for e in temp]
+    #
+    #             self.faces_neighbors[x,y] = rng.intersect(coarse_list[x].core.boundary_faces, coarse_list[y].core.boundary_faces)
+    #             self.faces_neighbors[y,x] = self.faces_neighbors[x,y]
+    #             temp = self.faces_neighbors[x,y]
+    #             [self.all_faces_neighbors.insert(e) for e in temp]
+    #
+    #             self.volumes_neighbors[x,y] = rng.intersect(coarse_list[x].core.boundary_volumes, coarse_list[y].core.boundary_volumes)
+    #             self.volumes_neighbors[y,x] = self.volumes_neighbors[x,y]
+    #             temp = self.volumes_neighbors[x,y]
+    #             [self.all_volumes_neighbors.insert(e) for e in temp]
+    #
+    # def global_to_local_id(self,vec_range,element, target):
+    #     flag = self.num[element]
+    #     vec = self.create_range_vec(vec_range)
+    #     if flag == 0:
+    #         handle = self.range_index(vec, self.all_nodes)
+    #     elif flag == 1:
+    #         handle = self.range_index(vec, self.all_edges)
+    #     elif flag == 2:
+    #         handle = self.range_index(vec, self.all_faces)
+    #     elif flag == 3:
+    #         handle = self.range_index(vec, self.all_volumes)
+    #     return self.mb.tag_get_data(self.local_tag[target],handle)
+    #
+    # def coarse_neighbours(self, x,y, element):
+    #       # return self.read_data(self.global_tag, range_el = self.num[element])
+    #       flag = self.num[element]
+    #       if flag == 0:
+    #           return self.mb.tag_get_data(self.global_tag, self.nodes_neighbors[x,y])
+    #       elif flag == 1:
+    #           return self.mb.tag_get_data(self.global_tag, self.edges_neighbors[x,y])
+    #       elif flag == 2:
+    #           return self.mb.tag_get_data(self.global_tag, self.faces_neighbors[x,y])
+    #       elif flag == 3:
+    #           return self.mb.tag_get_data(self.global_tag, self.volumes_neighbors[x,y])
+    #
+    # @property
+    # def all_neighbors_nodes(self):
+    #     return self.mb.tag_get_data(self.global_tag, self.all_nodes_neighbors)
+    #
+    # @property
+    # def all_neighbors_edges(self):
+    #     return self.mb.tag_get_data(self.global_tag, self.all_edges_neighbors)
+    #
+    # @property
+    # def all_neighbors_faces(self):
+    #     return self.mb.tag_get_data(self.global_tag, self.all_faces_neighbors)
+    #
+    # @property
+    # def all_neighbors_volumes(self):
+    #     return self.mb.tag_get_data(self.global_tag, self.all_volumes_neighbors)
+    #
+    # def create_range_vec(self, index):
+    #     range_vec = None
+    #     if isinstance(index, int) or isinstance(index, np.integer):
+    #         range_vec = np.array([index]).astype("uint")
+    #     elif isinstance(index, np.ndarray):
+    #         if index.dtype == "bool":
+    #             range_vec = np.where(index)[0]
+    #         else:
+    #             range_vec = index
+    #     elif isinstance(index, slice):
+    #         start = index.start
+    #         stop = index.stop
+    #         step = index.step
+    #         if start is None:
+    #             start = 0
+    #         if stop is None:
+    #             stop = len(self)
+    #         if step is None:
+    #             step = 1
+    #         if start < 0:
+    #             start = len(self) + start + 1
+    #         if stop < 0:
+    #             stop = len(self) + stop + 1
+    #         range_vec = np.arange(start, stop, step).astype('uint')
+    #     elif isinstance(index, list):
+    #         range_vec = np.array(index)
+    #     return range_vec
+    #
+    # def read_data(self, name_tag, index_vec = np.array([]), range_el = None):
+    #     if range_el is None:
+    #         range_el = self.all_volumes
+    #     if index_vec.size > 0:
+    #         range_el = self.range_index(index_vec,range_el)
+    #     try:
+    #         handle_tag = self.handleDic[name_tag]
+    #         return self.mb.tag_get_data(handle_tag, range_el)
+    #     except KeyError:
+    #         print("Tag not found")
+    #
+    # def range_index(self, vec_index, range_handle = None):
+    #     if range_handle is None:
+    #         range_handle = self.all_volumes
+    #     if vec_index.dtype == "bool":
+    #         vec = np.where(vec_index)[0]
+    #     else:
+    #         vec = vec_index.astype("uint")
+    #     handles = np.asarray(range_handle)[vec.astype("uint")].astype("uint")
+    #     return rng.Range(handles)
