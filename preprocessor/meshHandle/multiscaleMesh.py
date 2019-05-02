@@ -153,6 +153,7 @@ class MultiscaleCoarseGrid(object):
         self.mb = M.core.mb
         self.partition = M.init_partition()
         self.volumes = [CoarseVolume(M.core, M.dim, i, self.partition[:] == i) for i in range(self.partition[:].max()+1 )]
+        self.num_coarse = len(self.volumes)
         self.num = {"nodes": 0, "node": 0, "edges": 1, "edge": 1, "faces": 2, "face": 2, "volumes": 3, "volume": 3,
                              0: 0, 1: 1, 2: 2, 3: 3}
 
@@ -168,60 +169,54 @@ class MultiscaleCoarseGrid(object):
         # for i,el in zip(range(len(self.coarse_volumes)),self.coarse_volumes):
         #     el(i,self.general)
         #self.num_coarse = len(coarse_list)
-    #     self.find_coarse_neighbours(coarse_list)
+        self.find_coarse_neighbours()
 
         # self.local_tag = coarse_list[0].core.handleDic[coarse_list[0].core.id_name]
-        self.global_tag = father_core.handleDic["GLOBAL_ID"]
-        self.all_volumes = father_core.all_volumes
-        self.all_faces = father_core.all_faces
-        self.all_edges = father_core.all_edges
-        self.all_nodes = father_core.all_nodes
+        self.global_tag = M.core.handleDic["GLOBAL_ID"]
+        self.all_volumes = M.core.all_volumes
+        self.all_faces = M.core.all_faces
+        self.all_edges = M.core.all_edges
+        self.all_nodes = M.core.all_nodes
         self.create_coarse_connectivities()
 
-        #
+    def create_coarse_connectivities(self):
+        self.connectivities = np.zeros((self.num_coarse,self.num_coarse))
+        for x in range(self.num_coarse):
+            for y in range(x+1,self.num_coarse):
+                if not self.nodes_neighbors[x,y].empty():
+                    self.connectivities[x,y]  =  True
+                    self.connectivities[y,x]  =  True
+    #
+    def find_coarse_neighbours(self):
+        self.nodes_neighbors  = {}
+        self.edges_neighbors  = {}
+        self.faces_neighbors  = {}
+        self.volumes_neighbors  = {}
+        self.all_nodes_neighbors = rng.Range()
+        self.all_edges_neighbors = rng.Range()
+        self.all_faces_neighbors = rng.Range()
+        self.all_volumes_neighbors = rng.Range()
+        for x in range(self.num_coarse):
+            for y in range(x+1,self.num_coarse):
+                self.nodes_neighbors[x,y] = rng.intersect(self.volumes[x].core.boundary_nodes, self.volumes[y].core.boundary_nodes)
+                self.nodes_neighbors[y,x] = self.nodes_neighbors[x,y]
+                temp = self.nodes_neighbors[x,y]
+                [self.all_nodes_neighbors.insert(e) for e in temp]
 
-    #     # self.id_name = "LOCAL_ID_L" + str(self.level) + "-" + str(self.coarse_num)
-    #
-    #     #pass
-    #
-    # def create_coarse_connectivities(self):
-    #     self.connectivities = np.zeros((self.num_coarse,self.num_coarse))
-    #     for x in range(self.num_coarse):
-    #         for y in range(x+1,self.num_coarse):
-    #             if not self.nodes_neighbors[x,y].empty():
-    #                 self.connectivities[x,y]  =  True
-    #                 self.connectivities[y,x]  =  True
-    #
-    # def find_coarse_neighbours(self,coarse_list):
-    #     self.nodes_neighbors  = {}
-    #     self.edges_neighbors  = {}
-    #     self.faces_neighbors  = {}
-    #     self.volumes_neighbors  = {}
-    #     self.all_nodes_neighbors = rng.Range()
-    #     self.all_edges_neighbors = rng.Range()
-    #     self.all_faces_neighbors = rng.Range()
-    #     self.all_volumes_neighbors = rng.Range()
-    #     for x in range(self.num_coarse):
-    #         for y in range(x+1,self.num_coarse):
-    #             self.nodes_neighbors[x,y] = rng.intersect(coarse_list[x].core.boundary_nodes, coarse_list[y].core.boundary_nodes)
-    #             self.nodes_neighbors[y,x] = self.nodes_neighbors[x,y]
-    #             temp = self.nodes_neighbors[x,y]
-    #             [self.all_nodes_neighbors.insert(e) for e in temp]
-    #
-    #             self.edges_neighbors[x,y] = rng.intersect(coarse_list[x].core.boundary_edges, coarse_list[y].core.boundary_edges)
-    #             self.edges_neighbors[y,x] = self.edges_neighbors[x,y]
-    #             temp = self.edges_neighbors[x,y]
-    #             [self.all_edges_neighbors.insert(e) for e in temp]
-    #
-    #             self.faces_neighbors[x,y] = rng.intersect(coarse_list[x].core.boundary_faces, coarse_list[y].core.boundary_faces)
-    #             self.faces_neighbors[y,x] = self.faces_neighbors[x,y]
-    #             temp = self.faces_neighbors[x,y]
-    #             [self.all_faces_neighbors.insert(e) for e in temp]
-    #
-    #             self.volumes_neighbors[x,y] = rng.intersect(coarse_list[x].core.boundary_volumes, coarse_list[y].core.boundary_volumes)
-    #             self.volumes_neighbors[y,x] = self.volumes_neighbors[x,y]
-    #             temp = self.volumes_neighbors[x,y]
-    #             [self.all_volumes_neighbors.insert(e) for e in temp]
+                self.edges_neighbors[x,y] = rng.intersect(self.volumes[x].core.boundary_edges, self.volumes[y].core.boundary_edges)
+                self.edges_neighbors[y,x] = self.edges_neighbors[x,y]
+                temp = self.edges_neighbors[x,y]
+                [self.all_edges_neighbors.insert(e) for e in temp]
+
+                self.faces_neighbors[x,y] = rng.intersect(self.volumes[x].core.boundary_faces, self.volumes[y].core.boundary_faces)
+                self.faces_neighbors[y,x] = self.faces_neighbors[x,y]
+                temp = self.faces_neighbors[x,y]
+                [self.all_faces_neighbors.insert(e) for e in temp]
+
+                self.volumes_neighbors[x,y] = rng.intersect(self.volumes[x].core.boundary_volumes, self.volumes[y].core.boundary_volumes)
+                self.volumes_neighbors[y,x] = self.volumes_neighbors[x,y]
+                temp = self.volumes_neighbors[x,y]
+                [self.all_volumes_neighbors.insert(e) for e in temp]
     #
     # def global_to_local_id(self,vec_range,element, target):
     #     flag = self.num[element]
