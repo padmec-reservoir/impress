@@ -152,12 +152,12 @@ class MultiscaleCoarseGrid(object):
         print(M)
         self.mb = M.core.mb
         self.partition = M.init_partition()
-        self._volumes = [CoarseVolume(M.core, M.dim, i, self.partition[:] == i) for i in range(self.partition[:].max()+1 )]
-        self.num_coarse = len(self._volumes)
+        self.volumes = [CoarseVolume(M.core, M.dim, i, self.partition[:] == i) for i in range(self.partition[:].max()+1 )]
+        self.num_coarse = len(self.volumes)
         self.num = {"nodes": 0, "node": 0, "edges": 1, "edge": 1, "faces": 2, "face": 2, "volumes": 3, "volume": 3,
                              0: 0, 1: 1, 2: 2, 3: 3}
 
-        self.local_tag = [volume.core.handleDic[volume.core.id_name]  for volume in self._volumes]
+        self.local_tag = [volume.core.handleDic[volume.core.id_name]  for volume in self.volumes]
 
 
 
@@ -204,7 +204,7 @@ class MultiscaleCoarseGrid(object):
         node_count, edge_count, face_count = 0, 0, 0
         for x in range(self.num_coarse):
             for y in range(x+1,self.num_coarse):
-                node_intersect = rng.intersect(self._volumes[x].core.boundary_nodes, self._volumes[y].core.boundary_nodes)
+                node_intersect = rng.intersect(self.volumes[x].core.boundary_nodes, self.volumes[y].core.boundary_nodes)
                 if not node_intersect.empty():
                     self._nodes.append(node_intersect)
                     #self._nodes = np.append(self._nodes,node_intersect)
@@ -212,7 +212,7 @@ class MultiscaleCoarseGrid(object):
                     self.connectivities[x, y, 0],self.connectivities[y, x, 0] = True, True
                     node_count += 1
                     [self.all_nodes_neighbors.insert(e) for e in node_intersect]
-                edges_intersect = rng.intersect(self._volumes[x].core.boundary_edges, self._volumes[y].core.boundary_edges)
+                edges_intersect = rng.intersect(self.volumes[x].core.boundary_edges, self.volumes[y].core.boundary_edges)
                 if not edges_intersect.empty():
                     self._edges.append(edges_intersect)
                     # self._edges = np.append(self._edges,edges_intersect)
@@ -220,7 +220,7 @@ class MultiscaleCoarseGrid(object):
                     self.connectivities[x, y, 1], self.connectivities[y, x, 1] =  True, True
                     edge_count += 1
                     [self.all_edges_neighbors.insert(e) for e in edges_intersect]
-                faces_intersect = rng.intersect(self._volumes[x].core.boundary_faces, self._volumes[y].core.boundary_faces)
+                faces_intersect = rng.intersect(self.volumes[x].core.boundary_faces, self.volumes[y].core.boundary_faces)
                 if not faces_intersect.empty():
                     self._faces.append(faces_intersect)
                     #self._faces = np.append(self._faces,faces_intersect)
@@ -229,19 +229,19 @@ class MultiscaleCoarseGrid(object):
                     face_count += 1
                     [self.all_faces_neighbors.insert(e) for e in faces_intersect]
         for x in range(self.num_coarse):
-            node_intersect = rng.intersect(self._volumes[x].core.boundary_nodes, self.all_nodes_neighbors)
+            node_intersect = rng.intersect(self.volumes[x].core.boundary_nodes, self.all_nodes_neighbors)
             if not node_intersect.empty():
                 self._nodes.append(node_intersect)
                 self.nodes_neighbors[x, -1] = node_count
                 self.connectivities[x, -1, 0] = True
                 node_count += 1
-            edge_intersect = rng.intersect(self._volumes[x].core.boundary_edges, self.all_edges_neighbors)
+            edge_intersect = rng.intersect(self.volumes[x].core.boundary_edges, self.all_edges_neighbors)
             if not edge_intersect.empty():
                 self._edges.append(edge_intersect)
                 self.edges_neighbors[x, -1] = edge_count
                 self.connectivities[x, -1, 1] = True
                 edge_count += 1
-            face_intersect = rng.intersect(self._volumes[x].core.boundary_faces, self.all_faces_neighbors)
+            face_intersect = rng.intersect(self.volumes[x].core.boundary_faces, self.all_faces_neighbors)
             if not face_intersect.empty():
                 self._faces.append(face_intersect)
                 self.faces_neighbors[x, -1] = face_count
