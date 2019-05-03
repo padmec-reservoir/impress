@@ -97,3 +97,11 @@ class MoabVariableMS(MoabVariable):
         #"-L" + str(self.level) + "-" + str(self.coarse_num)
         self.tag_handle = self.mb.tag_get_handle(self.name_tag, data_size, data_format, data_density, True)
         print("Component class {0} successfully intialized".format(self.name_tag))
+
+
+
+class CoarseMeshEntitiesMS(object):
+    def __init__(self,entity_type, volumes_list = None):
+        if not volumes_list == None:
+            self._list = volumes_list
+        pass
