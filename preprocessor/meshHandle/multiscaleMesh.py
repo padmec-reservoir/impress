@@ -156,34 +156,12 @@ class MultiscaleCoarseGrid(object):
         self.num_coarse = len(self.volumes)
         self.num = {"nodes": 0, "node": 0, "edges": 1, "edge": 1, "faces": 2, "face": 2, "volumes": 3, "volume": 3,
                              0: 0, 1: 1, 2: 2, 3: 3}
-
         self.local_tag = [volume.core.handleDic[volume.core.id_name]  for volume in self.volumes]
-
-
-
-        #self.local_tag =  [el.core.handleDic["LOCAL_ID_L" + str(el.core.level) + "-" + str(el.core.coarse_num)] for el in coarse_list]
-
-
-
-        # for i,el in zip(range(len(self.coarse_volumes)),self.coarse_volumes):
-        #     el(i,self.general)
-
-
-        # for i,el in zip(range(len(self.coarse_volumes)),self.coarse_volumes):
-        #     el(i,self.general)
-        #self.num_coarse = len(coarse_list)
-        self.find_coarse_neighbours()
-        # self.init_coarse_faces()
-        # self.init_coarse_edges()
-        # self.init_coarse_entities()
-
-        # self.local_tag = coarse_list[0].core.handleDic[coarse_list[0].core.id_name]
         self.global_tag = M.core.handleDic["GLOBAL_ID"]
         self.all_volumes = M.core.all_volumes
         self.all_faces = M.core.all_faces
         self.all_edges = M.core.all_edges
         self.all_nodes = M.core.all_nodes
-        #self.create_coarse_connectivities()
 
     def init_coarse_entities(self):
         self.volumes = CoarseMeshEntitiesMS(3, volumes_list = self._volumes)
