@@ -237,19 +237,20 @@ class MultiscaleCoarseGrid(object):
                     face_count += 1
                     [self.all_faces_neighbors.insert(e) for e in faces_intersect]
         for x in range(self.num_coarse):
-            node_intersect = rng.intersect(self.volumes[x].core.boundary_nodes, self.all_nodes_neighbors)
+            #  fix the interesection - second variable poorly choosen
+            node_intersect = rng.subtract(self.volumes[x].core.boundary_nodes, self.all_nodes_neighbors)
             if not node_intersect.empty():
                 self._nodes.append(node_intersect)
                 self.nodes_neighbors[x, -1] = node_count
                 self.connectivities[x, -1, 0] = True
                 node_count += 1
-            edge_intersect = rng.intersect(self.volumes[x].core.boundary_edges, self.all_edges_neighbors)
+            edge_intersect = rng.subtract(self.volumes[x].core.boundary_edges, self.all_edges_neighbors)
             if not edge_intersect.empty():
                 self._edges.append(edge_intersect)
                 self.edges_neighbors[x, -1] = edge_count
                 self.connectivities[x, -1, 1] = True
                 edge_count += 1
-            face_intersect = rng.intersect(self.volumes[x].core.boundary_faces, self.all_faces_neighbors)
+            face_intersect = rng.subtract(self.volumes[x].core.boundary_faces, self.all_faces_neighbors)
             if not face_intersect.empty():
                 self._faces.append(face_intersect)
                 self.faces_neighbors[x, -1] = face_count
@@ -272,7 +273,7 @@ class MultiscaleCoarseGrid(object):
     def neighbours(self, x,y, element):
           # return self.read_data(self.global_tag, range_el = self.num[element])
           flag = self.num[element]
-          if flag == 0:
+          if flag == 0: 
               return self.mb.tag_get_data(self.global_tag, self._nodes[self.nodes_neighbors[x,y]])
           elif flag == 1:
               return self.mb.tag_get_data(self.global_tag, self._edges[self.edges_neighbors[x,y]])
