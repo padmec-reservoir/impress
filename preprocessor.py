@@ -1,6 +1,11 @@
 
 # Run preprocessor
 
+# docker run -t -it -v  /home/arturcastiel/projetos:/pytest desenvolvimento:latest bash -c "cd /pytest; bash"
+
+# docker run -it -v  /home/arturcastiel/projetos:/pytest desenvolvimento:latest bash -c "cd /pytest; bash"
+# %load_ext autoreload
+# %autoreload 2
 import time
 from preprocessor.meshHandle.multiscaleMesh import FineScaleMeshMS as msh
 from preprocessor.meshHandle.dualCoarseMesh import DualCoarseMesh as dual

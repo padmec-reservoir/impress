@@ -21,6 +21,7 @@ class FineScaleMeshMS(FineScaleMesh):
         super().__init__(mesh_file,dim)
 
         print("Creating Coarse Grid")
+        # import pdb; pdb.set_trace()
         self.coarse = MultiscaleCoarseGrid(self)
         # for i,el in zip(range(len(self.coarse_volumes)),self.coarse_volumes):
         #     el(i,self.general)
@@ -145,11 +146,40 @@ class CoarseVolume(FineScaleMeshMS):
     def init_coarse_variables(self):
         pass
 
+class GetItem(object):
+    def __init__(self, adj,tag, dic):
+        self.fun = adj
+        self.tag = tag
+        self.dic = dic
+
+    def __len__(self):
+        return len(self.dic)
+    def __call__(self, item):
+        tmp = self.dic[item]
+        el_list = rng.Range()
+        for e in tmp:
+            el_list.insert(e[0])
+        return self.fun(self.tag, el_list)
+
+
+    def __getitem__(self, item):
+        tmp = self.dic[item][0]
+        print(item)
+        type(tmp)
+        len(tmp)
+        el_list = rng.Range()
+
+        type(tmp)
+        # if len(tmp) > 1 :
+        #     for e in tmp:
+        #         el_list.insert(e[0])
+        #     return self.fun(self.tag, el_list)
+        # else:
+        #     return self.fun(self.tag, tmp)
 
 
 class MultiscaleCoarseGrid(object):
     def __init__(self, M):
-        print(M)
         self.mb = M.core.mb
         self.partition = M.init_partition()
         self.volumes = [CoarseVolume(M.core, M.dim, i, self.partition[:] == i) for i in range(self.partition[:].max()+1 )]
@@ -162,6 +192,8 @@ class MultiscaleCoarseGrid(object):
         self.all_faces = M.core.all_faces
         self.all_edges = M.core.all_edges
         self.all_nodes = M.core.all_nodes
+        self.find_coarse_neighbours()
+        self.faces = GetItem(self.mb.tag_get_data, M.core.handleDic["GLOBAL_ID"], self._faces )
 
     def init_coarse_entities(self):
         self.volumes = CoarseMeshEntitiesMS(3, volumes_list = self._volumes)
@@ -179,6 +211,8 @@ class MultiscaleCoarseGrid(object):
         self.all_edges_neighbors = rng.Range()
         self.all_faces_neighbors = rng.Range()
         self.all_volumes_neighbors = rng.Range()
+        #print(self.all_nodes_neighbors, self.all_edges_neighbors, self.all_faces_neighbors)
+        # import pdb; pdb.set_trace()
         node_count, edge_count, face_count = 0, 0, 0
         for x in range(self.num_coarse):
             for y in range(x+1,self.num_coarse):
@@ -239,7 +273,7 @@ class MultiscaleCoarseGrid(object):
             handle = self.range_index(vec, self.all_volumes)
         return self.mb.tag_get_data(self.local_tag[target],handle)
 
-    def coarse_neighbours(self, x,y, element):
+    def neighbours(self, x,y, element):
           # return self.read_data(self.global_tag, range_el = self.num[element])
           flag = self.num[element]
           if flag == 0:
@@ -252,15 +286,15 @@ class MultiscaleCoarseGrid(object):
               return self.mb.tag_get_data(self.global_tag, self._volumes[self.volumes_neighbors[x,y]])
 
     @property
-    def all_neighbors_nodes(self):
+    def all_interface_nodes(self):
         return self.mb.tag_get_data(self.global_tag, self.all_nodes_neighbors)
 
     @property
-    def all_neighbors_edges(self):
+    def all_interface_edges(self):
         return self.mb.tag_get_data(self.global_tag, self.all_edges_neighbors)
 
     @property
-    def all_neighbors_faces(self):
+    def all_interface_faces(self):
         return self.mb.tag_get_data(self.global_tag, self.all_faces_neighbors)
 
     @property
