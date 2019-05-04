@@ -163,19 +163,15 @@ class GetItem(object):
 
 
     def __getitem__(self, item):
-        tmp = self.dic[item][0]
-        print(item)
-        type(tmp)
-        len(tmp)
+        tmp = self.dic[item]
         el_list = rng.Range()
+        if not isinstance(item, int):
+            for e in tmp:
+                el_list.insert(e[0])
+            return self.fun(self.tag, el_list)
+        else:
+            return self.fun(self.tag, tmp)
 
-        type(tmp)
-        # if len(tmp) > 1 :
-        #     for e in tmp:
-        #         el_list.insert(e[0])
-        #     return self.fun(self.tag, el_list)
-        # else:
-        #     return self.fun(self.tag, tmp)
 
 
 class MultiscaleCoarseGrid(object):

@@ -5,6 +5,6 @@
 # Do you want to visualize tags stored in:
 nodes: 0
 edges: 0
-faces: 0
+faces: 1
 volumes: 1
 all entities: 0
