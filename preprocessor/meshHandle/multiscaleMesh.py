@@ -182,14 +182,18 @@ class MultiscaleCoarseGrid(object):
         self.num_coarse = len(self.volumes)
         self.num = {"nodes": 0, "node": 0, "edges": 1, "edge": 1, "faces": 2, "face": 2, "volumes": 3, "volume": 3,
                              0: 0, 1: 1, 2: 2, 3: 3}
-        self.local_tag = [volume.core.handleDic[volume.core.id_name]  for volume in self.volumes]
+        self.local_volumes_tag = [volume.core.handleDic[volume.core.id_name]  for volume in self.volumes]
         self.global_tag = M.core.handleDic["GLOBAL_ID"]
-        self.all_volumes = M.core.all_volumes
-        self.all_faces = M.core.all_faces
-        self.all_edges = M.core.all_edges
-        self.all_nodes = M.core.all_nodes
+        self._all_volumes = M.core.all_volumes
+        self._all_faces = M.core.all_faces
+        self._all_edges = M.core.all_edges
+        self._all_nodes = M.core.all_nodes
         self.find_coarse_neighbours()
-        self.faces = GetItem(self.mb.tag_get_data, M.core.handleDic["GLOBAL_ID"], self._faces )
+        self.interfaces_faces = GetItem(self.mb.tag_get_data, M.core.handleDic["GLOBAL_ID"], self._faces)
+        self.interfaces_edges = GetItem(self.mb.tag_get_data, M.core.handleDic["GLOBAL_ID"], self._edges)
+        self.interfaces_nodes = GetItem(self.mb.tag_get_data, M.core.handleDic["GLOBAL_ID"], self._nodes)
+
+
 
     def init_coarse_entities(self):
         self.volumes = CoarseMeshEntitiesMS(3, volumes_list = self._volumes)
@@ -261,19 +265,19 @@ class MultiscaleCoarseGrid(object):
         flag = self.num[element]
         vec = self.create_range_vec(vec_range)
         if flag == 0:
-            handle = self.range_index(vec, self.all_nodes)
+            handle = self.range_index(vec, self._all_nodes)
         elif flag == 1:
-            handle = self.range_index(vec, self.all_edges)
+            handle = self.range_index(vec, self._all_edges)
         elif flag == 2:
-            handle = self.range_index(vec, self.all_faces)
+            handle = self.range_index(vec, self._all_faces)
         elif flag == 3:
-            handle = self.range_index(vec, self.all_volumes)
-        return self.mb.tag_get_data(self.local_tag[target],handle)
+            handle = self.range_index(vec, self._all_volumes)
+        return self.mb.tag_get_data(self.local_volumes_tag[target],handle)
 
     def neighbours(self, x,y, element):
           # return self.read_data(self.global_tag, range_el = self.num[element])
           flag = self.num[element]
-          if flag == 0: 
+          if flag == 0:
               return self.mb.tag_get_data(self.global_tag, self._nodes[self.nodes_neighbors[x,y]])
           elif flag == 1:
               return self.mb.tag_get_data(self.global_tag, self._edges[self.edges_neighbors[x,y]])
