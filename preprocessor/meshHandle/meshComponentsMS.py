@@ -27,27 +27,37 @@ class MeshEntitiesMS(MeshEntities):
     def enhance(self,i, general):
         self.coarse_neighbors_dic = {}
         if self.vID == 0:
-            self.coarse_neighbors_dic = { key[1] :value for key, value in general.nodes_neighbors.items() if key[0] == i}
+            index = general.nodes_neighbors[i, np.where(general.connectivities[i, :, 0])[0]].astype("uint64")
+            self.coarse_neighbors_dic = {x: general._nodes[y] for x,y in zip(np.where(general.connectivities[i, :, 0])[0], index)}
         elif self.vID == 1:
-            self.coarse_neighbors_dic = {key[1]:value for key, value in general.edges_neighbors.items() if key[0] == i}
+            index = general.edges_neighbors[i, np.where(general.connectivities[i, :, 1])[0]].astype("uint64")
+            self.coarse_neighbors_dic = {x: general._edges[y] for x,y in zip(np.where(general.connectivities[i, :, 1])[0], index)}
         elif self.vID == 2:
-            self.coarse_neighbors_dic = {key[1]:value for key, value in general.faces_neighbors.items() if key[0] == i}
-        elif self.vID == 3:
-            self.coarse_neighbors_dic = {key[1]:value for key, value in general.volumes_neighbors.items() if key[0] == i}
-        self.coarse_neighbors =  np.array([key for key, value in self.coarse_neighbors_dic.items() if not value.empty()])
-        self.all_coarse_neighbors_range= rng.Range()
-        for el in self.coarse_neighbors_dic.values():
-            self.all_coarse_neighbors_range = rng.unite(self.all_coarse_neighbors_range,el)
-        self.elements_in_coarse_neighborhood = GetItem(self._elements_in_coarse_neighborhood)
+            index = general.faces_neighbors[i, np.where(general.connectivities[i, :, 2])[0]].astype("uint64")
+            self.coarse_neighbors_dic = {x: general._faces[y] for x,y in zip(np.where(general.connectivities[i, :, 2])[0], index)}
+        if self.vID < 3:
+            self.coarse_neighbors = np.where(general.connectivities[i, :, self.vID])[0].astype("uint64")
+            self.is_on_father_boundary = general.connectivities[i, -1, self.vID]
+        self.neighborhood = GetItem(self._elements_in_coarse_neighborhood)
 
     def _elements_in_coarse_neighborhood(self,x):
         handle = self.coarse_neighbors_dic[x]
         return self.read(handle)
 
     @property
-    def all_elements_in_coarse_neighborhood(self):
-        return self.read(self.all_coarse_neighbors_range)
+    def father_boundary(self):
+        if self.is_on_father_boundary:
+            handle = self.coarse_neighbors_dic[max(self.coarse_neighbors_dic.keys())]
+            return self.read(handle)
 
+    @property
+    def all_coarse_neighbors(self):
+        trange = rng.Range()
+        for el in self.coarse_neighbors_dic.values():
+            trange = rng.unite(trange, el)
+        if self.is_on_father_boundary:
+            trange = rng.subtract(trange, self.coarse_neighbors_dic[max(self.coarse_neighbors_dic.keys())])
+        return self.read(trange)
 
 class MoabVariableMS(MoabVariable):
     def __init__(self, core, name_tag, var_type="volumes", data_size=1, data_format="float", data_density="sparse",
@@ -90,10 +100,6 @@ class MoabVariableMS(MoabVariable):
         name = name[(name.find("ID") + 3):]
         self.name_tag = self.name_tag  + name
         #import pdb; pdb.set_trace()
-        print(self.name_tag)
-        print(data_size)
-        print(data_format)
-        print(data_density)
         #"-L" + str(self.level) + "-" + str(self.coarse_num)
         self.tag_handle = self.mb.tag_get_handle(self.name_tag, data_size, data_format, data_density, True)
         print("Component class {0} successfully intialized".format(self.name_tag))
