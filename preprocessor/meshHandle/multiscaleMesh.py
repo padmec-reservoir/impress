@@ -194,6 +194,7 @@ class MultiscaleCoarseGrid(object):
         self.interfaces_edges = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._edges)
         self.interfaces_nodes = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._nodes)
 
+
     def init_coarse_entities(self):
         self.volumes = CoarseMeshEntitiesMS(3, volumes_list = self._volumes)
 
@@ -239,6 +240,9 @@ class MultiscaleCoarseGrid(object):
                     self.connectivities[x, y, 2],self.connectivities[y, x, 2]  = True, True
                     face_count += 1
                     [self.all_faces_neighbors.insert(e) for e in faces_intersect]
+        self.num_internal_nodes = node_count
+        self.num_internal_edges = edge_count
+        self.num_internal_faces = face_count
 
         for x in range(self.num_coarse):
             #  fix the interesection - second variable poorly choosen
@@ -275,7 +279,6 @@ class MultiscaleCoarseGrid(object):
         return self.mb.tag_get_data(self.local_volumes_tag[target],handle)
 
     def neighbours(self, x,y, element):
-          # return self.read_data(self.global_tag, range_el = self.num[element])
           flag = self.num[element]
           if flag == 0:
               return self.mb.tag_get_data(self.father_tag, self._nodes[self.nodes_neighbors[x,y]])
@@ -283,7 +286,7 @@ class MultiscaleCoarseGrid(object):
               return self.mb.tag_get_data(self.father_tag, self._edges[self.edges_neighbors[x,y]])
           elif flag == 2:
               return self.mb.tag_get_data(self.father_tag, self._faces[self.faces_neighbors[x,y]])
-         
+
     @property
     def all_interface_nodes(self):
         return self.mb.tag_get_data(self.father_tag, self.all_nodes_neighbors)
