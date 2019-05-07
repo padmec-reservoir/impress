@@ -38,9 +38,10 @@ class MsCoreMoab(CoreMoab):
 
         if self.level == 1:
             self.id_name = "LOCAL_ID_L" + str(self.level) + "-" + str(self.coarse_num)
+            self.father_id_name = self.father_core.id_name
         else:
-            self.fahter_id_name = self.father_core.id_name
-            self.id_name = self.fahter_id_name + str("L") + str(self.level) + "-" + str(self.coarse_num)
+            self.father_id_name = self.father_core.id_name
+            self.id_name = self.father_id_name + str("L") + str(self.level) + "-" + str(self.coarse_num)
 
 
         self.init_id()

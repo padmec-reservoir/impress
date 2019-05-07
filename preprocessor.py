@@ -13,6 +13,10 @@ import preprocessor.geoUtil.geoTools as gtool
 #import sys
 #import imp
 
+# adaptar para 2d
+# faces a direita e a esquerda corase
+# numerar internos
+
 #print(sys.path)
 #sys.path.append('/mesh')
 #foobar = imp.load_source('20.h5m', '/mesh')

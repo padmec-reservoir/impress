@@ -24,6 +24,21 @@ class MeshEntitiesMS(MeshEntities):
         super().__init__(core, entity_type)
         # print(core)
         # print(entity_type)
+        #import pdb; pdb.set_trace()
+        self.father_handle = core.handleDic[core.father_id_name]
+        self.global_id = GetItem(self._global_id)
+        self.father_id = GetItem(self._father_id)
+
+    def _global_id(self, index):
+        range_vec = self.create_range_vec(index)
+        element_handle = self.range_index(range_vec)
+        return self.mb.tag_get_data(self.global_handle, element_handle).ravel()
+
+    def _father_id(self, index):
+        range_vec = self.create_range_vec(index)
+        element_handle = self.range_index(range_vec)
+        return self.mb.tag_get_data(self.father_handle, element_handle).ravel()
+
     def enhance(self,i, general):
         self.coarse_neighbors_dic = {}
         if self.vID == 0:
@@ -103,11 +118,3 @@ class MoabVariableMS(MoabVariable):
         #"-L" + str(self.level) + "-" + str(self.coarse_num)
         self.tag_handle = self.mb.tag_get_handle(self.name_tag, data_size, data_format, data_density, True)
         print("Component class {0} successfully intialized".format(self.name_tag))
-
-
-
-class CoarseMeshEntitiesMS(object):
-    def __init__(self,entity_type, volumes_list = None):
-        if not volumes_list == None:
-            self._list = volumes_list
-        pass

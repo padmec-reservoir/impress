@@ -31,6 +31,7 @@ class CoreMoab:
         self.internal_faces = rng.subtract(self.all_faces, self.boundary_faces)
         self.internal_volumes = rng.subtract(self.all_volumes, self.boundary_volumes)
         self.id_name = "GLOBAL_ID"
+        self.father_id_name = self.id_name
         self.init_id()
         self.check_integrity()
         # self.create_id_visualization()

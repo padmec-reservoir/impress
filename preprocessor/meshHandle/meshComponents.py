@@ -71,8 +71,8 @@ class MeshEntities(object):
             self.connectivities = GetItem(self._connectivities)
         self.classify_element = GetItem(self._classify_element)
         self.center = GetItem(self._center)
-        self.global_id = GetItem(self._global_id)
-        self.father_id = GetItem(self._father_id)
+        # self.global_id = GetItem(self._global_id)
+        # self.father_id = GetItem(self._father_id)
         if (self.vID == 1) & (core.dimension == 2):
             self.normal = GetItem(self._normal)
         elif (self.vID == 2) & (core.dimension == 3):
@@ -119,14 +119,14 @@ class MeshEntities(object):
         element_handle = self.range_index(range_vec, True)
         return np.reshape(self.mb.get_coords(element_handle),(-1,3))
 
-    def _global_id(self, index):
-        range_vec = self.create_range_vec(index)
-        element_handle = self.range_index(range_vec)
-        return self.mb.tag_get_data(self.global_handle, element_handle).ravel()
-    def _father_id(self, index):
-        range_vec = self.create_range_vec(index)
-        element_handle = self.range_index(range_vec)
-        return self.mb.tag_get_data(self.father_handle, element_handle).ravel()
+    # def _global_id(self, index):
+    #     range_vec = self.create_range_vec(index)
+    #     element_handle = self.range_index(range_vec)
+    #     return self.mb.tag_get_data(self.global_handle, element_handle).ravel()
+    # def _father_id(self, index):
+    #     range_vec = self.create_range_vec(index)
+    #     element_handle = self.range_index(range_vec)
+    #     return self.mb.tag_get_data(self.father_handle, element_handle).ravel()
 
     def _adjacencies_for_nodes(self, index):
         return self.create_range_vec(index)

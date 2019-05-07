@@ -7,7 +7,7 @@ from . finescaleMesh import FineScaleMesh
 from ..msCoarseningLib import algoritmo
 from . meshComponents import MoabVariable
 from . mscorePymoab import MsCoreMoab
-from . meshComponentsMS import MoabVariableMS,  MeshEntitiesMS, CoarseMeshEntitiesMS
+from . meshComponentsMS import MoabVariableMS,  MeshEntitiesMS
 from pymoab import core, types, rng
 import numpy as np
 import yaml
@@ -146,7 +146,7 @@ class CoarseVolume(FineScaleMeshMS):
     def init_coarse_variables(self):
         pass
 
-class GetItem(object):
+class GetCoarseItem(object):
     def __init__(self, adj,tag, dic):
         self.fun = adj
         self.tag = tag
@@ -185,17 +185,14 @@ class MultiscaleCoarseGrid(object):
         self.local_volumes_tag = [volume.core.handleDic[volume.core.id_name]  for volume in self.volumes]
         self.father_tag = M.core.handleDic[M.core.id_name]
         self.global_tag = M.core.handleDic["GLOBAL_ID"]
-
         self._all_volumes = M.core.all_volumes
         self._all_faces = M.core.all_faces
         self._all_edges = M.core.all_edges
         self._all_nodes = M.core.all_nodes
         self.find_coarse_neighbours()
-        self.interfaces_faces = GetItem(self.mb.tag_get_data, self.father_tag, self._faces)
-        self.interfaces_edges = GetItem(self.mb.tag_get_data, self.father_tag, self._edges)
-        self.interfaces_nodes = GetItem(self.mb.tag_get_data, self.father_tag, self._nodes)
-
-
+        self.interfaces_faces = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._faces)
+        self.interfaces_edges = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._edges)
+        self.interfaces_nodes = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._nodes)
 
     def init_coarse_entities(self):
         self.volumes = CoarseMeshEntitiesMS(3, volumes_list = self._volumes)
@@ -264,7 +261,7 @@ class MultiscaleCoarseGrid(object):
                 self.connectivities[x, -1, 2] = True
                 face_count += 1
 
-    def global_to_local_id(self, vec_range,  element, target):
+    def father_to_local_id(self, vec_range,  element, target):
         flag = self.num[element]
         vec = self.create_range_vec(vec_range)
         if flag == 0:
@@ -281,29 +278,27 @@ class MultiscaleCoarseGrid(object):
           # return self.read_data(self.global_tag, range_el = self.num[element])
           flag = self.num[element]
           if flag == 0:
-              return self.mb.tag_get_data(self.global_tag, self._nodes[self.nodes_neighbors[x,y]])
+              return self.mb.tag_get_data(self.father_tag, self._nodes[self.nodes_neighbors[x,y]])
           elif flag == 1:
-              return self.mb.tag_get_data(self.global_tag, self._edges[self.edges_neighbors[x,y]])
+              return self.mb.tag_get_data(self.father_tag, self._edges[self.edges_neighbors[x,y]])
           elif flag == 2:
-              return self.mb.tag_get_data(self.global_tag, self._faces[self.faces_neighbors[x,y]])
-          elif flag == 3:
-              return self.mb.tag_get_data(self.global_tag, self._volumes[self.volumes_neighbors[x,y]])
-
+              return self.mb.tag_get_data(self.father_tag, self._faces[self.faces_neighbors[x,y]])
+         
     @property
     def all_interface_nodes(self):
-        return self.mb.tag_get_data(self.global_tag, self.all_nodes_neighbors)
+        return self.mb.tag_get_data(self.father_tag, self.all_nodes_neighbors)
 
     @property
     def all_interface_edges(self):
-        return self.mb.tag_get_data(self.global_tag, self.all_edges_neighbors)
+        return self.mb.tag_get_data(self.father_tag, self.all_edges_neighbors)
 
     @property
     def all_interface_faces(self):
-        return self.mb.tag_get_data(self.global_tag, self.all_faces_neighbors)
+        return self.mb.tag_get_data(self.father_tag, self.all_faces_neighbors)
 
     @property
     def all_neighbors_volumes(self):
-        return self.mb.tag_get_data(self.global_tag, self.all_volumes_neighbors)
+        return self.mb.tag_get_data(self.father_tag, self.all_volumes_neighbors)
 
     def create_range_vec(self, index):
         range_vec = None
