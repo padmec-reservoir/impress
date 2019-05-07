@@ -22,9 +22,9 @@ class DualCoarseMesh:
         self.find_coarse_volumes()
 
     def find_primal_coarse_centers(self):
-        self.coarse_center = np.zeros(len(self.M.coarse.volumes)).astype("uint64")
+        self.coarse_center = np.zeros(len(self.M.coarse.elements)).astype("uint64")
         index = 0
-        for coarse_volume in self.M.coarse.volumes:
+        for coarse_volume in self.M.coarse.elements:
             center_coord = np.array(hd.geomedian(coarse_volume.faces.center[coarse_volume.faces.boundary].T))
             center_coord = center_coord.reshape((1,3))
             distance = scipy.spatial.distance.cdist(coarse_volume.volumes.center[:],center_coord)
@@ -36,6 +36,16 @@ class DualCoarseMesh:
             index += 1
 
     def find_interface_centers(self):
+        self.center_face = []
+        coords = self.M.faces.center[:]
+        for cface in self.M.coarse.interfaces_faces:
+            tcoords = coords[cface].reshape(len(cface),3)
+            u = int(cface[hd.medoid(tcoords,axis=0,indexonly=True)].ravel())
+            #import pdb; pdb.set_trace()
+            self.center_face.append(u)
+            #self.center_face.append(cface[hd.medoid(tcoords,axis=0,indexonly=True) ] )
+
+            #np.array(hd.geomedian(coarse_volume.faces.center[coarse_volume.faces.boundary].T))
 
 
         pass
