@@ -23,7 +23,11 @@ class FineScaleMeshMS(FineScaleMesh):
         print("Creating Coarse Grid")
         # import pdb; pdb.set_trace()
         self.coarse = MultiscaleCoarseGrid(self)
-        for i,el in zip(range(len(self.coarse.volumes)),self.coarse.volumes):
+        self.enhance_entities()
+
+
+    def enhance_entities(self):
+        for i,el in zip(range(len(self.coarse.elements)),self.coarse.elements):
             el(i,self.coarse)
 
     def init_entities(self):
@@ -178,11 +182,11 @@ class MultiscaleCoarseGrid(object):
     def __init__(self, M):
         self.mb = M.core.mb
         self.partition = M.init_partition()
-        self.volumes = [CoarseVolume(M.core, M.dim, i, self.partition[:] == i) for i in range(self.partition[:].max()+1 )]
-        self.num_coarse = len(self.volumes)
+        self.elements = [CoarseVolume(M.core, M.dim, i, self.partition[:] == i) for i in range(self.partition[:].max()+1 )]
+        self.num_coarse = len(self.elements)
         self.num = {"nodes": 0, "node": 0, "edges": 1, "edge": 1, "faces": 2, "face": 2, "volumes": 3, "volume": 3,
                              0: 0, 1: 1, 2: 2, 3: 3}
-        self.local_volumes_tag = [volume.core.handleDic[volume.core.id_name]  for volume in self.volumes]
+        self.local_volumes_tag = [volume.core.handleDic[volume.core.id_name] for volume in self.elements]
         self.father_tag = M.core.handleDic[M.core.id_name]
         self.global_tag = M.core.handleDic["GLOBAL_ID"]
         self._all_volumes = M.core.all_volumes
@@ -195,8 +199,6 @@ class MultiscaleCoarseGrid(object):
         self.interfaces_nodes = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._nodes)
 
 
-    def init_coarse_entities(self):
-        self.volumes = CoarseMeshEntitiesMS(3, volumes_list = self._volumes)
 
     def find_coarse_neighbours(self):
         self.connectivities = np.zeros((self.num_coarse,self.num_coarse+1 ,3)).astype('bool')
@@ -216,7 +218,7 @@ class MultiscaleCoarseGrid(object):
         node_count, edge_count, face_count = 0, 0, 0
         for x in range(self.num_coarse):
             for y in range(x+1,self.num_coarse):
-                node_intersect = rng.intersect(self.volumes[x].core.boundary_nodes, self.volumes[y].core.boundary_nodes)
+                node_intersect = rng.intersect(self.elements[x].core.boundary_nodes, self.elements[y].core.boundary_nodes)
                 if not node_intersect.empty():
                     self._nodes.append(node_intersect)
                     #self._nodes = np.append(self._nodes,node_intersect)
@@ -224,7 +226,7 @@ class MultiscaleCoarseGrid(object):
                     self.connectivities[x, y, 0],self.connectivities[y, x, 0] = True, True
                     node_count += 1
                     [self.all_nodes_neighbors.insert(e) for e in node_intersect]
-                edges_intersect = rng.intersect(self.volumes[x].core.boundary_edges, self.volumes[y].core.boundary_edges)
+                edges_intersect = rng.intersect(self.elements[x].core.boundary_edges, self.elements[y].core.boundary_edges)
                 if not edges_intersect.empty():
                     self._edges.append(edges_intersect)
                     # self._edges = np.append(self._edges,edges_intersect)
@@ -232,7 +234,7 @@ class MultiscaleCoarseGrid(object):
                     self.connectivities[x, y, 1], self.connectivities[y, x, 1] =  True, True
                     edge_count += 1
                     [self.all_edges_neighbors.insert(e) for e in edges_intersect]
-                faces_intersect = rng.intersect(self.volumes[x].core.boundary_faces, self.volumes[y].core.boundary_faces)
+                faces_intersect = rng.intersect(self.elements[x].core.boundary_faces, self.elements[y].core.boundary_faces)
                 if not faces_intersect.empty():
                     self._faces.append(faces_intersect)
                     #self._faces = np.append(self._faces,faces_intersect)
@@ -246,19 +248,19 @@ class MultiscaleCoarseGrid(object):
 
         for x in range(self.num_coarse):
             #  fix the interesection - second variable poorly choosen
-            node_intersect = rng.subtract(self.volumes[x].core.boundary_nodes, self.all_nodes_neighbors)
+            node_intersect = rng.subtract(self.elements[x].core.boundary_nodes, self.all_nodes_neighbors)
             if not node_intersect.empty():
                 self._nodes.append(node_intersect)
                 self.nodes_neighbors[x, -1] = node_count
                 self.connectivities[x, -1, 0] = True
                 node_count += 1
-            edge_intersect = rng.subtract(self.volumes[x].core.boundary_edges, self.all_edges_neighbors)
+            edge_intersect = rng.subtract(self.elements[x].core.boundary_edges, self.all_edges_neighbors)
             if not edge_intersect.empty():
                 self._edges.append(edge_intersect)
                 self.edges_neighbors[x, -1] = edge_count
                 self.connectivities[x, -1, 1] = True
                 edge_count += 1
-            face_intersect = rng.subtract(self.volumes[x].core.boundary_faces, self.all_faces_neighbors)
+            face_intersect = rng.subtract(self.elements[x].core.boundary_faces, self.all_faces_neighbors)
             if not face_intersect.empty():
                 self._faces.append(face_intersect)
                 self.faces_neighbors[x, -1] = face_count

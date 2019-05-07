@@ -13,16 +13,17 @@ import preprocessor.geoUtil.geoTools as gtool
 #import sys
 #import imp
 
-# adaptar para 2d
-# faces a direita e a esquerda corase
-# numerar internos
+
 
 #print(sys.path)
 #sys.path.append('/mesh')
 #foobar = imp.load_source('20.h5m', '/mesh')
 
 start = time.time()
-M = msh('mesh/semi2.msh', dim = 3)
+#M = msh('mesh/semi2.msh', dim = 3)
+M = msh('mesh/malha03.msh', dim = 2)
+
+
 end = time.time()
 print("The preprocessing step lasted {0}s".format(end-start))
 #l = dual(M)
