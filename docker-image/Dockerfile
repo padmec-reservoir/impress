@@ -7,4 +7,5 @@ RUN pip install numba
 RUN pip install scipy
 RUN pip install XlsxWriter==1.1.2
 RUN pip install hdmedians
+RUN pip install pytest
 WORKDIR $HOME
