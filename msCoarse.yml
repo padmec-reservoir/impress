@@ -11,4 +11,4 @@ Partitioner Scheme: '1'
 Coarsening:
     - nx: 3
     - ny: 3
-    - nz: 3
+    - nz: 1
