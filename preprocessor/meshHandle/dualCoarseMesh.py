@@ -70,17 +70,16 @@ class DualCoarseMesh:
 
     def find_coarse_edges(self):
         coarse_reference = self.M.coarse.partition[self.interface_vol]
-        edges = []
+        edges = np.array([])
         for x in range(len(self.M.coarse.elements)):
             element_target= self.M.coarse.father_to_local_id(self.interface_vol[np.where(coarse_reference == x)[0]], "volumes", x)
             element_center = self.M.coarse.father_to_local_id(self.coarse_center[x], "volumes", x)
             shortest = GraphMesh(self.M.coarse.elements[x], target = element_target, center = element_center)
-            print(x)
-            print(edges)
-            import pdb; pdb.set_trace()
+            edges = np.concatenate((edges,self.M.coarse.elements[x].volumes.father_id[shortest.cedges ]))
+
             #[edges.append(shortest.path(element_center, el)) for el in element_target]
 
-        self.coarse_edges = np.array(edges)
+        self.coarse_edges = np.unique(edges)
 
     def find_coarse_faces(self):
         pass
@@ -95,8 +94,10 @@ class GraphMesh:
         self.predecessors = self.predecessors.ravel()
         self.indicies = target
         self.center = center
+        self.cedges = np.array([])
         for el in target:
-            u  = self.path(el)
+            self.cedges = np.concatenate((self.cedges, self.path(el).ravel()))
+        self.cedges = np.unique(self.cedges)
 
     def create_sparse_matrix(self, graph_edges, size_vol):
         sparse_matrix = sp.sparse.coo_matrix((np.ones((len(graph_edges),),dtype=bool).T, (graph_edges[:, 0], graph_edges[:, 1])), shape=(size_vol, size_vol))
