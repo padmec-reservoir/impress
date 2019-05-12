@@ -74,11 +74,11 @@ class DualCoarseMesh:
         for x in range(len(self.M.coarse.elements)):
             element_target= self.M.coarse.father_to_local_id(self.interface_vol[np.where(coarse_reference == x)[0]], "volumes", x)
             element_center = self.M.coarse.father_to_local_id(self.coarse_center[x], "volumes", x)
-            shortest = GraphMesh(self.M.coarse.elements[x])
+            shortest = GraphMesh(self.M.coarse.elements[x], target = element_target, center = element_center)
             print(x)
             print(edges)
             import pdb; pdb.set_trace()
-            [edges.append(shortest.path(element_center, el)) for el in element_target]
+            #[edges.append(shortest.path(element_center, el)) for el in element_target]
 
         self.coarse_edges = np.array(edges)
 
@@ -88,18 +88,24 @@ class DualCoarseMesh:
         pass
 
 class GraphMesh:
-    def __init__(self, N):
+    def __init__(self, N, target, center):
         graph = self.create_sparse_matrix(N.faces.bridge_adjacencies(N.faces.internal, interface="faces", target="volumes"), len(N.volumes))
-        self.dist_matrix, self.predecessors = sp.sparse.csgraph.shortest_path(graph, directed=False, return_predecessors = True)
+        # self.dist_matrix, self.predecessors = sp.sparse.csgraph.shortest_path(graph, directed=False, return_predecessors = True)
+        self.dist_matrix, self.predecessors = sp.sparse.csgraph.dijkstra(graph, directed=False, return_predecessors = True, indices = center)
+        self.predecessors = self.predecessors.ravel()
+        self.indicies = target
+        self.center = center
+        for el in target:
+            u  = self.path(el)
 
     def create_sparse_matrix(self, graph_edges, size_vol):
         sparse_matrix = sp.sparse.coo_matrix((np.ones((len(graph_edges),),dtype=bool).T, (graph_edges[:, 0], graph_edges[:, 1])), shape=(size_vol, size_vol))
         return sparse_matrix
 
-    def path(self, source, target):
+    def path(self, target):
         index = target
         path = []
-        while index != source:
+        while index != -9999:
             path.append(index)
-            index = self.predecessors[0, index]
+            index = self.predecessors[index]
         return np.array(path)
