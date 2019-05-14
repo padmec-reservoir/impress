@@ -105,6 +105,8 @@ class FineScaleMeshMS(FineScaleMesh):
                 [partition[:],coarse_center]  = getattr(algoritmo, name_function)(self.faces.center[:],
                            len(self), self.rx, self.ry, self.rz,*used_attributes)
             return partition
+        else:
+            return self.init_partition_parallel()
 
     def init_partition_parallel(self):
         if self.dim == 3:
