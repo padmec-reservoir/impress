@@ -169,7 +169,7 @@ class CoreMoab:
         unique_adj = np.unique(np.concatenate(all_adj)).astype("uint64")
         return rng.Range(unique_adj)
 
-    def create_tag_handle(self, name_tag, data_size, data_text = "float", data_density = "dense"):
+    def create_tag_handle(self, name_tag, data_size, data_text="float", data_density="dense"):
         if data_density == "dense":
             data_density = types.MB_TAG_DENSE
         elif data_density == "sparse":

@@ -199,8 +199,19 @@ class MultiscaleCoarseGrid(object):
         self.interfaces_faces = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._faces)
         self.interfaces_edges = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._edges)
         self.interfaces_nodes = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._nodes)
+        self.iface_neighbors = self._internal_faces(M)
 
 
+    def _internal_faces(self, M):
+        faces = np.array([self.mb.tag_get_data(self.father_tag,el[0]).ravel() for el in self._faces]).ravel()
+        internal = faces[0:self.num_internal_faces]
+        external = faces[self.num_internal_faces:]
+        internal_volumes = M.faces.bridge_adjacencies(internal, interface="faces",target="volumes")
+        external_volumes = M.faces.bridge_adjacencies(external, interface="faces",target="volumes")
+        int_neigh = np.hstack((self.partition[internal_volumes[:,0]],self.partition[internal_volumes[:,1]]))
+        ext_neigh = np.zeros((external_volumes.shape[0],2))
+        ext_neigh[:,0], ext_neigh[:,1] = self.partition[external_volumes].ravel(), self.partition[external_volumes].ravel()
+        return np.vstack((int_neigh,ext_neigh))
 
     def find_coarse_neighbours(self):
         self.connectivities = np.zeros((self.num_coarse,self.num_coarse+1 ,3)).astype('bool')
