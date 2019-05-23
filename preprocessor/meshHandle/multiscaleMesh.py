@@ -169,15 +169,23 @@ class GetCoarseItem(object):
 
 
     def __getitem__(self, item):
-        tmp = self.dic[item]
-        el_list = rng.Range()
-        if not isinstance(item, int):
-            for e in tmp:
-                el_list.insert(e[0])
-            return self.fun(self.tag, el_list)
-        else:
-            return self.fun(self.tag, tmp)
-
+        if isinstance(item, int):
+            return self.fun(self.tag, self.dic[item]).ravel()
+        elif isinstance(item, slice):
+            start = item.start
+            step = item.step
+            stop = item.stop
+            if step == None:
+                step = 1
+            if start == None:
+                start = 0
+            if stop == None:
+                stop = len(self.dic)
+            array = np.array(range(start, stop, step))
+            s = np.array([])
+            for el in array:
+                s = np.concatenate((s, self.__getitem__(int(el))))
+            return s
 
 
 class MultiscaleCoarseGrid(object):
@@ -203,15 +211,20 @@ class MultiscaleCoarseGrid(object):
 
 
     def _internal_faces(self, M):
-        faces = np.array([self.mb.tag_get_data(self.father_tag,el[0]).ravel() for el in self._faces]).ravel()
+        #faces = np.array([self.mb.tag_get_data(self.father_tag,el[0]).ravel() for el in self._faces]).ravel()
+        #faces = [self.interfaces_faces[int(el)] for el in range(len(self.interfaces_faces))]
+        faces = []
+        for el in range(len(self.interfaces_faces)):
+            faces.append(self.interfaces_faces[el][0])
+        partition = self.partition[:].ravel()
         internal = faces[0:self.num_internal_faces]
         external = faces[self.num_internal_faces:]
         internal_volumes = M.faces.bridge_adjacencies(internal, interface="faces",target="volumes")
         external_volumes = M.faces.bridge_adjacencies(external, interface="faces",target="volumes")
-        int_neigh = np.hstack((self.partition[internal_volumes[:,0]],self.partition[internal_volumes[:,1]]))
+        int_neigh = np.vstack((partition[internal_volumes[:,0]],partition[internal_volumes[:,1]])).T
         ext_neigh = np.zeros((external_volumes.shape[0],2))
-        ext_neigh[:,0], ext_neigh[:,1] = self.partition[external_volumes].ravel(), self.partition[external_volumes].ravel()
-        return np.vstack((int_neigh,ext_neigh))
+        ext_neigh[:,0], ext_neigh[:,1] = partition[external_volumes].ravel(), partition[external_volumes].ravel()
+        return np.vstack((int_neigh,ext_neigh)).astype("uint64")
 
     def find_coarse_neighbours(self):
         self.connectivities = np.zeros((self.num_coarse,self.num_coarse+1 ,3)).astype('bool')
