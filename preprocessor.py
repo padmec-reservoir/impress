@@ -22,7 +22,7 @@ from preprocessor.meshHandle.dualCoarseMesh import DualCoarseMesh as dual
 #foobar = imp.load_source('20.h5m', '/mesh')
 
 start = time.time()
-M = msh('mesh/icecream.msh', dim=3)
+M = msh('mesh/20.h5m', dim=3)
 # M = msh('mesh/malha03.msh', dim = 2)
 
 
