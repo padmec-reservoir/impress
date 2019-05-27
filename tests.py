@@ -1,3 +1,20 @@
+import numpy as np
+import pdb
+M.dreams[:] = -1
+# for index, el in enumerate(l.coarse_edges):
+#     print(index,el)
+#     M.dreams[el] = index
+
+# for index, el in enumerate(l.coarse_edges):
+#     M.dreams[el] = index
+num = 23
+
+for index, el in enumerate(l.coarse_edges):
+    #pdb.set_trace()
+    if index == num:
+        M.dreams[el] = np.arange(len(el)).astype(float).T
+
+M.core.print()
 # from numba import jit
 # import numpy as np
 #
@@ -23,9 +40,9 @@
 #     M.joy[M.coarse.interfaces_edges[x]] = x
 #
 #
-M.pride[:] = -1
-for x in range(len(M.coarse.interfaces_faces)):
-    M.pride[M.coarse.interfaces_faces[x]] = x
+# M.pride[:] = -1
+# for x in range(len(M.coarse.interfaces_faces)):
+#     M.pride[M.coarse.interfaces_faces[x]] = x
 #
 #
 # M.dreams[:] = -1

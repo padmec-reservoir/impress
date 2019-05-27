@@ -31,8 +31,8 @@ print("The preprocessing step lasted {0}s".format(end-start))
 #l = dual(M)
 
 
-start = time.time(); l = dual(M); end = time.time(); print("The preprocessing step lasted {0}s".format(end-start))
-end = time.time()
+#start = time.time(); l = dual(M); end = time.time(); print("The preprocessing step lasted {0}s".format(end-start))
+#end = time.time()
 
 # start = time.time()
 # l = dual2(M)

@@ -21,6 +21,7 @@ class DualCoarseMesh:
         self.find_interface_centers()
         self.find_primal_coarse_centers()
         self.find_vol_neighbors_to_interface_center()
+        #pdb.set_trace()
         self.find_coarse_edges()
         # self.find_coarse_faces()
         # self.find_coarse_volumes()
@@ -54,85 +55,54 @@ class DualCoarseMesh:
             self.center_face[index] = int(cface[tag].ravel())
             index += 1
 
+
     def find_vol_neighbors_to_interface_center(self):
         # internal faces
         internal_volumes = self.M.faces.bridge_adjacencies(self.center_face[0:self.M.coarse.num_internal_faces], interface ="faces", target = "volumes")
         external_volumes = self.M.faces.bridge_adjacencies(self.center_face[self.M.coarse.num_internal_faces:], interface ="faces", target = "volumes")
         self.interface_vol = np.vstack((internal_volumes,np.hstack((external_volumes,external_volumes))))
-
+        tag = self.M.coarse.partition[:].ravel()[self.interface_vol][:,0] > self.M.coarse.partition[:].ravel()[self.interface_vol][:,1]
+        #pdb.set_trace()
+        self.interface_vol[tag,0], self.interface_vol[tag,1] = self.interface_vol[tag,1], self.interface_vol[tag,0]
+        #pdb.set_trace()
 
     def find_coarse_edges(self):
-
-        #cneigh = np.sort(self.M.coarse.iface_neighbors,axis=1)
-        #cneigh = self.M.coarse.iface_neighbors
-        #partition = self.M.coarse.partition[:].ravel()
-        cneigh = self.M.coarse.partition[:].ravel()[self.interface_vol]
-        #coarse_reference[:,0], coarse_reference[:,1] = self.M.coarse.partition[self.interface_vol[:,0]].ravel(), self.M.coarse.partition[self.interface_vol[:,1]].ravel()
         edges = np.array([])
-
-        #coarse_edges = [collections.deque() for el in range(len(self.M.coarse._faces))]
         coarse_edges = [np.array([])]* len(self.M.coarse._faces)
         for x in range(len(self.M.coarse.elements)):
-            tag = (cneigh ==x).sum(axis=1)
-            coarse_to_coarse = np.where(tag == 1)[0]
-            inside_coarse = np.where(tag == 2)[0]
-            pointer = (cneigh == x)
-            pointer[inside_coarse, :] = False
-            target_volume = self.interface_vol[pointer]
-            target_volume_inside = self.interface_vol[inside_coarse,0]
+            cneigh, cfaces  = self.M.coarse.iface_neighbors(x)
+            pointer = self.M.coarse.partition[:].ravel()[self.interface_vol[cfaces,:]] == x
+            pointer_to_face = cneigh >= len(self.M.coarse.elements)
+            pointer[pointer_to_face, :] = False
+            target_volume = self.interface_vol[cfaces,:][pointer]
+            target_volume_inside = self.interface_vol[cfaces,:][pointer_to_face,0]
             element_target = self.M.coarse.father_to_local_id(target_volume, "volumes", x).ravel()
             element_target_inside = self.M.coarse.father_to_local_id(target_volume_inside, "volumes", x).ravel()
-            #element_target = np.concatenate((element_target, element_target_inside))
             element_center = self.M.coarse.father_to_local_id(self.coarse_center[x], "volumes", x)
             shortest = GraphMesh(self.M.coarse.elements[x],center = element_center)
             for index, el in enumerate(element_target):
-                #a = shortest.path(el)
-                face = coarse_to_coarse[index]
-                line = cneigh[coarse_to_coarse[index],:]
-                pdb.set_trace()
+                center = self.M.coarse.elements[x].volumes.father_id[el]
+                face = np.logical_or((self.interface_vol[:, 0] == center), (self.interface_vol[:, 1] == center))
+                face = int(np.where(face)[0])
+                line = self.interface_vol[face,:]
+                if line[0] == center:
+                    tag = 0
+                else:
+                    tag = 1
                 m = self.M.coarse.elements[x].volumes.father_id[shortest.path(el)]
-                if line[0] == x:
+                if tag == 0:
                     coarse_edges[face] = np.append(m, coarse_edges[face])
                 else:
                     coarse_edges[face] = np.append(coarse_edges[face], m)
+
             for index, el in enumerate(element_target_inside):
-                face = int(inside_coarse)
+                center = self.M.coarse.elements[x].volumes.father_id[el]
+                face = np.logical_or((self.interface_vol[:, 0] == center), (self.interface_vol[:, 1] == center))
+                face = int(np.where(face)[0])
                 m = self.M.coarse.elements[x].volumes.father_id[shortest.path(el)]
                 coarse_edges[face] = np.append(m, coarse_edges[face])
             #pdb.set_trace()
-            self.coarse_edges = coarse_edges
-            #pdb.set_trace()
-                #print(m)
-
-            # pdb.set_trace()
-            # print(x)
-
-
-
-
-
-            # if target_volume_inside is not None:
-            #     list_target = shortest.cedges[:-1]
-            #     for c, el in enumerate(list_target):
-            #         print(coarse_to_coarse[c])
-            #         print(c)
-            #         #pdb.set_trace()
-            #         line = cneigh[coarse_to_coarse[c], :]
-            #         print(el)
-            #         if line[0] is x:
-            #             coarse_edges[coarse_to_coarse[c]].appendleft(self.M.volumes.father_id[el])
-            #         else:
-            #             coarse_edges[coarse_to_coarse[c]].append(self.M.volumes.father_id[el[::-1]])
-
-                #coarse_edges[int(inside_coarse)].append(self.M.volumes.father_id[el])
-
-
-            #edges = np.concatenate((edges,self.M.coarse.elements[x].volumes.father_id[shortest.cedges]))
-
-
-            #[edges.append(shortest.path(element_center, el)) for el in element_target]
-
-        #self.coarse_edges = np.unique(edges).astype("uint64")
+            self.coarse_edges = np.array(coarse_edges)
 
     def find_coarse_faces(self):
         pass
