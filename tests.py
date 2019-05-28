@@ -1,20 +1,20 @@
-import numpy as np
-import pdb
-M.dreams[:] = -1
+# import numpy as np
+# import pdb
+# M.dreams[:] = -1
+# # for index, el in enumerate(l.coarse_edges):
+# #     print(index,el)
+# #     M.dreams[el] = index
+#
+# # for index, el in enumerate(l.coarse_edges):
+# #     M.dreams[el] = index
+# num = 80
+#
 # for index, el in enumerate(l.coarse_edges):
-#     print(index,el)
-#     M.dreams[el] = index
-
-# for index, el in enumerate(l.coarse_edges):
-#     M.dreams[el] = index
-num = 23
-
-for index, el in enumerate(l.coarse_edges):
-    #pdb.set_trace()
-    if index == num:
-        M.dreams[el] = np.arange(len(el)).astype(float).T
-
-M.core.print()
+#     #pdb.set_trace()
+#     if index == num:
+#         M.dreams[el] = np.arange(len(el)).astype(float).T
+#
+# M.core.print()
 # from numba import jit
 # import numpy as np
 #

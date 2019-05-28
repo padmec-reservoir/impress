@@ -21,9 +21,10 @@ class DualCoarseMesh:
         self.find_interface_centers()
         self.find_primal_coarse_centers()
         self.find_vol_neighbors_to_interface_center()
-        #pdb.set_trace()
+        # pdb.set_trace()
+
         self.find_coarse_edges()
-        # self.find_coarse_faces()
+        self.find_coarse_faces()
         # self.find_coarse_volumes()
 
     def find_primal_coarse_centers(self):
@@ -80,20 +81,27 @@ class DualCoarseMesh:
             element_target_inside = self.M.coarse.father_to_local_id(target_volume_inside, "volumes", x).ravel()
             element_center = self.M.coarse.father_to_local_id(self.coarse_center[x], "volumes", x)
             shortest = GraphMesh(self.M.coarse.elements[x],center = element_center)
+            # if x == 22:
+            #     pdb.set_trace()
             for index, el in enumerate(element_target):
+
+                # if index == 3 and x == 22:
+                #     pdb.set_trace()
+                #     print(index)
                 center = self.M.coarse.elements[x].volumes.father_id[el]
                 face = np.logical_or((self.interface_vol[:, 0] == center), (self.interface_vol[:, 1] == center))
-                face = int(np.where(face)[0])
+                face = (np.where(face)[0])
                 line = self.interface_vol[face,:]
-                if line[0] == center:
-                    tag = 0
-                else:
-                    tag = 1
-                m = self.M.coarse.elements[x].volumes.father_id[shortest.path(el)]
-                if tag == 0:
-                    coarse_edges[face] = np.append(m, coarse_edges[face])
-                else:
-                    coarse_edges[face] = np.append(coarse_edges[face], m)
+                tag = np.zeros(line.shape[0],dtype=bool)
+                #pdb.set_trace()
+                tag = line == center
+                for index, f in enumerate(face):
+                    t = np.where(tag[index,:])[0]
+                    m = self.M.coarse.elements[x].volumes.father_id[shortest.path(el)]
+                    if t == 0:
+                        coarse_edges[f] = np.append(m, coarse_edges[f])
+                    else:
+                        coarse_edges[f] = np.append(coarse_edges[f], m)
 
             for index, el in enumerate(element_target_inside):
                 center = self.M.coarse.elements[x].volumes.father_id[el]

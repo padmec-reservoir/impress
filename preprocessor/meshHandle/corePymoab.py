@@ -265,7 +265,7 @@ class CoreMoab:
                 range_merged.merge(arg)
         return range_merged
 
-    def print(self, text=None, extension=".h5m", config_input="print_settings.yml"):
+    def print(self, text=None, extension=".h5m", folder = None,  config_input="print_settings.yml"):
         with open("print_settings.yml", 'r') as f:
             data = yaml.safe_load(f)
         nodes = data['nodes']
@@ -289,6 +289,16 @@ class CoreMoab:
         text3 = text + "-volume" + extension
         text4 = text + "-edges" + extension
         text5 = text + "-all" + extension
+        if folder is not None:
+            import os
+            if not os.path.exists(folder):
+                os.mkdir(folder)
+            text = folder + '/' + text
+            text1 = folder + '/' + text1
+            text2 = folder + '/' + text2
+            text3 = folder + '/' + text3
+            text4 = folder + '/' + text4
+            text5 = folder + '/' + text5
         if nodes != 0:
             self.mb.write_file(text1, [m1])
         if faces != 0:
