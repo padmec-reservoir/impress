@@ -4,11 +4,16 @@ Geometric methods to compute volumes, areas, distances of the mesh entities
 # Geoemtric Module
 # Create by Artur Castiel and Renata Tavares
 
-#import pdb
 import numpy as np
 from numba import jit
+#import pdb
 
-# class for volume related problem
+# CLASSE DEVERÁ HERDAR meshComponentsMS PARA ACESSAR AS CONECTIVIDADES E MÉTODOS.
+#class GeoUtilities:
+#    def __init__():
+#        pass
+
+
     #
     # def init_normal(self):
     #     self.core.create_tag_handle('NORMAL', 3)
@@ -25,6 +30,8 @@ from numba import jit
     #     self.core.set_data("NORMAL", normal, range_el=self.core.all_faces)
 #@jit(parallel = True)
 
+
+
 @jit(parallel = True)
 def normal_vec_2d(coords0,coords1):
     vec = coords1 - coords0
@@ -32,6 +39,46 @@ def normal_vec_2d(coords0,coords1):
     norm = 1/norm
     return np.array([vec[:,1], -vec[:,0], vec[:,2] ]).T * norm[:,np.newaxis]
     # distance = (np.inner(vec, vec, axis = 0))
+
+
+def hexahedron_volumes(p0, p1, p2, p3, p4, p5, p6, p7):
+    #      ______
+    #    /     /|
+    #  /_____/  |
+    #  |     |  |    <- F2
+    #  | F1  |  /
+    #  |_____|/
+    #
+    #
+    # P4 _____P5     P6  ____ P7
+    #   |     |         |    |
+    #   | F1  |         | F2 |
+    #   |_____|         |____|
+    # P0      P1     P2       P3
+    #
+    # F1 - Front Face
+    # F2 - Back Face
+    #  NOTE:
+    # The given hexahedron may be irregular
+    # The method used here includes this possibility
+    # The sketch above describes the connectivities
+    #
+    # Input:
+    # Pn for n = 1,2...8 are arrays containing the coordinates of a given point of a hexahedron. Pn has length mx3, where m is the number of hexahedrons given. The sequence of the nodes in the matrix must be the same as the figure.
+    #
+    # Ouput:
+    # The volume of the given hexahedrons
+
+    v1 = np.cross((p7-p0), (p1-p0))
+    v2 = np.cross((p7-p0), (p4-p0))
+    v3 = np.cross((p7-p0), (p2-p0))
+
+    vol1 = np.dot(v1, (p3-p5)) # Substituir operador
+    vol2 = np.dot(v2,(p5-p6))
+    vol3 = np.dot(v3, (p6-p3))
+
+    hexa_vol = (vol1+vol2+vol3)/6
+    return hexa_vol
 
 
 # @jit(nopython=True)
