@@ -5,101 +5,107 @@ Geometric methods to compute volumes, areas, distances of the mesh entities
 # Create by Artur Castiel and Renata Tavares
 
 import numpy as np
+from numpy import linalg as la
 from numba import jit
 #import pdb
 
-# CLASSE DEVERÁ HERDAR meshComponentsMS PARA ACESSAR AS CONECTIVIDADES E MÉTODOS.
-#class GeoUtilities:
-#    def __init__():
-#        pass
+# Calculate areas
+
+def triangle_area(p0, p1, p2):
+"""
+         P0
+        / \
+       /   \
+      /_ _ _\
+     P1      P2
+
+-> Input:
+Pn for n = 0,1,2 are arrays containing the coordinates of a given point of a convex triangle. Pn has length mx3, where m is the number of triangles given. The order of the points is not important in this function
+
+-> Output
+A row vector containing the area of the given triangles.                """
+
+    # Setting the vectors
+    v1 = p1 - p0
+    v2 = p2 - p0
+    tri_area = (1/2)*la.norm(np.cross(v1, v2), axis = 1)
+    return tri_area
+
+def quadrilateral_area(p0, p1, p2, p3):
+    """
+     P0 ____ P2
+       |    |
+       |    |
+       |____|
+     P1      P3
+
+-> Input:
+Pn for n = 1,2...4 are arrays containing the coordinates of a given point of a quadrilateral. Pn has length mx3, where m is the number of quadrilaterals given. The sequence of the nodes in the matrix must be the same as the figure.
+
+-> Output:
+A row vector containing the volume of the volumes of the given hexahedrons """
+
+    # Setting the diagonals
+    d1 = p0 - p3
+    d2 = p1 - p2
+    quad_area = (1/2)*la.norm(np.cross(d1, d2), axis = 1)
+    return quad_area
+
+# Calculate volumes
+
+def piramid_volumes():
+    pass
+
+def tetrahedron_volume(p0, p1,p2,p3): # Documentar
+
+    # Setting the vectors
+    v1 = p0 - p1
+    v2 = p0 - p2
+    v3 = p0 - p3
+    tetra_vol = (1/6)*np.sum((np.cross(v1,v2))*v3, axis = 1)
+    return tetra_vol
+
+def hexahedron_volume(p0, p1, p2, p3, p4, p5, p6, p7):
+    """ ______
+       /     /|
+      /_____/ |
+      |     | |    <- F2
+      | F1  | /
+      |_____|/
 
 
-    #
-    # def init_normal(self):
-    #     self.core.create_tag_handle('NORMAL', 3)
-    #     normal = np.zeros((len(self.core.all_faces), 3)).astype('float')
-    #     index = 0
-    #     for face in self.core.all_faces:
-    #         verts = self.core.mb.get_connectivity(face)
-    #         coords = np.array([self.core.mb.get_coords([vert]) for vert in verts])
-    #         vec1 = coords[1] - coords[0]
-    #         vec2 = coords[2] - coords[0]
-    #         cross = np.cross(vec1,vec2)
-    #         normal[index] = cross/np.linalg.norm(cross)
-    #         index += 1
-    #     self.core.set_data("NORMAL", normal, range_el=self.core.all_faces)
-#@jit(parallel = True)
+     P4 ____ P5     P6 ____ P7
+       |    |         |    |
+       | F1 |         | F2 |
+       |____|         |____|
+     P0      P1     P2       P3
 
+     F1 - Front Face
+     F2 - Back Face
+      NOTE:
+     The given hexahedron may be irregular
+     The method used here includes this possibility
+     The sketch above describes the connectivities
 
+     Input:
+     Pn for n = 1,2...8 are arrays containing the coordinates of a given point of a hexahedron. Pn has length mx3, where m is the number of hexahedrons given. The sequence of the nodes in the matrix must be the same as the figure.
 
-@jit(parallel = True)
-def normal_vec_2d(coords0,coords1):
-    vec = coords1 - coords0
-    norm = np.linalg.norm(vec, axis = 1)
-    norm = 1/norm
-    return np.array([vec[:,1], -vec[:,0], vec[:,2] ]).T * norm[:,np.newaxis]
-    # distance = (np.inner(vec, vec, axis = 0))
-
-
-def hexahedron_volumes(p0, p1, p2, p3, p4, p5, p6, p7):
-    #      ______
-    #    /     /|
-    #  /_____/  |
-    #  |     |  |    <- F2
-    #  | F1  |  /
-    #  |_____|/
-    #
-    #
-    # P4 _____P5     P6  ____ P7
-    #   |     |         |    |
-    #   | F1  |         | F2 |
-    #   |_____|         |____|
-    # P0      P1     P2       P3
-    #
-    # F1 - Front Face
-    # F2 - Back Face
-    #  NOTE:
-    # The given hexahedron may be irregular
-    # The method used here includes this possibility
-    # The sketch above describes the connectivities
-    #
-    # Input:
-    # Pn for n = 1,2...8 are arrays containing the coordinates of a given point of a hexahedron. Pn has length mx3, where m is the number of hexahedrons given. The sequence of the nodes in the matrix must be the same as the figure.
-    #
-    # Ouput:
-    # The volume of the given hexahedrons
+     Ouput:
+     A row vector containing the volume of the volumes of the given hexahedrons                                                 """
 
     v1 = np.cross((p7-p0), (p1-p0))
     v2 = np.cross((p7-p0), (p4-p0))
     v3 = np.cross((p7-p0), (p2-p0))
 
-    vol1 = np.sum(v1*(p3-p5), axis = 1) # Substituir operador
+    vol1 = np.sum(v1*(p3-p5), axis = 1)
     vol2 = np.sum(v2*(p5-p6), axis = 1)
     vol3 = np.sum(v3*(p6-p3), axis = 1)
 
     hexa_vol = (vol1+vol2+vol3)/6
     return hexa_vol
 
+# Calculate things
 
-# @jit(nopython=True)
-# def cross_numba(vec1,vec2):
-#     vec1 = double(vec1)
-#     vec2 = double(vec2)
-#     result = np.zeros((vec1.shape[0],3))
-#     result[:,0] = vec1[:,1]*vec2[:,2] - vec1[:,2]*vec2[:,1]
-#     result[:,1] = vec1[:,2]*vec2[:,0] - vec1[:,0]*vec2[:,2]
-#     result[:,2] = vec1[:,0]*vec2[:,1] - vec1[:,1]*vec2[:,0]
-#     return result
-# @jit
-# def cross_numba(vec1, vec2):
-#     """ Calculate the cross product of two 3d vectors. """
-#     result = np.zeros((vec1.shape[0],3)
-#     # [a1, a2, a3] = double(vec1[0]), double(vec1[1]), double(vec1[2])
-#     # [b1, b2, b3] = double(vec2[0]), double(vec2[1]), double(vec2[2])
-#     # result[0] = a2 * b3 - a3 * b2
-#     # result[1] = a3 * b1 - a1 * b3
-#     # result[2] = a1 * b2 - a2 * b1
-# return result
 @jit
 def normal_vec(coords0, coords1, coords2):
     vec1 = coords1 - coords0
@@ -121,19 +127,15 @@ def point_distance(coords_1, coords_2):
 def get_average(coords_list):
     N = len(coords_list)
     return sum(coords_list)*(1/N)
-#
-# def tetraVolume(tet_nodes):
-#     #input:
-#     # A Matrix with 4x3 elements in which
-#     # each line is one of the 4 nodes that
-#     # a given tetrahedron is comprised
-#     #ouput:
-#     # the volume of the given tetrahedron
-#     vect_1 = tet_nodes[1] - tet_nodes[0]
-#     vect_2 = tet_nodes[2] - tet_nodes[0]
-#     vect_3 = tet_nodes[3] - tet_nodes[0]
-#     vol_eval = abs(np.dot(np.cross(vect_1, vect_2), vect_3))/6
-#     return vol_eval
+
+@jit(parallel = True)
+def normal_vec_2d(coords0,coords1):
+    vec = coords1 - coords0
+    norm = np.linalg.norm(vec, axis = 1)
+    norm = 1/norm
+    return np.array([vec[:,1], -vec[:,0], vec[:,2] ]).T * norm[:,np.newaxis]
+    # distance = (np.inner(vec, vec, axis = 0))
+
 #
 # def piramidVolume(pi_nodes):
 #     #     P5           P4 _____ P3
@@ -159,35 +161,40 @@ def get_average(coords_list):
 #     piram_vol = (1/3)*base_area*piram_height
 #     return(piram_vol)
 #
-# def hexahedronVolume(pi_nodes):
-#     #
-#     #    ______   <- F2
-#     #   /     /|
-#     #  /_____/ |
-#     #  |     | |
-#     #  | F1  | /
-#     #  |_____|/
-#     #
-#     #
-#     # P1 _____P2     P5  ____ P6
-#     #   |     |         |    |
-#     #   | F1  |         | F2 |
-#     #   |_____|         |____|
-#     # P4      P3     P8       P7
-#     #
-#     # F1 - Front Face
-#     # F2 - Back Face
-#     #  NOTE:
-#     #  The given hexahedron may be irregular
-#     #  The sketch above describes the connectivities
-#     #
-#     #input:
-#     # A Matrix with 8x3 elements in which
-#     # each line is one of the 8 nodes that
-#     # a given hexahedron
-#     #ouput:
-#     # the volume of the given piramid
-#     print(pi_nodes)
-# def teste():
-#     print("Entrou")
-#     pass
+
+
+# @jit(nopython=True)
+# def cross_numba(vec1,vec2):
+#     vec1 = double(vec1)
+#     vec2 = double(vec2)
+#     result = np.zeros((vec1.shape[0],3))
+#     result[:,0] = vec1[:,1]*vec2[:,2] - vec1[:,2]*vec2[:,1]
+#     result[:,1] = vec1[:,2]*vec2[:,0] - vec1[:,0]*vec2[:,2]
+#     result[:,2] = vec1[:,0]*vec2[:,1] - vec1[:,1]*vec2[:,0]
+#     return result
+# @jit
+# def cross_numba(vec1, vec2):
+#     """ Calculate the cross product of two 3d vectors. """
+#     result = np.zeros((vec1.shape[0],3)
+#     # [a1, a2, a3] = double(vec1[0]), double(vec1[1]), double(vec1[2])
+#     # [b1, b2, b3] = double(vec2[0]), double(vec2[1]), double(vec2[2])
+#     # result[0] = a2 * b3 - a3 * b2
+#     # result[1] = a3 * b1 - a1 * b3
+#     # result[2] = a1 * b2 - a2 * b1
+# return result
+
+    #
+    # def init_normal(self):
+    #     self.core.create_tag_handle('NORMAL', 3)
+    #     normal = np.zeros((len(self.core.all_faces), 3)).astype('float')
+    #     index = 0
+    #     for face in self.core.all_faces:
+    #         verts = self.core.mb.get_connectivity(face)
+    #         coords = np.array([self.core.mb.get_coords([vert]) for vert in verts])
+    #         vec1 = coords[1] - coords[0]
+    #         vec2 = coords[2] - coords[0]
+    #         cross = np.cross(vec1,vec2)
+    #         normal[index] = cross/np.linalg.norm(cross)
+    #         index += 1
+    #     self.core.set_data("NORMAL", normal, range_el=self.core.all_faces)
+#@jit(parallel = True)
