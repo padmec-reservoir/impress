@@ -73,9 +73,9 @@ def hexahedron_volumes(p0, p1, p2, p3, p4, p5, p6, p7):
     v2 = np.cross((p7-p0), (p4-p0))
     v3 = np.cross((p7-p0), (p2-p0))
 
-    vol1 = np.dot(v1, (p3-p5)) # Substituir operador
-    vol2 = np.dot(v2,(p5-p6))
-    vol3 = np.dot(v3, (p6-p3))
+    vol1 = np.sum(v1*(p3-p5), axis = 1) # Substituir operador
+    vol2 = np.sum(v2*(p5-p6), axis = 1)
+    vol3 = np.sum(v3*(p6-p3), axis = 1)
 
     hexa_vol = (vol1+vol2+vol3)/6
     return hexa_vol
