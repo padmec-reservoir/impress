@@ -12,12 +12,14 @@ from numba import jit
 # Calculate areas
 
 def triangle_area(p0, p1, p2):
-"""
+    """
          P0
         / \
        /   \
       /_ _ _\
      P1      P2
+
+Calculate the area of a single triangle or a group of triangles giving the coordinates of its points.
 
 -> Input:
 Pn for n = 0,1,2 are arrays containing the coordinates of a given point of a convex triangle. Pn has length mx3, where m is the number of triangles given. The order of the points is not important in this function
@@ -39,6 +41,8 @@ def quadrilateral_area(p0, p1, p2, p3):
        |____|
      P1      P3
 
+Calculate the area of a single quadrilateral or a group of quadrilaterals giving the coordinates of its points.
+
 -> Input:
 Pn for n = 1,2...4 are arrays containing the coordinates of a given point of a quadrilateral. Pn has length mx3, where m is the number of quadrilaterals given. The sequence of the nodes in the matrix must be the same as the figure.
 
@@ -53,11 +57,50 @@ A row vector containing the volume of the volumes of the given hexahedrons """
 
 # Calculate volumes
 
-def piramid_volumes():
+def piramid_volumes(p0, p1, p2, p3, p4):
+    """
+   P1 ______ P3
+     |\    /|
+     | \  / |
+     |  \/  |
+     |  /\P0|
+     | /  \ |
+     |/____\|
+   P2        P4
+
+Calculate the volume of a single pyramid or a group of pyramids (its base must be a quadrilateral) giving the coordinates of its points.
+
+-> Input:
+Pn for n = 0, 1, 2... 4 are arrays containing the coordinates of a given point of a pymarid. Pn has length mx3, where m is the number of pyramids given. The sequence of the nodes in the matrix must be the same as the figure.
+
+-> Output:
+A row vector containing the volume of the volumes of the given pyramids"""
+
+    # d1 = p1 - p4
+    # d2 = p2 - p3
+    # quad_area = (1/2)*la.norm(np.cross(d1, d2), axis = 1)
     pass
 
-def tetrahedron_volume(p0, p1,p2,p3): # Documentar
 
+def tetrahedron_volume(p0, p1,p2,p3): # Documentar
+    """
+          P0
+          /|\
+         / | \
+        /  |  \
+   P1 / _ _|_ _ \  P2
+      \    |    /
+        \  |  /
+          \|/
+           P3
+
+Calculate the volume of a single tetrahedron or a group of tetrahedrons giving the coordinates of its points.
+
+-> Input:
+Pn for n = 1,2...4 are arrays containing the coordinates of a given point of a quadrilateral. Pn has length mx3, where m is the number of tetrahedrons given. The order of the points is not important in this function.
+
+-> Output:
+A row vector containing the volume of the volumes of the given tetrahedrons """
     # Setting the vectors
     v1 = p0 - p1
     v2 = p0 - p2
@@ -87,11 +130,13 @@ def hexahedron_volume(p0, p1, p2, p3, p4, p5, p6, p7):
      The method used here includes this possibility
      The sketch above describes the connectivities
 
-     Input:
-     Pn for n = 1,2...8 are arrays containing the coordinates of a given point of a hexahedron. Pn has length mx3, where m is the number of hexahedrons given. The sequence of the nodes in the matrix must be the same as the figure.
+Calculate the volume of a single hexahedron or a group of hexahedrons giving the coordinates of its points.
 
-     Ouput:
-     A row vector containing the volume of the volumes of the given hexahedrons                                                 """
+-> Input:
+Pn for n = 1,2...8 are arrays containing the coordinates of a given point of a hexahedron. Pn has length mx3, where m is the number of hexahedrons given. The sequence of the nodes in the matrix must be the same as the figure.
+
+-> Ouput:
+A row vector containing the volume of the volumes of the given hexahedrons                                                 """
 
     v1 = np.cross((p7-p0), (p1-p0))
     v2 = np.cross((p7-p0), (p4-p0))
