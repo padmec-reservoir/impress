@@ -1,3 +1,13 @@
+
+import networkx as nx
+
+G = nx.graph.Graph()
+
+part = M.coarse.partition[:].ravel()[l.interface_vol]
+for index in range(M.coarse.num_internal_faces):
+    line = part[index]
+    G.add_edge(line[0], line[1])
+
 # import numpy as np
 # import pdb
 # M.dreams[:] = -1
