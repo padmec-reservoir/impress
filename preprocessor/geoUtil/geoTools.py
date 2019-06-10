@@ -57,7 +57,55 @@ A row vector containing the volume of the volumes of the given hexahedrons """
 
 # Calculate volumes
 
-def piramid_volumes(p0, p1, p2, p3, p4):
+def pentagon_area(p0, p1, p2, p3, p4):
+    # Implementation of Sotke's theorem
+    # The order of the point is important
+
+    """
+      P0
+      /\
+     /  \
+ P1 /    \ P4
+    \    /
+     \__/
+    P2  P3
+
+    """
+    coords = np.array([p0, p1, p2, p3, p4])
+    sum = [0,0,0]
+    for i in range(len(coords)):
+        c1 = poly[i]
+        c2 = poly[(i+1) % N]
+        prod = np.cross(coords[i], [(i+1) % N])
+        sum[0] += prod[0]
+        sum[1] += prod[1]
+        sum[2] += prod[2]
+    pentagon_area = (1/2)*np.dot(total, normal_vec(p0, p1, p2))
+    return pentagon_area
+
+def hexagon_area(p0, p1, p2, p3, p4, p5):
+    # Implementation of Sotke's theorem
+    """
+          _____
+         /     \
+        /       \
+        \       /
+         \_____/
+
+    """
+    coords = np.array([p0, p1, p2, p3, p4, p5])
+    sum = [0,0,0]
+    for i in range(len(coords)):
+        c1 = poly[i]
+        c2 = poly[(i+1) % N]
+        prod = np.cross(coords[i], [(i+1) % N])
+        sum[0] += prod[0]
+        sum[1] += prod[1]
+        sum[2] += prod[2]
+    hexagon_area = (1/2)*np.dot(total, normal_vec(p0, p1, p2))
+    return hexagon_area
+
+def square_piramid_volumes(p0, p1, p2, p3, p4):
     """
    P1 ______ P3
      |\    /|
@@ -76,10 +124,54 @@ Pn for n = 0, 1, 2... 4 are arrays containing the coordinates of a given point o
 -> Output:
 A row vector containing the volume of the volumes of the given pyramids"""
 
-    # d1 = p1 - p4
-    # d2 = p2 - p3
-    # quad_area = (1/2)*la.norm(np.cross(d1, d2), axis = 1)
-    pass
+    base_area = quadrilateral_area(p1, p2, p3, p4)
+    v1 = p1 - p0
+    v2 = p1 - p2
+    v3 = p1 - p3
+    h = np.linalg.norm(np.linalg.dot(v1,np.linalg.cross(v2,v2))/np.linalg.norm(np.linalg.cross(v2,v2))
+    piramid_vol = (1/3)*base_area*h
+    return piramid_vol
+
+def pentagon_piramid_volumes(p0, p1, p2, p3, p4, p5):
+    """
+DRAW
+
+Calculate the volume of a single pyramid or a group of pyramids (its base must be a quadrilateral) giving the coordinates of its points.
+
+-> Input:
+Pn for n = 0, 1, 2... 4 are arrays containing the coordinates of a given point of a pymarid. Pn has length mx3, where m is the number of pyramids given. The sequence of the nodes in the matrix must be the same as the figure.
+
+-> Output:
+A row vector containing the volume of the volumes of the given pyramids"""
+
+    base_area = pentagon_area(p1, p2, p3, p4, p5)
+    v1 = p1 - p0
+    v2 = p1 - p2
+    v3 = p1 - p3
+    h = np.linalg.norm(np.linalg.dot(v1,np.linalg.cross(v2,v2))/np.linalg.norm(np.linalg.cross(v2,v2))
+    piramid_vol = (1/3)*base_area*h
+    return piramid_vol
+
+def hexagon_piramid_volumes(p0, p1, p2, p3, p4, p5, p6):
+    """
+
+DRAW
+
+Calculate the volume of a single pyramid or a group of pyramids (its base must be a quadrilateral) giving the coordinates of its points.
+
+-> Input:
+Pn for n = 0, 1, 2... 4 are arrays containing the coordinates of a given point of a pymarid. Pn has length mx3, where m is the number of pyramids given. The sequence of the nodes in the matrix must be the same as the figure.
+
+-> Output:
+A row vector containing the volume of the volumes of the given pyramids"""
+
+    base_area = hexagon_area(p1, p2, p3, p4, p5, p6)
+    v1 = p1 - p0
+    v2 = p1 - p2
+    v3 = p1 - p3
+    h = np.linalg.norm(np.linalg.dot(v1,np.linalg.cross(v2,v2))/np.linalg.norm(np.linalg.cross(v2,v2))
+    piramid_vol = (1/3)*base_area*h
+    return piramid_vol
 
 
 def tetrahedron_volume(p0, p1,p2,p3): # Documentar
