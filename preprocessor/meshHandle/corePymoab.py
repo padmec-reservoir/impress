@@ -5,6 +5,7 @@ from pymoab import core, types, rng, topo_util
 from pymoab import skinner as sk
 import numpy as np
 import yaml
+import time
 #import pdb
 
 
@@ -23,9 +24,17 @@ class CoreMoab:
         self.all_faces = self.mb.get_entities_by_dimension(0, 2)
         self.all_edges = self.mb.get_entities_by_dimension(0, 1)
 
+
+        self.print_set = self.mb.create_meshset()
+        start = time.time()
+        self.printents = self.mb.get_adjacencies(self.all_volumes, 2, False, op_type=types.UNION)
+        end = time.time()
+        print("get adjacencies {0}s".format(end-start))
+        self.mb.add_entities(self.print_set, self.printents)
+        self.mb.write_file('new_file.h5m', [self.print_set])
+
         self.handleDic = {}
         [self.boundary_nodes, self.boundary_edges, self.boundary_faces, self.boundary_volumes] = self.skinner_operation()
-
         self.internal_nodes = rng.subtract(self.all_nodes, self.boundary_nodes)
         self.internal_edges = rng.subtract(self.all_edges, self.boundary_edges)
         self.internal_faces = rng.subtract(self.all_faces, self.boundary_faces)
@@ -56,17 +65,14 @@ class CoreMoab:
         self.set_data(self.id_name, np.arange(len(self.all_nodes)), range_el=self.all_nodes)
 
     def skinner_operation(self):
-        skin = sk.Skinner(self.mb)
+        self.skin = sk.Skinner(self.mb)
         print("Entering skinner test")
 
         if self.dimension == 3:
-            faces_on_skin_handles = skin.find_skin(self.root_set, self.all_volumes[:])
-            edges_on_skin_handles = self.access_handle(faces_on_skin_handles)
-            nodes_on_skin_handles = self.access_handle(edges_on_skin_handles)
-            nodes_in_volumes = ([self.mb.get_adjacencies(el_handle,0) for el_handle in self.all_volumes])
-            check_volumes = ([ rng.intersect(el_handle,nodes_on_skin_handles) for el_handle in nodes_in_volumes])
-            external_volumes_index = np.array([el_handle.empty() for el_handle in check_volumes]).astype(bool)
-            volumes_on_skin_handles = self.range_index(np.bitwise_not(external_volumes_index),self.all_volumes)
+            faces_on_skin_handles = self.skin.find_skin(self.root_set, self.all_volumes[:])
+            edges_on_skin_handles = self.mtu.get_bridge_adjacencies(faces_on_skin_handles, 2, 1)
+            nodes_on_skin_handles = self.mtu.get_bridge_adjacencies(faces_on_skin_handles, 2, 0)
+            volumes_on_skin_handles = self.mtu.get_bridge_adjacencies(faces_on_skin_handles, 0, 3)
         elif self.dimension == 2:
             edges_on_skin_handles = skin.find_skin(self.root_set, self.all_faces[:])
             nodes_on_skin_handles = self.access_handle(edges_on_skin_handles)
@@ -78,6 +84,7 @@ class CoreMoab:
 
         print("Skinning Operation Successful")
         return [nodes_on_skin_handles, edges_on_skin_handles, faces_on_skin_handles, volumes_on_skin_handles]
+
 
     def check_integrity(self):
         # check if the mesh contains
@@ -169,7 +176,7 @@ class CoreMoab:
         unique_adj = np.unique(np.concatenate(all_adj)).astype("uint64")
         return rng.Range(unique_adj)
 
-    def create_tag_handle(self, name_tag, data_size, data_text = "float", data_density = "dense"):
+    def create_tag_handle(self, name_tag, data_size, data_text="float", data_density="dense"):
         if data_density == "dense":
             data_density = types.MB_TAG_DENSE
         elif data_density == "sparse":
@@ -265,7 +272,7 @@ class CoreMoab:
                 range_merged.merge(arg)
         return range_merged
 
-    def print(self, text=None, extension=".h5m", config_input="print_settings.yml"):
+    def print(self, text=None, extension=".h5m", folder = None,  config_input="print_settings.yml"):
         with open("print_settings.yml", 'r') as f:
             data = yaml.safe_load(f)
         nodes = data['nodes']
@@ -289,6 +296,16 @@ class CoreMoab:
         text3 = text + "-volume" + extension
         text4 = text + "-edges" + extension
         text5 = text + "-all" + extension
+        if folder is not None:
+            import os
+            if not os.path.exists(folder):
+                os.mkdir(folder)
+            text = folder + '/' + text
+            text1 = folder + '/' + text1
+            text2 = folder + '/' + text2
+            text3 = folder + '/' + text3
+            text4 = folder + '/' + text4
+            text5 = folder + '/' + text5
         if nodes != 0:
             self.mb.write_file(text1, [m1])
         if faces != 0:

@@ -105,6 +105,8 @@ class FineScaleMeshMS(FineScaleMesh):
                 [partition[:],coarse_center]  = getattr(algoritmo, name_function)(self.faces.center[:],
                            len(self), self.rx, self.ry, self.rz,*used_attributes)
             return partition
+        else:
+            return self.init_partition_parallel()
 
     def init_partition_parallel(self):
         if self.dim == 3:
@@ -167,14 +169,26 @@ class GetCoarseItem(object):
 
 
     def __getitem__(self, item):
-        tmp = self.dic[item]
-        el_list = rng.Range()
-        if not isinstance(item, int):
-            for e in tmp:
-                el_list.insert(e[0])
-            return self.fun(self.tag, el_list)
-        else:
-            return self.fun(self.tag, tmp)
+        if isinstance(item, int):
+            return self.fun(self.tag, self.dic[item]).ravel()
+        elif isinstance(item, slice):
+            start = item.start
+            step = item.step
+            stop = item.stop
+            if step == None:
+                step = 1
+            if start == None:
+                start = 0
+            if stop == None:
+                stop = len(self.dic)
+            array = np.array(range(start, stop, step))
+            s = np.array([])
+            for el in array:
+                s = np.concatenate((s, self.__getitem__(int(el))))
+            return s
+
+
+
 
 
 
@@ -197,15 +211,31 @@ class MultiscaleCoarseGrid(object):
         self.interfaces_faces = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._faces)
         self.interfaces_edges = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._edges)
         self.interfaces_nodes = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._nodes)
+        self.iface_coarse_neighbors = self._internal_faces(M)
 
 
+    def _internal_faces(self, M):
+        #faces = np.array([self.mb.tag_get_data(self.father_tag,el[0]).ravel() for el in self._faces]).ravel()
+        #faces = [self.interfaces_faces[int(el)] for el in range(len(self.interfaces_faces))]
+        faces = []
+        for el in range(len(self.interfaces_faces)):
+            faces.append(self.interfaces_faces[el][0])
+        partition = self.partition[:].ravel()
+        internal = faces[0:self.num_internal_faces]
+        external = faces[self.num_internal_faces:]
+        internal_volumes = M.faces.bridge_adjacencies(internal, interface="faces",target="volumes")
+        external_volumes = M.faces.bridge_adjacencies(external, interface="faces",target="volumes")
+        int_neigh = np.vstack((partition[internal_volumes[:,0]],partition[internal_volumes[:,1]])).T
+        ext_neigh = np.zeros((external_volumes.shape[0],2))
+        ext_neigh[:,0], ext_neigh[:,1] = partition[external_volumes].ravel(), partition[external_volumes].ravel()
+        return np.vstack((int_neigh,ext_neigh)).astype("uint64")
 
     def find_coarse_neighbours(self):
         self.connectivities = np.zeros((self.num_coarse,self.num_coarse+1 ,3)).astype('bool')
-        self.nodes_neighbors  = np.zeros((self.num_coarse,self.num_coarse+1), dtype = object)
-        self.edges_neighbors  = np.zeros((self.num_coarse,self.num_coarse+1), dtype = object)
-        self.faces_neighbors  = np.zeros((self.num_coarse,self.num_coarse+1), dtype = object)
-        self.nodes_neighbors[:], self.edges_neighbors[:], self.faces_neighbors[:] = None , None, None
+        self._nodes_neighbors  = np.zeros((self.num_coarse,self.num_coarse+1), dtype = object)
+        self._edges_neighbors  = np.zeros((self.num_coarse,self.num_coarse+1), dtype = object)
+        self._faces_neighbors  = np.zeros((self.num_coarse,self.num_coarse+1), dtype = object)
+        self._nodes_neighbors[:], self._edges_neighbors[:], self._faces_neighbors[:] = None , None, None
         self._nodes = list()
         self._faces = list()
         self._edges = list()
@@ -222,7 +252,7 @@ class MultiscaleCoarseGrid(object):
                 if not node_intersect.empty():
                     self._nodes.append(node_intersect)
                     #self._nodes = np.append(self._nodes,node_intersect)
-                    self.nodes_neighbors[x,y], self.nodes_neighbors[y,x],= node_count ,node_count
+                    self._nodes_neighbors[x,y], self._nodes_neighbors[y,x],= node_count ,node_count
                     self.connectivities[x, y, 0],self.connectivities[y, x, 0] = True, True
                     node_count += 1
                     [self.all_nodes_neighbors.insert(e) for e in node_intersect]
@@ -230,7 +260,7 @@ class MultiscaleCoarseGrid(object):
                 if not edges_intersect.empty():
                     self._edges.append(edges_intersect)
                     # self._edges = np.append(self._edges,edges_intersect)
-                    self.edges_neighbors[x,y], self.edges_neighbors[y,x]= edge_count ,edge_count
+                    self._edges_neighbors[x,y], self._edges_neighbors[y,x]= edge_count ,edge_count
                     self.connectivities[x, y, 1], self.connectivities[y, x, 1] =  True, True
                     edge_count += 1
                     [self.all_edges_neighbors.insert(e) for e in edges_intersect]
@@ -238,7 +268,7 @@ class MultiscaleCoarseGrid(object):
                 if not faces_intersect.empty():
                     self._faces.append(faces_intersect)
                     #self._faces = np.append(self._faces,faces_intersect)
-                    self.faces_neighbors[x,y], self.faces_neighbors[y,x]= face_count ,face_count
+                    self._faces_neighbors[x,y], self._faces_neighbors[y,x]= face_count ,face_count
                     self.connectivities[x, y, 2],self.connectivities[y, x, 2]  = True, True
                     face_count += 1
                     [self.all_faces_neighbors.insert(e) for e in faces_intersect]
@@ -251,21 +281,47 @@ class MultiscaleCoarseGrid(object):
             node_intersect = rng.subtract(self.elements[x].core.boundary_nodes, self.all_nodes_neighbors)
             if not node_intersect.empty():
                 self._nodes.append(node_intersect)
-                self.nodes_neighbors[x, -1] = node_count
+                self._nodes_neighbors[x, -1] = node_count
                 self.connectivities[x, -1, 0] = True
                 node_count += 1
             edge_intersect = rng.subtract(self.elements[x].core.boundary_edges, self.all_edges_neighbors)
             if not edge_intersect.empty():
                 self._edges.append(edge_intersect)
-                self.edges_neighbors[x, -1] = edge_count
+                self._edges_neighbors[x, -1] = edge_count
                 self.connectivities[x, -1, 1] = True
                 edge_count += 1
             face_intersect = rng.subtract(self.elements[x].core.boundary_faces, self.all_faces_neighbors)
             if not face_intersect.empty():
                 self._faces.append(face_intersect)
-                self.faces_neighbors[x, -1] = face_count
+                self._faces_neighbors[x, -1] = face_count
                 self.connectivities[x, -1, 2] = True
                 face_count += 1
+
+    def iface_neighbors(self, x):
+        tmp = -1* np.ones(self._faces_neighbors[x].shape)
+        tag = self._faces_neighbors[x] != None
+        tmp[tag] = self._faces_neighbors[x,tag]
+        #import pdb; pdb.set_trace()
+        indices = np.where(tmp >= 0)[0]
+        return indices, tmp[indices].astype(int)
+
+    def iedge_neighbors(self, x):
+        tmp = -1* np.ones(self._edges_neighbors[x].shape)
+        tag = self._edges_neighbors[x] != None
+        tmp[tag] = self._edges_neighbors[x,tag]
+        #import pdb; pdb.set_trace()
+        indices = np.where(tmp >= 0)[0]
+        return indices, tmp[indices].astype(int)
+
+    def inode_neighbors(self, x):
+        tmp = -1* np.ones(self._nodes_neighbors[x].shape)
+        tag = self._nodes_neighbors[x] != None
+        tmp[tag] = self._nodes_neighbors[x,tag]
+        #import pdb; pdb.set_trace()
+        indices = np.where(tmp >= 0)[0]
+        return indices, tmp[indices].astype(int)
+
+
 
     def father_to_local_id(self, vec_range,  element, target):
         flag = self.num[element]

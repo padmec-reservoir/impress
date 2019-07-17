@@ -3,8 +3,10 @@ Use of Pymoab methods to manage the multiscale mesh
 """
 #import pdb
 from . corePymoab import CoreMoab
-from pymoab import core, types, rng
+from pymoab import core, types, rng, topo_util
+from pymoab import skinner as sk
 import numpy as np
+import time
 
 class MsCoreMoab(CoreMoab):
     def __init__(self, father_core, num, coarse_vec):
@@ -30,11 +32,18 @@ class MsCoreMoab(CoreMoab):
         self.mb.add_entities(self.root_set, self.all_edges)
         self.mb.add_entities(self.root_set, self.all_nodes)
         all_entities = self.mb.get_entities_by_handle(self.root_set)
+
         [self.boundary_nodes, self.boundary_edges, self.boundary_faces, self.boundary_volumes] = self.skinner_operation()
         self.internal_nodes = rng.subtract(self.all_nodes, self.boundary_nodes)
         self.internal_edges = rng.subtract(self.all_edges, self.boundary_edges)
         self.internal_faces = rng.subtract(self.all_faces, self.boundary_faces)
         self.internal_volumes = rng.subtract(self.all_volumes, self.boundary_volumes)
+
+
+        # self.print_set2 = self.mb.create_meshset()
+        # self.mb.add_entities(self.print_set2, self.auxboundary_volumes)
+        # self.mb.write_file('auxskvol'+f'{self.coarse_num}'+'.h5m', [self.print_set2])
+
 
         if self.level == 1:
             self.id_name = "LOCAL_ID_L" + str(self.level) + "-" + str(self.coarse_num)
@@ -49,7 +58,7 @@ class MsCoreMoab(CoreMoab):
         # print(all_entities)
         self.flag_dic = {key:[rng.intersect(all_entities,el) for el in value] for (key, value) in father_core.flag_dic.items()}
 
-    def skinner_operation(self):
+    def auxskinner_operation(self):
         #skin = sk.Skinner(self.mb)
         # print("Entering skinner test")
 
@@ -70,6 +79,15 @@ class MsCoreMoab(CoreMoab):
             faces_on_skin_handles = self.range_index(np.bitwise_not(external_faces_index),self.all_faces)
             volumes_on_skin_handles = rng.Range()
         return [nodes_on_skin_handles, edges_on_skin_handles, faces_on_skin_handles, volumes_on_skin_handles]
+    def skinner_operation(self):
+
+        self.skin = sk.Skinner(self.mb)
+        faces_on_skin_handles  = self.skin.find_skin(0, self.all_volumes)
+        edges_on_skin_handles = self.mtu.get_bridge_adjacencies(faces_on_skin_handles, 2, 1)
+        nodes_on_skin_handles = self.mtu.get_bridge_adjacencies(faces_on_skin_handles, 2, 0)
+        volumes_on_skin_handles = rng.intersect(self.mtu.get_bridge_adjacencies(faces_on_skin_handles, 0, 3), self.all_volumes)
+        return [nodes_on_skin_handles, edges_on_skin_handles, faces_on_skin_handles, volumes_on_skin_handles]
+
 
     def bridge_adjacencies(self, handle, dim):
         # lacks support for indexing with multiple numbers
