@@ -21,12 +21,14 @@ class MsCoreMoab(CoreMoab):
         self.handleDic = father_core.handleDic
         if self.dimension == 3:
             self.all_volumes = self.range_index(coarse_vec, range_handle=father_core.all_volumes)
-            self.all_faces = self.access_handle(self.all_volumes)
+            self.all_faces = self.mb.get_adjacencies(self.all_volumes, 2, False, op_type=types.UNION)
+            self.all_edges = self.mb.get_adjacencies(self.all_volumes, 1, False, op_type=types.UNION)
+            self.all_nodes = self.mb.get_adjacencies(self.all_volumes, 0, False, op_type=types.UNION)
         elif self.dimension == 2:
             self.all_volumes = rng.Range()
             self.all_faces = self.range_index(coarse_vec, range_handle=father_core.all_faces)
-        self.all_edges = self.access_handle(self.all_faces)
-        self.all_nodes = rng.Range(self.mb.get_connectivity(self.all_faces))
+            self.all_edges = self.access_handle(self.all_faces)
+            self.all_nodes = rng.Range(self.mb.get_connectivity(self.all_faces))
         self.mb.add_entities(self.root_set, self.all_volumes)
         self.mb.add_entities(self.root_set, self.all_faces)
         self.mb.add_entities(self.root_set, self.all_edges)
@@ -41,8 +43,8 @@ class MsCoreMoab(CoreMoab):
 
 
         # self.print_set2 = self.mb.create_meshset()
-        # self.mb.add_entities(self.print_set2, self.auxboundary_volumes)
-        # self.mb.write_file('auxskvol'+f'{self.coarse_num}'+'.h5m', [self.print_set2])
+        # self.mb.add_entities(self.print_set2, self.all_faces)
+        # self.mb.write_file('auxfaces'+f'{self.coarse_num}'+'.h5m', [self.print_set2])
 
 
         if self.level == 1:
@@ -80,14 +82,21 @@ class MsCoreMoab(CoreMoab):
             volumes_on_skin_handles = rng.Range()
         return [nodes_on_skin_handles, edges_on_skin_handles, faces_on_skin_handles, volumes_on_skin_handles]
     def skinner_operation(self):
-
-        self.skin = sk.Skinner(self.mb)
-        faces_on_skin_handles  = self.skin.find_skin(0, self.all_volumes)
-        edges_on_skin_handles = self.mtu.get_bridge_adjacencies(faces_on_skin_handles, 2, 1)
-        nodes_on_skin_handles = self.mtu.get_bridge_adjacencies(faces_on_skin_handles, 2, 0)
-        volumes_on_skin_handles = rng.intersect(self.mtu.get_bridge_adjacencies(faces_on_skin_handles, 0, 3), self.all_volumes)
+        if self.dimension == 3:
+            self.skin = sk.Skinner(self.mb)
+            faces_on_skin_handles  = self.skin.find_skin(0, self.all_volumes)
+            edges_on_skin_handles = self.mtu.get_bridge_adjacencies(faces_on_skin_handles, 2, 1)
+            nodes_on_skin_handles = self.mtu.get_bridge_adjacencies(faces_on_skin_handles, 2, 0)
+            volumes_on_skin_handles = rng.intersect(self.mtu.get_bridge_adjacencies(faces_on_skin_handles, 0, 3), self.all_volumes)
+        elif self.dimension == 2:
+            edges_on_skin_handles = self.bridge_adjacencies(self.all_edges,self.dimension)
+            nodes_on_skin_handles = self.access_handle(edges_on_skin_handles)
+            nodes_in_faces = ([self.mb.get_adjacencies(el_handle,0) for el_handle in self.all_faces])
+            check_faces= ([rng.intersect(el_handle,nodes_on_skin_handles) for el_handle in nodes_in_faces])
+            external_faces_index = np.array([el_handle.empty() for el_handle in check_faces]).astype(bool)
+            faces_on_skin_handles = self.range_index(np.bitwise_not(external_faces_index),self.all_faces)
+            volumes_on_skin_handles = rng.Range()
         return [nodes_on_skin_handles, edges_on_skin_handles, faces_on_skin_handles, volumes_on_skin_handles]
-
 
     def bridge_adjacencies(self, handle, dim):
         # lacks support for indexing with multiple numbers

@@ -7,7 +7,7 @@
 # %load_ext autoreload
 # %autoreload 2
 import time
-from preprocessor.meshHandle.finescaleMesh import FineScaleMesh as msh
+from preprocessor.meshHandle.multiscaleMesh import FineScaleMeshMS as msh
 from preprocessor.meshHandle.dualCoarseMesh import DualCoarseMesh as dual
 #from preprocessor.meshHandle.dualCoarseMesh import DualCoarseMesh as dual2
 

@@ -25,13 +25,13 @@ class CoreMoab:
         self.all_edges = self.mb.get_entities_by_dimension(0, 1)
 
 
-        self.print_set = self.mb.create_meshset()
-        start = time.time()
-        self.printents = self.mb.get_adjacencies(self.all_volumes, 2, False, op_type=types.UNION)
-        end = time.time()
-        print("get adjacencies {0}s".format(end-start))
-        self.mb.add_entities(self.print_set, self.printents)
-        self.mb.write_file('new_file.h5m', [self.print_set])
+        # self.print_set = self.mb.create_meshset()
+        # start = time.time()
+        # self.printents = self.mb.get_adjacencies(self.all_edges, 0, False, op_type=types.UNION)
+        # end = time.time()
+        # print("get adjacencies {0}s".format(end-start))
+        # self.mb.add_entities(self.print_set, self.printents)
+        # self.mb.write_file('new_file.h5m', [self.print_set])
 
         self.handleDic = {}
         [self.boundary_nodes, self.boundary_edges, self.boundary_faces, self.boundary_volumes] = self.skinner_operation()
