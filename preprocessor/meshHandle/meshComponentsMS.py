@@ -40,23 +40,23 @@ class MeshEntitiesMS(MeshEntities):
         return self.mb.tag_get_data(self.father_handle, element_handle).ravel()
 
     def enhance(self,i, general):
-        self._coarse_neighbors_dic = {}
+        self.coarse_neighbors_dic = {}
         if self.vID == 0:
-            index = general._nodes_neighbors[i, np.where(general.connectivities[i, :, 0])[0]].astype("uint64")
-            self._coarse_neighbors_dic = {x: general._nodes[y] for x,y in zip(np.where(general.connectivities[i, :, 0])[0], index)}
+            index = general.nodes_neighbors[i, np.where(general.connectivities[i, :, 0])[0]].astype("uint64")
+            self.coarse_neighbors_dic = {x: general._nodes[y] for x,y in zip(np.where(general.connectivities[i, :, 0])[0], index)}
         elif self.vID == 1:
-            index = general._edges_neighbors[i, np.where(general.connectivities[i, :, 1])[0]].astype("uint64")
-            self._coarse_neighbors_dic = {x: general._edges[y] for x,y in zip(np.where(general.connectivities[i, :, 1])[0], index)}
+            index = general.edges_neighbors[i, np.where(general.connectivities[i, :, 1])[0]].astype("uint64")
+            self.coarse_neighbors_dic = {x: general._edges[y] for x,y in zip(np.where(general.connectivities[i, :, 1])[0], index)}
         elif self.vID == 2:
-            index = general._faces_neighbors[i, np.where(general.connectivities[i, :, 2])[0]].astype("uint64")
-            self._coarse_neighbors_dic = {x: general._faces[y] for x,y in zip(np.where(general.connectivities[i, :, 2])[0], index)}
+            index = general.faces_neighbors[i, np.where(general.connectivities[i, :, 2])[0]].astype("uint64")
+            self.coarse_neighbors_dic = {x: general._faces[y] for x,y in zip(np.where(general.connectivities[i, :, 2])[0], index)}
         if self.vID < 3:
             self.coarse_neighbors = np.where(general.connectivities[i, :, self.vID])[0].astype("uint64")
             self.is_on_father_boundary = general.connectivities[i, -1, self.vID]
         self.neighborhood = GetItem(self._elements_in_coarse_neighborhood)
 
     def _elements_in_coarse_neighborhood(self,x):
-        handle = self._coarse_neighbors_dic[x]
+        handle = self.coarse_neighbors_dic[x]
         return self.read(handle)
 
     @property
@@ -73,7 +73,6 @@ class MeshEntitiesMS(MeshEntities):
         if self.is_on_father_boundary:
             trange = rng.subtract(trange, self.coarse_neighbors_dic[max(self.coarse_neighbors_dic.keys())])
         return self.read(trange)
-
 
 class MoabVariableMS(MoabVariable):
     def __init__(self, core, name_tag, var_type="volumes", data_size=1, data_format="float", data_density="sparse",
