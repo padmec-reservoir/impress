@@ -1,10 +1,10 @@
 # Input file of geometric partitioning settings
 
 # Partitioner scheme
-#  0 -> Não particionar-> Usar particionamento já definido
-#  1 -> Particionamento Geométrico Simples com Base Cubos
-#  2 -> Particionamento Geométrico Simples com Tetraedros
-#  3 -> Particionamento Geométrico
+#  0 -> Nao particionar-> Usar particionamento ja definido
+#  1 -> Particionamento Geometrico Simples com Base Cubos
+#  2 -> Particionamento Geometrico Simples com Tetraedros
+#  3 -> Particionamento Geometrico
 Partitioner Scheme: '1'
 
 # Coarsening ratio in directions x, y e z
