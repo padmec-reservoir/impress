@@ -1,5 +1,5 @@
 """
-Use of Pymoab methods to read and manage the input mesh
+Uses Pymoab methods to read and manage the input mesh
 """
 from pymoab import core, types, rng, topo_util
 from pymoab import skinner as sk
@@ -9,6 +9,8 @@ import yaml
 
 
 class CoreMoab:
+    """CoreMoab description
+    """
     def __init__(self, mesh_file, dim=3):
         self.dimension = dim
         self.mb = core.Core()
@@ -265,7 +267,7 @@ class CoreMoab:
                 range_merged.merge(arg)
         return range_merged
 
-    def print(self, text=None, extension=".h5m", config_input="print_settings.yml"):
+    def print(self, text=None, extension = ".h5m", config_input = "print_settings.yml"):
         with open("print_settings.yml", 'r') as f:
             data = yaml.safe_load(f)
         nodes = data['nodes']

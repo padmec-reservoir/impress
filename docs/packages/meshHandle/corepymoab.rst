@@ -1,6 +1,5 @@
-preprocessor.meshHandle.corePymoab Module
-=========================================
+Title
+=====
 
 .. automodule:: preprocessor.meshHandle.corePymoab
     :members:
-    :show-inheritance:
