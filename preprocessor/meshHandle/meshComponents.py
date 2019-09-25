@@ -2,7 +2,7 @@
 Generator of mesh entities and tags
 """
 
-#import pdb
+import pdb
 import numpy as np
 from pymoab import types, rng, topo_util
 from ..geoUtil import geoTools as gtool
@@ -96,9 +96,9 @@ class MeshEntities(object):
             if index.dtype == "bool":
                 index = np.where(index)[0]
             elif index.dtype == np.uint64:
-                return self.mtu.get_ord_bridge_adjacencies(index, self.num[interface], self.num[target])
+                return self.mtu.get_ord_bridge_adjacencies(index, self.num[interface], self.num[target], self.mb, self.tag_handle)
         el_handle = self.elements_handle[index]
-        return self.mtu.get_ord_bridge_adjacencies(el_handle, self.num[interface], self.num[target])
+        return self.mtu.get_ord_bridge_adjacencies(el_handle, self.num[interface], self.num[target], self.mb, self.tag_handle)
 
     def _coords(self, index):
         if isinstance(index, np.ndarray):
@@ -106,7 +106,7 @@ class MeshEntities(object):
                 index = np.where(index)[0]
             elif index.dtype == np.uint64:
                 return np.reshape(self.mb.get_coords(index),(-1,3))
-        el_handle = self.elements_handle[index]
+        el_handle = self.nodes[index]
         return np.reshape(self.mb.get_coords(el_handle),(-1,3))
 
     # def _global_id(self, index):
@@ -136,9 +136,9 @@ class MeshEntities(object):
             if index.dtype == "bool":
                 index = np.where(index)[0]
             elif index.dtype == np.uint64:
-                return self.mb.get_ord_adjacencies(index, dim_tag)
+                return self.mb.get_ord_adjacencies(index, dim_tag, tag_handle = self.tag_handle)
         el_handle = self.elements_handle[index]
-        return self.mb.get_ord_adjacencies(el_handle, dim_tag)
+        return self.mb.get_ord_adjacencies(el_handle, dim_tag, tag_handle = self.tag_handle)
 
     def _center(self,index):
         if self.vID == 0:
@@ -183,9 +183,9 @@ class MeshEntities(object):
             if index.dtype == "bool":
                 index = np.where(index)[0]
             elif index.dtype == np.uint64:
-                return self.mb.get_ord_connectivity(index)
+                return self.mb.get_ord_connectivity(index, tag_handle = self.tag_handle)
         el_handle = self.elements_handle[index]
-        return self.mb.get_ord_connectivity(el_handle)
+        return self.mb.get_ord_connectivity(el_handle, tag_handle = self.tag_handle)
 
     def create_range_vec(self, index):
         range_vec = None
@@ -271,7 +271,7 @@ class MeshEntities(object):
         return self.all
 
     def read(self, handle):
-        return self.mb.tag_get_data(self.tag_handle, handle).ravel()
+        return self.mb.tag_get_data(self.tag_handle, handle, flat = True).astype(np.int64)
 
     @property
     def all_flagged_elements(self):
