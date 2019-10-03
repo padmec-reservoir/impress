@@ -80,6 +80,7 @@ class FineScaleMeshMS(FineScaleMesh):
                 exec(command)
 
     def init_partition(self):
+        import pdb; pdb.set_trace()
         config = self.read_config('msCoarse.yml')
         particionador_type = config["Partitioner Scheme"]
         specific_attributes = config["Coarsening"]
@@ -320,8 +321,6 @@ class MultiscaleCoarseGrid(object):
         #import pdb; pdb.set_trace()
         indices = np.where(tmp >= 0)[0]
         return indices, tmp[indices].astype(int)
-
-
 
     def father_to_local_id(self, vec_range,  element, target):
         flag = self.num[element]

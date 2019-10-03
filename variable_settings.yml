@@ -20,12 +20,12 @@ edges:
 
 faces:
   pride:
-    data size: 1
+    data size: 3
     data format: 'float'
     level: 0
 
 volumes:
   dreams:
-    data size: 1
+    data size: 3
     data format: 'float'
     level: 0

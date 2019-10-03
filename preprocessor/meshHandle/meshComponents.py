@@ -424,4 +424,5 @@ class MoabVariable(object):
             range_el = self.range_index(index_vec)
         else:
             range_el = self.elements_handle
+
         return self.mb.tag_get_data(self.tag_handle, range_el)

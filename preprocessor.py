@@ -2,7 +2,7 @@
 # Run preprocessor
 
 # docker run -t -it -v  /home/arturcastiel/projetos:/pytest desenvolvimento:latest bash -c "cd /pytest; bash"
-
+# docker run -t -it -v  /home/arturcastiel/projetos:/pytest gabrielmmats/impress bash -c "cd /pytest; bash"
 # docker run -it -v  /home/arturcastiel/projetos:/pytest desenvolvimento:latest bash -c "cd /pytest; bash"
 # %load_ext autoreload
 # %autoreload 2
@@ -22,7 +22,8 @@ from preprocessor.meshHandle.dualCoarseMesh import DualCoarseMesh as dual
 #foobar = imp.load_source('20.h5m', '/mesh')
 
 start = time.time()
-M = msh('mesh/semi2.msh', dim=3)
+#M = msh('mesh/semi3.msh', dim=3)
+M = msh('mesh/semi3.msh', dim=3)
 # M = msh('mesh/malha03.msh', dim = 2)
 
 
