@@ -16,14 +16,15 @@ neighbors = np.sort(np.insert(neighbors,1,x)) # XXX: ))
 ccoord = M.volumes.center[l.coarse_center[x]]
 #center coordinates of the cv coarse volume neigbhors
 dcoords = M.volumes.center[l.coarse_center[np.setdiff1d(neighbors,x)]]
+faces_neighbors = np.isin(M.coarse.partition[:].ravel()[l.interface_vol], neighbors)
+all_neighbors_index = np.logical_and(faces_neighbors[:,0], faces_neighbors[:,1])
 internal_tag = np.zeros(all_neighbors_index.shape, dtype="bool")
 internal_tag[0:M.coarse.num_internal_faces] = 1
 
 # removing bad tetrahedron that do not have the center
 #modified_simplices = trian.simplices[np.sum(trian.simplices == trian.simplices.max(),axis=1) == 1]
 
-faces_neighbors = np.isin(M.coarse.partition[:].ravel()[l.interface_vol], neighbors)
-all_neighbors_index = np.logical_and(faces_neighbors[:,0], faces_neighbors[:,1])
+
 
 #coordinates of the interfaces of the CV with its neighbors
 x_tag = np.sum((M.coarse.partition[:].ravel()[l.interface_vol] == x),axis=1) >=1
