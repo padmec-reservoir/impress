@@ -15,13 +15,14 @@ def volume(p1, p2, p3, p4):
 class DelaunaySingle(object):
     def __init__(self, coords, elements, point_type, center):
         self.mb = core.Core()
+        self.point_type = point_type
         verts = self.mb.create_vertices(coords)
         self.rs = self.mb.get_root_set()
         #import pdb; pdb.set_trace()
         #import pdb; pdb.set_trace()
         elements = elements + np.ones(elements.shape)
-        tag_handle = self.mb.tag_get_handle("Teste", 1, types.MB_TYPE_INTEGER, types.MB_TAG_DENSE, create_if_missing = True)
-        tag_node = self.mb.tag_get_handle("Nodes", 1, types.MB_TYPE_INTEGER, types.MB_TAG_DENSE, create_if_missing = True)
+        self.tag_handle = self.mb.tag_get_handle("Teste", 1, types.MB_TYPE_INTEGER, types.MB_TAG_DENSE, create_if_missing = True)
+        self.tag_node = self.mb.tag_get_handle("Nodes", 1, types.MB_TYPE_INTEGER, types.MB_TAG_DENSE, create_if_missing = True)
 
         for el in elements:
             tetra = self.mb.create_element(types.MBTET, el.ravel().astype("uint64"))
@@ -29,31 +30,51 @@ class DelaunaySingle(object):
         # self.mtu = topo_util.MeshTopoUtil(self.mb)
         # self.mtu.construct_aentities(verts)
         #self.mtu.construct_aentities(verts)
-        self.elements = self.mb.get_entities_by_dimension(0, 3)
+        #self.elements = self.mb.get_entities_by_dimension(0, 3)
         self.all_elements = self.mb.get_entities_by_dimension(0, 3)
         self.nodes = self.mb.get_entities_by_dimension(0, 0)
+        self.faces = self.skinner(self.all_elements)
+        self.boundary_nodes = self.find_boundary_nodes()
+        self.boundary_elements = self.find_boundary_tetra()
+        self.remove_vol(self.all_elements[0:120])
+        self.create_vtk()
 
+
+    def find_boundary_nodes(self):
+        return self.adjs(self.faces, 0)
+
+    def find_boundary_elements(self):
+        self.mtu = topo_util.MeshTopoUtil(self.mb)
+        import pdb; pdb.set_trace()
+        self.mtu.bridge_adjacencies()
+        return self.adjs(self.faces, 0)
+
+
+    def create_vtk(self):
+        for index,el in enumerate(self.all_elements):
+            self.mb.tag_set_data(self.tag_handle, el, index)
+        for index,el in enumerate(self.nodes):
+            self.mb.tag_set_data(self.tag_node, el, self.point_type[index].astype(int))
         meshset = self.mb.create_meshset()
         self.mb.add_entity(meshset, self.nodes)
-        #self.mb.add_entity(meshset, elements)
-        self.faces = self.skinner(self.elements)
-        for index,el in enumerate(self.elements):
-            self.mb.tag_set_data(tag_handle, el, index)
-        for index,el in enumerate(self.nodes):
-            self.mb.tag_set_data(tag_node, el, point_type[index].astype(int))
-
-        self.elements = self.elements[0:50]
-        self.update_vol()
         self.mb.write_file("delaunay0.vtk", [meshset])
         self.mb.write_file("delaunay1.vtk")
 
-    def update_vol(self):
-        tetra_remove = rng.intersect(self.all_elements, self.elements)
-        b = self.adjs(tetra_remove, 2)
-        print(b)
-        import pdb; pdb.set_trace()
-        self.all_elements = self.mb.get_entities_by_dimension(0, 3)
+    def remove_vol(self, element):
+        tetra_remove = rng.intersect(self.all_elements, element)
+        tetra_remaining = rng.subtract(self.all_elements, tetra_remove)
+        #import pdb; pdb.set_trace()
+        faces = rng.subtract(self.adjs(tetra_remove, 2), self.adjs(tetra_remaining,2))
+        edges = rng.subtract(self.adjs(tetra_remove, 1), self.adjs(tetra_remaining,1))
+        nodes = rng.subtract(self.adjs(tetra_remove, 0), self.adjs(tetra_remaining,0))
         self.mb.delete_entity(tetra_remove)
+        self.mb.delete_entity(faces)
+        self.mb.delete_entity(edges)
+        self.mb.delete_entity(nodes)
+        self.all_elements = self.mb.get_entities_by_dimension(0, 3)
+        self.nodes = self.mb.get_entities_by_dimension(0, 0)
+        self.faces = self.skinner(self.all_elements)
+        self.boundary_nodes = self.find_boundary_nodes()
 
     def adjs(self, range,x):
         rnb = rng.Range()
