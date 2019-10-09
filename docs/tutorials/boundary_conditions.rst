@@ -1,2 +1,2 @@
-Setting the boundary conditions
-===============================
+Setting Boundary Conditions
+===========================
