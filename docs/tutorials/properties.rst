@@ -5,7 +5,9 @@ To perform any kind of simulation, it will be necessary to access informations a
 
 IMPRESS was developed to systematically provide access to these properties for any kind of mesh entity (nodes, edges, faces or volumes, in a 3D mesh). Every time IMPRESS is executed, several objects are created to represent the mesh entities and inherited by a main class (that represents the mesh itself), FineScaleMesh. A ilustrative scheme of the inheritance scheme follows below:
 
-SCHEME IMAGE
+.. image:: ../_static/inherit_properties.png
+   :align: center
+   :scale: 75%
 
 The IMPRESS' execution script instatiates this class creating an object called **M** through which it's possible to access all mesh entities. Furthermore, the user can obtain the mesh entity properties through its objects (which are literally called `nodes`, `edges`, `faces` and `volumes`).
 
