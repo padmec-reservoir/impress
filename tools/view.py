@@ -15,11 +15,11 @@ def volume(p1, p2, p3, p4):
 class DelaunaySingle(object):
     def __init__(self, coords, elements, point_type, center):
         self.mb = core.Core()
+        #self.point_type = np.concatenate((np.array([-1]), point_type))
         self.point_type = point_type
         verts = self.mb.create_vertices(coords)
         self.rs = self.mb.get_root_set()
-        #import pdb; pdb.set_trace()
-        #import pdb; pdb.set_trace()
+
         elements = elements + np.ones(elements.shape)
         self.tag_handle = self.mb.tag_get_handle("Teste", 1, types.MB_TYPE_INTEGER, types.MB_TAG_DENSE, create_if_missing = True)
         self.tag_node = self.mb.tag_get_handle("Nodes", 1, types.MB_TYPE_INTEGER, types.MB_TAG_DENSE, create_if_missing = True)
@@ -31,23 +31,56 @@ class DelaunaySingle(object):
         # self.mtu.construct_aentities(verts)
         #self.mtu.construct_aentities(verts)
         #self.elements = self.mb.get_entities_by_dimension(0, 3)
+        self.mtu = topo_util.MeshTopoUtil(self.mb)
         self.all_elements = self.mb.get_entities_by_dimension(0, 3)
         self.nodes = self.mb.get_entities_by_dimension(0, 0)
         self.faces = self.skinner(self.all_elements)
         self.boundary_nodes = self.find_boundary_nodes()
-        self.boundary_elements = self.find_boundary_tetra()
-        self.remove_vol(self.all_elements[0:120])
+        self.boundary_elements = self.find_boundary_elements()
+        print(self.condition())
+
+        #self.select(self.boundary_nodes)
+        #self.remove_vol(self.all_elements[0:120])
         self.create_vtk()
 
+    def find_bad_vol(self):
+        index = 0
+        point_type = np.concatenate((np.array([-1]), self.point_type))
+        while not self.condition():
+            index = index + 1
+            connect = self.connectivities(self.boundary_elements, 4)
+            flag = point_type[connect]
+
+            #mat ==
+            #a = self.connectivities(self.boundary_nodes,4)
+            import pdb; pdb.set_trace()
+            if index == 10:
+                import pdb; pdb.set_trace()
+        pass
+
+    def condition(self):
+        desired_bnodes = np.array(self.nodes)[self.point_type == 0]
+        print("desired nodes:", desired_bnodes)
+        print("boundary nodes:", np.array(self.boundary_nodes))
+        print("nodes on boundary", desired_bnodes[np.isin(desired_bnodes,np.array(self.boundary_nodes))])
+        print("missing", desired_bnodes[~np.isin(desired_bnodes,np.array(self.boundary_nodes))])
+        #print(~desired_bnodes[np.isin(desired_bnodes,np.array(self.boundary_nodes))])
+        return np.all(np.isin(desired_bnodes,np.array(self.boundary_nodes)))
+
+
+    def select(self, range, vec):
+        return rng.Range(np.array(range)[vec])
 
     def find_boundary_nodes(self):
         return self.adjs(self.faces, 0)
 
     def find_boundary_elements(self):
-        self.mtu = topo_util.MeshTopoUtil(self.mb)
-        import pdb; pdb.set_trace()
-        self.mtu.bridge_adjacencies()
-        return self.adjs(self.faces, 0)
+        #self.mtu = topo_util.MeshTopoUtil(self.mb)
+        rnb = rng.Range()
+        it = ([self.mtu.get_bridge_adjacencies(el, 2,3) for el in self.faces])
+        for el in it:
+            rnb = rng.unite(rnb, el)
+        return rnb
 
 
     def create_vtk(self):
@@ -70,7 +103,7 @@ class DelaunaySingle(object):
         self.mb.delete_entity(tetra_remove)
         self.mb.delete_entity(faces)
         self.mb.delete_entity(edges)
-        self.mb.delete_entity(nodes)
+        #self.mb.delete_entity(nodes)
         self.all_elements = self.mb.get_entities_by_dimension(0, 3)
         self.nodes = self.mb.get_entities_by_dimension(0, 0)
         self.faces = self.skinner(self.all_elements)
