@@ -126,6 +126,7 @@ class CoarseVolume(FineScaleMeshMS):
         self.dim = dim
         self.level = father_core.level + 1
         self.coarse_num = i
+        self.coarse_vec = coarse_vec
 
         print("Level {0} - Volume {1}".format(self.level,self.coarse_num))
         self.core = MsCoreMoab(father_core, i, coarse_vec)
@@ -182,7 +183,7 @@ class MultiscaleCoarseGrid(object):
     def __init__(self, M):
         self.mb = M.core.mb
         self.partition = M.init_partition()
-        self.elements = [CoarseVolume(M.core, M.dim, i, self.partition[:] == i) for i in range(self.partition[:].max()+1 )]
+        self.elements = [CoarseVolume(M.core, M.dim, i, self.partition[:].ravel() == i) for i in range(self.partition[:].max()+1 )]
         self.num_coarse = len(self.elements)
         self.num = {"nodes": 0, "node": 0, "edges": 1, "edge": 1, "faces": 2, "face": 2, "volumes": 3, "volume": 3,
                              0: 0, 1: 1, 2: 2, 3: 3}

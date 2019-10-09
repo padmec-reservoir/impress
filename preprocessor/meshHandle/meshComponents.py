@@ -45,6 +45,7 @@ class MeshEntities(object):
             self.id_name = self.father_id_name + str("L") + str(self.level) + "-" + str(self.coarse_num)
 
         (self.elements_handle, self.internal_elements, self.boundary_elements), self.vID = list_type[entity_num], entity_num
+        self.internal_elements_array = self.internal_elements.get_array()
         self.entity_type = string[entity_num]
         self.tag_handle = core.handleDic[self.id_name]
         self.global_handle = core.handleDic['GLOBAL_ID']
@@ -287,12 +288,11 @@ class MeshEntities(object):
 
     @property
     def boundary(self):
-        return self.read(self.boundary_elements)
+        return self.read(self.boundary_elements.get_array())
 
     @property
     def internal(self):
-        return self.read(self.internal_elements)
-
+        return self.read(self.internal_elements_array)
 
 class MoabVariable(object):
     def __init__(self, core, name_tag, var_type="volumes", data_size=1, data_format="float", data_density="sparse",
@@ -343,7 +343,7 @@ class MoabVariable(object):
         if isinstance(index, np.ndarray):
             if index.dtype == "bool":
                 index = np.where(index)[0]
-        range_el = self.elements_handle[index]
+        range_el = rng.Range(self.elements_handle[index]).get_array()
         return self.mb.tag_get_data(self.tag_handle, range_el)
 
 

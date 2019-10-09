@@ -20,13 +20,13 @@ class MsCoreMoab(CoreMoab):
         self.mtu = father_core.mtu
         self.handleDic = father_core.handleDic
         if self.dimension == 3:
-            self.all_volumes = self.range_index(coarse_vec, range_handle=father_core.all_volumes)
+            self.all_volumes = father_core.all_volumes[coarse_vec]
             self.all_faces = self.mb.get_adjacencies(self.all_volumes, 2, False, op_type=types.UNION)
             self.all_edges = self.mb.get_adjacencies(self.all_volumes, 1, False, op_type=types.UNION)
             self.all_nodes = self.mb.get_adjacencies(self.all_volumes, 0, False, op_type=types.UNION)
         elif self.dimension == 2:
             self.all_volumes = rng.Range()
-            self.all_faces = self.range_index(coarse_vec, range_handle=father_core.all_faces)
+            self.all_faces = father_core.all_faces[coarse_vec]
             self.all_edges = self.access_handle(self.all_faces)
             self.all_nodes = rng.Range(self.mb.get_connectivity(self.all_faces))
         self.mb.add_entities(self.root_set, self.all_volumes)

@@ -198,7 +198,7 @@ class CoreMoab:
         if range_el is None:
             range_el = self.all_volumes
         if index_vec.size > 0:
-            range_el = self.range_index(index_vec,range_el)
+            range_el = range_el[index_vec]
         try:
             handle_tag = self.handleDic[name_tag]
             return self.mb.tag_get_data(handle_tag, range_el)
@@ -219,7 +219,7 @@ class CoreMoab:
         if range_el is None:
             range_el = self.all_volumes
         if index_vec.size > 0:
-            range_el = self.range_index(index_vec, range_el)
+            range_el = range_el[index_vec]
         handle_tag = self.handleDic[name_tag]
         self.mb.tag_set_data(handle_tag, range_el, data)
 
