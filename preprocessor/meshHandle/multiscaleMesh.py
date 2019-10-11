@@ -80,7 +80,7 @@ class FineScaleMeshMS(FineScaleMesh):
                 exec(command)
 
     def init_partition(self):
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         config = self.read_config('msCoarse.yml')
         particionador_type = config["Partitioner Scheme"]
         specific_attributes = config["Coarsening"]

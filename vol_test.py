@@ -59,6 +59,12 @@ xcoords = M.faces.center[l.center_face[np.logical_and(~cv_interfaces, ~internal_
 tcoords = np.vstack((dcoords, cv_icoords, cv_xcoords, icoords, xcoords, ccoord))
 point_type = np.concatenate((0*np.ones(dcoords.shape[0]),1*np.ones(cv_icoords.shape[0]), 2*np.ones(cv_xcoords.shape[0]) , 3*np.ones(icoords.shape[0]), 4*np.ones(xcoords.shape[0]), 5*np.ones(ccoord.shape[0])))
 
+
+tcoords = np.vstack((dcoords, cv_icoords, cv_xcoords, icoords, ccoord))
+point_type = np.concatenate((0*np.ones(dcoords.shape[0]),1*np.ones(cv_icoords.shape[0]), 2*np.ones(cv_xcoords.shape[0]) , 3*np.ones(icoords.shape[0]),  5*np.ones(ccoord.shape[0])))
+
+
+
 trian = Delaunay(tcoords)
 
 df = pd.DataFrame(point_type[trian.simplices])

@@ -37,35 +37,176 @@ class DelaunaySingle(object):
         self.faces = self.skinner(self.all_elements)
         self.boundary_nodes = self.find_boundary_nodes()
         self.boundary_elements = self.find_boundary_elements()
+
+        self.desired_bnodes = np.array(self.nodes)[self.point_type == 0]
         print(self.condition())
 
         #self.select(self.boundary_nodes)
         #self.remove_vol(self.all_elements[0:120])
+        self.find_bad_vol()
+        import pdb; pdb.set_trace()
+        self.smooth()
+        import pdb; pdb.set_trace()
         self.create_vtk()
+
+    # def find_bad_vol2(self):
+    #     index = 0
+    #     point_type = np.concatenate((np.array([-1]), self.point_type))
+    #     protect = rng.Range()
+    #     while not self.condition():
+    #         #import pdb; pdb.set_trace()
+    #         index = 0
+    #         connect = self.connectivities(self.boundary_elements, 4)
+    #         flag = point_type[connect]
+    #         all_tetra_ref = np.arange(connect.shape[0])
+    #         bnodes = np.array(self.boundary_nodes)
+    #         cnodes = np.isin(connect,bnodes)
+    #
+    #
+    #         for rconnect, rflag, rcnodes in zip(connect,flag,cnodes):
+    #             tetra = rng.Range(self.boundary_elements[index])
+    #             other_tetra = rng.subtract(self.all_elements,tetra)
+    #             bnodes_flag = rflag[rcnodes]
+    #             inodes_flag = rflag[~rcnodes]
+    #             bnodes_connect = rconnect[rcnodes]
+    #             inodes_connect = rconnect[~rcnodes]
+    #             bnodes_num = len(bnodes_flag)
+    #
+    #             if bnodes_num == 1:
+    #                 pass
+    #             elif bnodes_num == 2:
+    #                 pass
+    #             elif bnodes_num == 3:
+    #                 pass
+    #             elif bnodes_num == 4:
+    #                 ltag = np.isin(rconnect,np.unique(self.connectivities(other_tetra,4)))
+    #                 if np.any(~ltag):
+    #                     if (bnodes_flag[~ltag] == 2) or (bnodes_flag[~ltag] == 0):
+    #                         protect = rng.unite(protect, tetra)
+    #                 else:
+    #                     pass
+    #
+    #                 import pdb; pdb.set_trace()
+    #                 bnodes_flag
+    #                 pass
+    #             print(rconnect, rflag, rcnodes)
+    #             index = index + 1
+    #         #self.remove_vol(self.select(self.boundary_elements,remove_flag))
+    #         self.create_vtk()
+
+
+
+    def bad_vol(self):
+        index = 0
+        point_type = np.concatenate((np.array([-1]), self.point_type))
+        while not self.condition():
+            #import pdb; pdb.set_trace()
+            index = index + 1
+            connect = self.connectivities(self.boundary_elements, 4)
+            flag = point_type[connect]
+            all_tetra_ref = np.arange(connect.shape[0])
+            num_tetra_bnodes = np.sum(np.isin(connect,np.array(self.boundary_nodes)), axis=1)
+            four_bnodes_tetra = (num_tetra_bnodes == 4)
+            three_bnodes_tetra = (num_tetra_bnodes == 3)
+            # treating tetrahedron with 4 nodes on the boundary those tetrahedron
+            # will be removed as no node are exclusive to these entities
+            rm1 = all_tetra_ref[four_bnodes_tetra][~np.any(np.logical_and(connect[four_bnodes_tetra],flag[four_bnodes_tetra] == 0),axis=1)]
+            #~np.any(np.logical_and(connect[four_bnodes_tetra],flag[four_bnodes_tetra] == 0),axis=1)
+            #import pdb; pdb.set_trace()
+
+            # treating tetrahedron with 3 nodes on the boundary those tetrahedron
+            # will be removed as no node are exclusive to these entities
+            rmp = all_tetra_ref[three_bnodes_tetra]
+            # ~np.isin(connect[three_bnodes_tetra],np.array(self.boundary_nodes))
+            tag = np.any(flag[three_bnodes_tetra] == 0,  axis=1)
+            rm2 = rmp[~tag]
+            tetra_tag = rmp[tag]
+            rm3 = tetra_tag[np.all(~np.isin(connect[tetra_tag],np.array(self.boundary_nodes)) == (flag[tetra_tag] == 0), axis=1)]
+            # flag[three_bnodes_tetra]
+            # rm2 = all_tetra_ref[four_bnodes_tetra]
+            remove_tetra = np.sort(np.hstack((rm1,rm2,rm3)))
+            remove_flag = np.isin(all_tetra_ref, remove_tetra)
+
+            self.remove_vol(self.select(self.boundary_elements,remove_flag))
+
+            self.create_vtk()
+            import pdb; pdb.set_trace()
+
 
     def find_bad_vol(self):
         index = 0
         point_type = np.concatenate((np.array([-1]), self.point_type))
         while not self.condition():
+            #import pdb; pdb.set_trace()
             index = index + 1
             connect = self.connectivities(self.boundary_elements, 4)
             flag = point_type[connect]
 
-            #mat ==
-            #a = self.connectivities(self.boundary_nodes,4)
+
+
             import pdb; pdb.set_trace()
-            if index == 10:
-                import pdb; pdb.set_trace()
+
+            all_tetra_ref = np.arange(connect.shape[0])
+            num_tetra_bnodes = np.sum(np.isin(connect,np.array(self.boundary_nodes)), axis=1)
+            four_bnodes_tetra = (num_tetra_bnodes == 4)
+            three_bnodes_tetra = (num_tetra_bnodes == 3)
+            # treating tetrahedron with 4 nodes on the boundary those tetrahedron
+            # will be removed as no node are exclusive to these entities
+            rm1 = all_tetra_ref[four_bnodes_tetra][~np.any(np.logical_and(connect[four_bnodes_tetra],flag[four_bnodes_tetra] == 0),axis=1)]
+            #~np.any(np.logical_and(connect[four_bnodes_tetra],flag[four_bnodes_tetra] == 0),axis=1)
+            #import pdb; pdb.set_trace()
+
+            # treating tetrahedron with 3 nodes on the boundary those tetrahedron
+            # will be removed as no node are exclusive to these entities
+            rmp = all_tetra_ref[three_bnodes_tetra]
+            # ~np.isin(connect[three_bnodes_tetra],np.array(self.boundary_nodes))
+            tag = np.any(flag[three_bnodes_tetra] == 0,  axis=1)
+            rm2 = rmp[~tag]
+            tetra_tag = rmp[tag]
+            rm3 = tetra_tag[np.all(~np.isin(connect[tetra_tag],np.array(self.boundary_nodes)) == (flag[tetra_tag] == 0), axis=1)]
+            # flag[three_bnodes_tetra]
+            # rm2 = all_tetra_ref[four_bnodes_tetra]
+            remove_tetra = np.sort(np.hstack((rm1,rm2,rm3)))
+            remove_flag = np.isin(all_tetra_ref, remove_tetra)
+
+            self.remove_vol(self.select(self.boundary_elements,remove_flag))
+
+            self.create_vtk()
+            import pdb; pdb.set_trace()
+
         pass
 
+        1+1
+
+            #a = self.connectivities(self.boundary_nodes,4)
+            # import pdb; pdb.set_trace()
+
+            # if index == 10:
+            #     import pdb; pdb.set_trace()
+
+
+    def condtition_smooth(self):
+
+        pass
+
+    def smooth(self):
+        point_type = np.concatenate((np.array([-1]), self.point_type))
+        connect = self.connectivities(self.boundary_elements, 4)
+        all_tetra_ref = np.arange(connect.shape[0])
+        flag = point_type[connect]
+        self.remove_vol(self.select(self.boundary_elements,np.all(flag == 3,axis=1)))
+
+        import pdb; pdb.set_trace()
+
+
     def condition(self):
-        desired_bnodes = np.array(self.nodes)[self.point_type == 0]
-        print("desired nodes:", desired_bnodes)
+        #desired_bnodes = np.array(self.nodes)[self.point_type == 0]
+        print("desired nodes:", self.desired_bnodes)
         print("boundary nodes:", np.array(self.boundary_nodes))
-        print("nodes on boundary", desired_bnodes[np.isin(desired_bnodes,np.array(self.boundary_nodes))])
-        print("missing", desired_bnodes[~np.isin(desired_bnodes,np.array(self.boundary_nodes))])
+        print("nodes on boundary", self.desired_bnodes[np.isin(self.desired_bnodes,np.array(self.boundary_nodes))])
+        print("missing", self.desired_bnodes[~np.isin(self.desired_bnodes,np.array(self.boundary_nodes))])
         #print(~desired_bnodes[np.isin(desired_bnodes,np.array(self.boundary_nodes))])
-        return np.all(np.isin(desired_bnodes,np.array(self.boundary_nodes)))
+        return np.all(np.isin(self.desired_bnodes,np.array(self.boundary_nodes)))
 
 
     def select(self, range, vec):
@@ -103,11 +244,12 @@ class DelaunaySingle(object):
         self.mb.delete_entity(tetra_remove)
         self.mb.delete_entity(faces)
         self.mb.delete_entity(edges)
-        #self.mb.delete_entity(nodes)
+        self.mb.delete_entity(nodes)
         self.all_elements = self.mb.get_entities_by_dimension(0, 3)
         self.nodes = self.mb.get_entities_by_dimension(0, 0)
         self.faces = self.skinner(self.all_elements)
         self.boundary_nodes = self.find_boundary_nodes()
+        self.boundary_elements = self.find_boundary_elements()
 
     def adjs(self, range,x):
         rnb = rng.Range()
