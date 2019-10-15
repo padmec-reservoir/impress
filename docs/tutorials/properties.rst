@@ -1,11 +1,11 @@
 How to Access Mesh Entities Properties
 ======================================
 
-To perform any kind of simulation, it will be necessary to access informations about the mesh entities such as coordinates from a node or from the center of an edge, for example. Probably, the user will also need informations about the adjacents elements or even the internal or boundary elements as well. We call these are automatically generated informations of **properties**.
+To perform any kind of simulation, it will be necessary to access informations about the mesh entities such as coordinates from a node or from the center of an edge, for example. Probably, the user will also need informations about the adjacents elements or even the internal or boundary elements as well. We call these informations of **properties**.
 
-IMPRESS was developed to systematically provide access to these properties for any kind of mesh entity (nodes, edges, faces or volumes, in a 3D mesh). Every time IMPRESS is executed, several objects are created to represent the mesh entities and inherited by a main class (that represents the mesh itself), FineScaleMesh. A ilustrative scheme of the inheritance scheme follows below:
+IMPRESS was developed to automatically generated these properties for any kind of mesh entity (nodes, edges, faces or volumes, in a 3D mesh). Every time IMPRESS is executed, several objects are created to represent the mesh entities and inherited by a main class (that represents the mesh itself). A ilustrative image of the inheritance scheme follows below:
 
-.. image:: ../_static/inherit_properties.png
+.. image:: ../_static/inherit.png
    :align: center
    :scale: 75%
 
@@ -13,9 +13,11 @@ The IMPRESS' execution script instatiates this class creating an object called *
 
 Properties
 ----------
-The **properties** that IMPRESS generates and the objects that represents these properties are described below:
+The **properties** that IMPRESS provides are described below:
 
 * **Coordinates**: returns the coordinates of an array of elements;
+
+* **Center**: returns the coordinates of the center of an array of elements;
 
 * **Boundary Elements**: returns the global id from all elements located in the mesh boundaries;
 
@@ -29,22 +31,26 @@ The **properties** that IMPRESS generates and the objects that represents these 
 
 * **Flagged Elements**:
 
-* **Global ID**:
+* **Global ID**: Every type of mesh entity receives during the preprocessing a global ID, ranging from 0 to n-1 elements from the specific entity type. It is useful to perform many vectorized operations and identify elements that may receive a especial boundary condition as well, for example. It is especially important when a multiscale simulation is being perfomed.
+
+These informations are stores in python objects:
+
+=================  ==================== ===== ======
+Properties         Object               Input Output
+=================  ==================== ===== ======
+Coordinates        coords
+Boundary Elements  boundary
+Internal Elements  internal
+Adjacencies        adjacencies
+Connectivities     connectivies
+Flags              all_flags
+Flagged Elements   all_flagged_elements
+Global ID          global_id
+=================  ==================== ===== ======
 
 Consulting Properties
 ---------------------
 
-.. code:: python
-
-  In [4]: M.nodes.coords[:]
-  Out[4]:
-  array([[ 0.,  0.,  0.],
-        [ 1.,  0.,  0.],
-        [ 2.,  0.,  0.],
-        ...,
-        [18., 20., 20.],
-        [19., 20., 20.],
-        [20., 20., 20.]])
 
 Coarse Scale Mesh Entities Properties
 -------------------------------------
