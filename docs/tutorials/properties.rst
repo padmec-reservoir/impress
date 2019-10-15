@@ -23,15 +23,15 @@ The **properties** that IMPRESS provides are described below:
 
 * **Internal Elements**: returns the global id from all elements that do not belong to the mesh boundaries;
 
-* **Adjacencies**: returns global id from all elements of the same dimension that are immediately connected to the element;
+* **Adjacencies**: returns the global id from all elements of the same dimension that are immediately connected to the element;
 
 * **Connectivities**:
 
-* **Flags**:
+* **Flags**: returns a dictionary with all flags identified in the mesh.
 
-* **Flagged Elements**:
+* **Flagged Elements**: returns the global id from all flagged elements.
 
-* **Global ID**: Every type of mesh entity receives during the preprocessing a global ID, ranging from 0 to n-1 elements from the specific entity type. It is useful to perform many vectorized operations and identify elements that may receive a especial boundary condition as well, for example. It is especially important when a multiscale simulation is being perfomed.
+* **Global ID**: every type of mesh entity receives during the preprocessing a global ID, ranging from 0 to n-1 elements from the specific entity type. It is useful to perform many vectorized operations and identify elements that may receive a especial boundary condition as well, for example. It is especially important when a multiscale simulation is being perfomed.
 
 These informations are stores in python objects:
 
