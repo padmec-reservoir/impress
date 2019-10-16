@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import tools.view as tl
 import networkx as nx
 from scipy.spatial import ConvexHull
-x = 16
+x = 22
 
 G = nx.graph.Graph()
 #finding neighbors of the x element
@@ -64,13 +64,19 @@ tcoords = np.vstack((dcoords, cv_icoords, cv_xcoords, icoords, ccoord))
 point_type = np.concatenate((0*np.ones(dcoords.shape[0]),1*np.ones(cv_icoords.shape[0]), 2*np.ones(cv_xcoords.shape[0]) , 3*np.ones(icoords.shape[0]),  5*np.ones(ccoord.shape[0])))
 
 
+tcoords = np.vstack((dcoords, ccoord))
+point_type = np.concatenate((0*np.ones(dcoords.shape[0]), 5*np.ones(ccoord.shape[0])))
+
+
+
+
 
 trian = Delaunay(tcoords)
 
 df = pd.DataFrame(point_type[trian.simplices])
 df.to_excel("delaunay.xlsx", index=False)
 modified_simplices = trian.simplices[np.sum(trian.simplices == trian.simplices.max(),axis=1) == 1]
-a = tl.DelaunaySingle(trian.points, trian.simplices, point_type,2)
+a = tl.DelaunaySingle(trian.points, trian.simplices, point_type, 2)
 #a = tl.DelaunaySingle(trian.points, trian.simplices,point_type,2)
 # import pdb; pdb.set_trace()
 #ncoords = np.vstack((dcoords, extra_coords_internal, extra_coords_external))

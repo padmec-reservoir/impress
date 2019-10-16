@@ -24,6 +24,7 @@ from preprocessor.meshHandle.dualCoarseMesh import DualCoarseMesh as dual
 start = time.time()
 #M = msh('mesh/semi3.msh', dim=3)
 M = msh('mesh/semi3.msh', dim=3)
+#M = msh('mesh/40.h5m', dim=3)#
 # M = msh('mesh/malha03.msh', dim = 2)
 
 
