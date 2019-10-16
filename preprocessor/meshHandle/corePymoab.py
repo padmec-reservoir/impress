@@ -265,8 +265,10 @@ class CoreMoab:
                 range_merged.merge(arg)
         return range_merged
 
-    def print(self, text=None, extension=".h5m", folder = None,  config_input="print_settings.yml"):
-        with open("print_settings.yml", 'r') as f:
+    def print(self, file=None, extension=".h5m", case = None,  config_input="input_cards/print_settings.yml"):
+        text =  file
+        folder = "results/" + case
+        with open(config_input, 'r') as f:
             data = yaml.safe_load(f)
         nodes = data['nodes']
         edges = data['edges']

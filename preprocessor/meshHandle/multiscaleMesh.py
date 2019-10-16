@@ -38,8 +38,7 @@ class FineScaleMeshMS(FineScaleMesh):
             self.volumes = MeshEntitiesMS(self.core, entity_type = "volumes")
 
     def init_variables(self):
-        config = self.read_config('variable_settings.yml')
-
+        config = self.read_config('input_cards/variable_settings.yml')
         nodes = config['nodes']
         edges = config['edges']
         faces = config['faces']
@@ -81,7 +80,7 @@ class FineScaleMeshMS(FineScaleMesh):
 
     def init_partition(self):
         #import pdb; pdb.set_trace()
-        config = self.read_config('msCoarse.yml')
+        config = self.read_config('input_cards/msCoarse.yml')
         particionador_type = config["Partitioner Scheme"]
         specific_attributes = config["Coarsening"]
         if particionador_type != '0':
