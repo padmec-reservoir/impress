@@ -2,10 +2,36 @@
 import configparser as cp
 import yaml
 
-class initMoabVariable(object):
-    def __init__(self, file_path="variable_settings.yml"):
 
-    pass
+class configManager(object):
+    def __init__(self, empty=False, file_path=None):
+        if file_path == None:
+            file_path = 'input_cards/coarsening.yml'
+        if empty == False:
+            self.read(file_path)
+        else:
+            self.tree = {'Scheme': '', 'Simple': '', 'Smart': ''}
+
+    def scheme(self, scheme = 'smart'):
+        self.tree['Scheme'] =  scheme
+
+    def simple(self, nx=4, ny=4, nz=4):
+        self.tree['Simple'] = {'nx': nx, 'ny': ny, 'nz': nz}
+
+    def smart(self, path='default', file='mesh.h5m'):
+        self.tree['Smart'] = {'path': path, 'file': file}
+
+    def read(self, file_path):
+        with open(file_path) as file: # Use file to refer to the file object
+            data = file.read()
+            self.tree = yaml.safe_load(data)
+
+    def write(self, file_path):
+        
+        pass
+
+           #self.create_tree(m)
+
 
 class partitionManager(object):
     def __init__(self, file_path = "test_file3.card"):
