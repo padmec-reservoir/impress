@@ -45,7 +45,7 @@ class MeshEntities(object):
             self.id_name = self.father_id_name + str("L") + str(self.level) + "-" + str(self.coarse_num)
 
         (self.elements_handle, self.internal_elements, self.boundary_elements), self.vID = list_type[entity_num], entity_num
-        self.internal_elements_array = self.internal_elements.get_array()
+        # self.internal_elements_array = self.internal_elements.get_array()
         self.entity_type = string[entity_num]
         self.tag_handle = core.handleDic[self.id_name]
         self.global_handle = core.handleDic['GLOBAL_ID']
@@ -92,22 +92,17 @@ class MeshEntities(object):
 
         An array containing the indexes of adjacents entities
         """
-        # lacks support for indexing with multiple numbers
-        if isinstance(index, np.ndarray):
-            if index.dtype == "bool":
-                index = np.where(index)[0]
-            elif index.dtype == np.uint64:
-                return self.mtu.get_ord_bridge_adjacencies(index, self.num[interface], self.num[target], self.mb, self.tag_handle)
-        el_handle = self.elements_handle[index]
+        if not isinstance(index, np.ndarray) and index is not None:
+            el_handle = self.elements_handle[index]
+        else:
+            el_handle = self.elements_handle.get_array(index)
         return self.mtu.get_ord_bridge_adjacencies(el_handle, self.num[interface], self.num[target], self.mb, self.tag_handle)
 
     def _coords(self, index):
-        if isinstance(index, np.ndarray):
-            if index.dtype == "bool":
-                index = np.where(index)[0]
-            elif index.dtype == np.uint64:
-                return np.reshape(self.mb.get_coords(index),(-1,3))
-        el_handle = self.nodes[index]
+        if not isinstance(index, np.ndarray) and index is not None:
+            el_handle = self.elements_handle[index]
+        else:
+            el_handle = self.elements_handle.get_array(index)
         return np.reshape(self.mb.get_coords(el_handle),(-1,3))
 
     # def _global_id(self, index):
@@ -120,25 +115,17 @@ class MeshEntities(object):
     #     return self.mb.tag_get_data(self.father_handle, elements_handle).ravel()
 
     def _adjacencies_for_nodes(self, index):
-        if isinstance(index, np.ndarray):
-            if index.dtype == "bool":
-                index = np.where(index)[0]
-            elif index.dtype == np.uint64:
-                return index
-        el_handle = self.elements_handle[index]
-        return el_handle
+        return index
 
     def _adjacencies(self, index,flag_nodes=False):
         if not flag_nodes:
             dim_tag = self.vID - 1
         else:
             dim_tag = 0
-        if isinstance(index, np.ndarray):
-            if index.dtype == "bool":
-                index = np.where(index)[0]
-            elif index.dtype == np.uint64:
-                return self.mb.get_ord_adjacencies(index, dim_tag, tag_handle = self.tag_handle)
-        el_handle = self.elements_handle[index]
+        if not isinstance(index, np.ndarray) and index is not None:
+            el_handle = self.elements_handle[index]
+        else:
+            el_handle = self.elements_handle.get_array(index)
         return self.mb.get_ord_adjacencies(el_handle, dim_tag, tag_handle = self.tag_handle)
 
     def _center(self,index):
@@ -149,16 +136,18 @@ class MeshEntities(object):
             edges_adj = self.connectivities[index]
             v0 = np.array([edges_adj[i][0] for i in range (edges_adj.shape[0])])
             v1 = np.array([edges_adj[i][1] for i in range (edges_adj.shape[0])])
-            centers  = 0.5* (self._coords(v0) + self._coords(v1))
+            centers  = 0.5 * (self._coords(v0) + self._coords(v1))
             return centers
         elif self.vID == 2 or self.vID == 3:
             if isinstance(index, np.ndarray):
                 if index.dtype == "bool":
                     index = np.where(index)[0]
-            adj = self.connectivities[index]
+            el_handle = self.elements_handle[index]
+            adj = self.mb.get_ord_connectivity(el_handle, tag_opt = False)
             centers = np.empty((adj.shape[0],3))
             for i in range(adj.shape[0]):
-                centers[i] = gtool.get_average([self._coords(adj[i][col]) for col in range(adj[i].shape[0])])
+                centers[i] = gtool.get_average(np.reshape(self.mb.get_coords(adj[i]),(-1,3)))
+                #pdb.set_trace()
             return centers
         return None
 
@@ -179,13 +168,10 @@ class MeshEntities(object):
 
 
     def _connectivities(self,index):
-        connectivities_id = None
-        if isinstance(index, np.ndarray):
-            if index.dtype == "bool":
-                index = np.where(index)[0]
-            elif index.dtype == np.uint64:
-                return self.mb.get_ord_connectivity(index, tag_handle = self.tag_handle)
-        el_handle = self.elements_handle[index]
+        if not isinstance(index, np.ndarray) and index is not None:
+            el_handle = self.elements_handle[index]
+        else:
+            el_handle = self.elements_handle.get_array(index)
         return self.mb.get_ord_connectivity(el_handle, tag_handle = self.tag_handle)
 
     def create_range_vec(self, index):
@@ -292,7 +278,7 @@ class MeshEntities(object):
 
     @property
     def internal(self):
-        return self.read(self.internal_elements_array)
+        return self.read(self.internal_elements.get_array())
 
 class MoabVariable(object):
     def __init__(self, core, name_tag, var_type="volumes", data_size=1, data_format="float", data_density="sparse",
