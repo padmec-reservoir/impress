@@ -25,6 +25,10 @@ class FineScaleMeshMS(FineScaleMesh):
         self.coarse = MultiscaleCoarseGrid(self)
         self.enhance_entities()
 
+    def __getitem__ (self, key):
+        if not isinstance(key, int):
+            raise ValueError("Invalid key type provided")
+        return self.coarse.elements[key]
 
     def enhance_entities(self):
         for i,el in zip(range(len(self.coarse.elements)),self.coarse.elements):
