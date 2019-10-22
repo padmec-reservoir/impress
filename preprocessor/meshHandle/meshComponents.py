@@ -33,11 +33,13 @@ class MeshEntities(object):
                         (core.all_edges, core.internal_edges, core.boundary_edges),
                         (core.all_faces, core.internal_faces, core.boundary_faces),
                         (core.all_volumes, core.internal_volumes, core.boundary_volumes)]
-        if core.level == 0:
+        self.list_all = [list_type[0][0], list_type[1][0], list_type[2][0], list_type[3][0]]
+        self.level = core.level
+        if self.level == 0:
             self.id_name = "GLOBAL_ID"
             self.father_id_name = "GLOBAL_ID"
             self.id_name = "GLOBAL_ID"
-        elif core.level == 1:
+        elif self.level == 1:
             self.father_id_name = core.father_core.id_name
             self.id_name = "LOCAL_ID_L" + str(core.level) + "-" + str(core.coarse_num)
         else:
@@ -71,38 +73,20 @@ class MeshEntities(object):
 
 
     def bridge_adjacencies(self, index, interface, target):
-        """
-        Get the adjacencies of a set of entities (or a single entity) connected through an especific interface.
 
-        -- Example --
-
-        volumes_ids = M.volumes.all
-        volumes_adjacencies = M.volumes.bridge_adjacencies(M.volumes.all, 2, 3)
-
-        -- Parameters --
-
-        index : integer
-            Indexes of entity or entities to get adjacent entities from.
-        interface : integer
-            Dimension of the interface entities.
-        target : integer
-            Dimension of the target entities.
-
-        --Returns--
-
-        An array containing the indexes of adjacents entities
-        """
         if not isinstance(index, np.ndarray) and index is not None:
             el_handle = self.elements_handle[index]
         else:
             el_handle = self.elements_handle.get_array(index)
-        return self.mtu.get_ord_bridge_adjacencies(el_handle, self.num[interface], self.num[target], self.mb, self.tag_handle)
+        if self.level==0:
+            return self.mtu.get_ord_bridge_adjacencies(el_handle, self.num[interface], self.num[target], self.mb, self.tag_handle)
+        return self.mtu.get_ord_bridge_adjacencies(el_handle, self.num[interface], self.num[target], self.mb, self.tag_handle, self.list_all[self.num[target]], self.level)
 
     def _coords(self, index):
         if not isinstance(index, np.ndarray) and index is not None:
-            el_handle = self.elements_handle[index]
+            el_handle = self.nodes[index]
         else:
-            el_handle = self.elements_handle.get_array(index)
+            el_handle = self.nodes.get_array(index)
         return np.reshape(self.mb.get_coords(el_handle),(-1,3))
 
     # def _global_id(self, index):
