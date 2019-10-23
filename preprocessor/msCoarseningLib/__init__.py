@@ -1,6 +1,6 @@
 #Multiscale preprocessors for reservoir simulation using PRESTO.
 
-print('Partitioning module initialized')
+print('Partitioning tools initialized')
 
 #__all__ = ["readConfig","algoritmo"]
 #import meshManager

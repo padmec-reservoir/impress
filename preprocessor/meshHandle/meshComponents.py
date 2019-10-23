@@ -131,12 +131,13 @@ class MeshEntities(object):
     def _adjacencies_for_nodes(self, index):
         return self.create_range_vec(index)
 
-    def _adjacencies(self, index,flag_nodes=False):
+    def _adjacencies(self, index, flag_nodes=False, dim_tag = None):
         range_vec = self.create_range_vec(index)
-        if not flag_nodes:
-            dim_tag = self.vID - 1
-        else:
-            dim_tag = 0
+        if dim_tag == None:
+            if not flag_nodes:
+                dim_tag = self.vID - 1
+            else:
+                dim_tag = 0
         all_adj = [self.mb.get_adjacencies(el_handle, dim_tag) for el_handle in self.range_index(range_vec)]
         adj_id = np.array([self.read(el_handle) for el_handle in all_adj])
         return adj_id

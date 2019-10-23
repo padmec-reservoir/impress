@@ -75,12 +75,48 @@ class smartPartition(object):
         self.M = M
 
     def __call__(self, file_path):
-        return self.scheme(file_path)
+        return self.run(file_path)
 
-    def scheme(self, file_path):
+    def run(self, file_path):
         self.primal = FineScaleMesh(file_path)
-        self.pcenter = self.primal.volumes.center[:]
-        
+        self.dual = self.create_dual()
+
+    def create_dual(self):
+        nodes_coords = self.primal.nodes.center[:]
+        edges_center = self.primal.edges.center[:]
+        faces_center = self.primal.faces.center[:]
+        volumes_center = self.primal.volumes.center[:]
+        sizes = np.array([len(nodes_coords), len(edges_center), len(faces_center), len(volumes_center)])
+        sizes = np.concatenate((np.array([0]), sizes))
+        tag = lambda ind, type: (sizes[type] + ind)
+        all_tetra = np.array([])
+
+        for vol in self.primal.volumes.all:
+            faces = self.primal.volumes.adjacencies[vol]
+            edges = self.primal.volumes._adjacencies(vol, dim_tag=1)
+            nodes = self.primal.volumes.connectivities[vol]
+            for edge in edges.T:
+                adj_faces = np.intersect1d(self.primal.edges.bridge_adjacencies(edge, interface="edges",target="faces"), faces)
+                node_edge = self.primal.edges.connectivities[edge.T].ravel()
+                import pdb; pdb.set_trace()
+                tetras = np.array([[tag(edge, 1)[0], tag(node_edge[0], 0), tag(adj_faces[0], 2), tag(vol, 3)],
+                                   [tag(edge, 1)[0], tag(node_edge[0], 0), tag(adj_faces[1], 2), tag(vol, 3)],
+                                   [tag(edge, 1)[0], tag(node_edge[1], 0), tag(adj_faces[0], 2), tag(vol, 3)],
+                                   [tag(edge, 1)[0], tag(node_edge[1], 0), tag(adj_faces[1], 2), tag(vol, 3)]])
+
+
+                import pdb; pdb.set_trace()
+                self.primal.edges.connectivities[edges.T]
+
+                import pdb; pdb.set_trace()
+                1+1
+                1+1
+
+
+            import pdb; pdb.set_trace()
+            pass
+
+        import pdb; pdb.set_trace()
         import pdb; pdb.set_trace()
 
 
