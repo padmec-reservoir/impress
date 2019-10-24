@@ -11,10 +11,16 @@ from . meshComponents import MeshEntities
 
 print('Standard fine-scale mesh loaded: No multiscale components available')
 
+
 class FineScaleMesh:
-    def __init__(self,mesh_file, dim=3):
+    def __init__(self, mesh_file, dim=3):
         self.dim = dim
         self.core = CoreMoab(mesh_file, dim)
+        if mesh_file is not None:
+            self.run()
+
+    def run(self):
+        self.core.run()
         self.init_entities()
         self.init_variables()
         self.macro_dim()
@@ -28,6 +34,7 @@ class FineScaleMesh:
         #                          data_density="sparse")
         # self.alga = MoabVariable(self.core,data_size=3,var_type= "volumes",  data_format="float", name_tag="Centrinhos",
         #                          data_density="sparse")
+
     def init_entities(self):
         self.nodes = MeshEntities(self.core, entity_type = "nodes")
         self.edges = MeshEntities(self.core, entity_type="edges")

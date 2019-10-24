@@ -9,23 +9,26 @@ import yaml
 
 
 class CoreMoab:
-    def __init__(self, mesh_file, dim=3):
+    def __init__(self, mesh_file=None, dim=3):
         self.dimension = dim
         self.mb = core.Core()
+        self.mtu = topo_util.MeshTopoUtil(self.mb)
+        if mesh_file is not None:
+            self.mb.load_file(mesh_file)
+            self.run()
+
+    def run(self):
         self.root_set = self.mb.get_root_set()
         self.father_root_set = self.root_set
-        self.mtu = topo_util.MeshTopoUtil(self.mb)
-        self.mb.load_file(mesh_file)
         self.level = 0
         self.all_volumes = self.mb.get_entities_by_dimension(0, 3)
         self.all_nodes = self.mb.get_entities_by_dimension(0, 0)
         self.mtu.construct_aentities(self.all_nodes)
+        #self.mtu.construct_aentities(self.all_volumes)
         self.all_faces = self.mb.get_entities_by_dimension(0, 2)
         self.all_edges = self.mb.get_entities_by_dimension(0, 1)
-
         self.handleDic = {}
         [self.boundary_nodes, self.boundary_edges, self.boundary_faces, self.boundary_volumes] = self.skinner_operation()
-
         self.internal_nodes = rng.subtract(self.all_nodes, self.boundary_nodes)
         self.internal_edges = rng.subtract(self.all_edges, self.boundary_edges)
         self.internal_faces = rng.subtract(self.all_faces, self.boundary_faces)
@@ -266,6 +269,8 @@ class CoreMoab:
         return range_merged
 
     def print(self, file=None, extension=".h5m", case = None,  config_input="input_cards/print_settings.yml"):
+        if case is None:
+            case = ''
         text =  file
         folder = "results/" + case
         with open(config_input, 'r') as f:

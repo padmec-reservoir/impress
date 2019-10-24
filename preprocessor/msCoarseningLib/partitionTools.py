@@ -4,7 +4,7 @@ import numpy as np
 import yaml
 import os
 from ..meshHandle.finescaleMesh import FineScaleMesh
-
+from pymoab import types
 
 class configManager(object):
     def __init__(self, empty=False, file_path=None):
@@ -87,10 +87,11 @@ class smartPartition(object):
         faces_center = self.primal.faces.center[:]
         volumes_center = self.primal.volumes.center[:]
         sizes = np.array([len(nodes_coords), len(edges_center), len(faces_center), len(volumes_center)])
+        sizes = np.cumsum(sizes)
         sizes = np.concatenate((np.array([0]), sizes))
-        tag = lambda ind, type: (sizes[type] + ind)
-        all_tetra = np.array([])
-
+        tag = lambda ind, type: (sizes[type] + ind +1)
+        all_tetra = np.array([[], [], [], []]).T
+        import pdb; pdb.set_trace()
         for vol in self.primal.volumes.all:
             faces = self.primal.volumes.adjacencies[vol]
             edges = self.primal.volumes._adjacencies(vol, dim_tag=1)
@@ -98,27 +99,17 @@ class smartPartition(object):
             for edge in edges.T:
                 adj_faces = np.intersect1d(self.primal.edges.bridge_adjacencies(edge, interface="edges",target="faces"), faces)
                 node_edge = self.primal.edges.connectivities[edge.T].ravel()
-                import pdb; pdb.set_trace()
                 tetras = np.array([[tag(edge, 1)[0], tag(node_edge[0], 0), tag(adj_faces[0], 2), tag(vol, 3)],
                                    [tag(edge, 1)[0], tag(node_edge[0], 0), tag(adj_faces[1], 2), tag(vol, 3)],
                                    [tag(edge, 1)[0], tag(node_edge[1], 0), tag(adj_faces[0], 2), tag(vol, 3)],
                                    [tag(edge, 1)[0], tag(node_edge[1], 0), tag(adj_faces[1], 2), tag(vol, 3)]])
-
-
-                import pdb; pdb.set_trace()
-                self.primal.edges.connectivities[edges.T]
-
-                import pdb; pdb.set_trace()
-                1+1
-                1+1
-
-
-            import pdb; pdb.set_trace()
-            pass
-
-        import pdb; pdb.set_trace()
-        import pdb; pdb.set_trace()
-
+                all_tetra = np.vstack((all_tetra, tetras))
+        dual = FineScaleMesh(mesh_file=None, dim=3)
+        dual.core.mb.create_vertices(np.vstack((nodes_coords, edges_center, faces_center, volumes_center)))
+        for tetra in all_tetra:
+            dual.core.mb.create_element(types.MBTET, tetra.ravel().astype("uint64"))
+        dual.run()
+        return dual
 
 
 
