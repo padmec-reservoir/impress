@@ -5,7 +5,6 @@ from pymoab import core, types, rng, topo_util
 from pymoab import skinner as sk
 import numpy as np
 import yaml
-#import pdb
 
 
 class CoreMoab:
@@ -36,7 +35,7 @@ class CoreMoab:
         self.id_name = "GLOBAL_ID"
         self.father_id_name = self.id_name
         self.init_id()
-        self.check_integrity()
+        #self.check_integrity()
         # self.create_id_visualization()
         # self.flag_dic = {}
         [self.flag_list, self.flag_dic] = self.read_flags()

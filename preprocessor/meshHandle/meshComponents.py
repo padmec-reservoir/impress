@@ -313,7 +313,6 @@ class MoabVariable(object):
         self.data_density = data_density
         self.name_tag = name_tag
         self.custom = False
-
         if var_type == "nodes":
             self.elements_handle = core.all_nodes
         elif var_type == "edges":

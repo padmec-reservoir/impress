@@ -15,10 +15,11 @@ class variableInit(object):
         ref = self.tree[:, 0].astype('int') == level
         level_entries = self.tree[ref]
         self.tree = np.delete(self.tree, np.where(ref)[0], 0)
+        return self.create_command(level_entries)
 
     def create_command(self, var_list):
         command_list = []
-        string_pattern = '{0} = MoabVariable(self.core, data_size={1}, var_type=\'{2}\', data_format=\'{3}\', name_tag=\'{0}\', data_density=\'{4}\')'
+        string_pattern = 'self.{0} = MoabVariable(self.core, data_size={1}, var_type=\'{2}\', data_format=\'{3}\', name_tag=\'{0}\', data_density=\'{4}\')'
         density = ['int', 'sparse']
         for var in var_list:
             sparse = density[bool(var[-1])]

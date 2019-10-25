@@ -20,11 +20,7 @@ class GetItem(object):
 
 class MeshEntitiesMS(MeshEntities):
     def __init__(self, core, entity_type):
-        # pdb.set_trace()
         super().__init__(core, entity_type)
-        # print(core)
-        # print(entity_type)
-        #import pdb; pdb.set_trace()
         self.father_handle = core.handleDic[core.father_id_name]
         self.global_id = GetItem(self._global_id)
         self.father_id = GetItem(self._father_id)

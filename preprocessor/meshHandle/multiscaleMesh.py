@@ -1,13 +1,14 @@
 """
 Module for implementation of multiscale mesh and CoarseVolumes objects functionalities
 """
-#import time
+
 import pdb
 from . finescaleMesh import FineScaleMesh
 from ..msCoarseningLib import algoritmo
 from . meshComponents import MoabVariable
 from . mscorePymoab import MsCoreMoab
 from . meshComponentsMS import MoabVariableMS,  MeshEntitiesMS
+from preprocessor.meshHandle.configTools.configClasses import variableInit
 from pymoab import core, types, rng
 import numpy as np
 import yaml
@@ -17,65 +18,30 @@ print('Initializing Finescale Mesh for Multiscale Methods')
 
 
 class FineScaleMeshMS(FineScaleMesh):
-    def __init__(self,mesh_file, dim = 3):
-        super().__init__(mesh_file,dim)
+    def __init__(self, mesh_file, dim=3, var_config=None):
+        self.var_config = var_config
+        super().__init__(mesh_file, dim)
         print("Creating Coarse Grid")
         # import pdb; pdb.set_trace()
         self.coarse = MultiscaleCoarseGrid(self)
         self.enhance_entities()
-
 
     def enhance_entities(self):
         for i,el in zip(range(len(self.coarse.elements)),self.coarse.elements):
             el(i,self.coarse)
 
     def init_entities(self):
-        self.nodes = MeshEntitiesMS(self.core, entity_type = "node")
-        self.edges = MeshEntitiesMS(self.core, entity_type = "edges")
-        self.faces = MeshEntitiesMS(self.core, entity_type = "faces")
+        self.nodes = MeshEntitiesMS(self.core, entity_type="node")
+        self.edges = MeshEntitiesMS(self.core, entity_type="edges")
+        self.faces = MeshEntitiesMS(self.core, entity_type="faces")
         if self.dim == 3:
-            self.volumes = MeshEntitiesMS(self.core, entity_type = "volumes")
+            self.volumes = MeshEntitiesMS(self.core, entity_type="volumes")
 
     def init_variables(self):
-        config = self.read_config('input_cards/variable_settings.yml')
-        nodes = config['nodes']
-        edges = config['edges']
-        faces = config['faces']
-        volumes = config['volumes']
-        not_empty = []
-        parameters = [0,1]
-
-        if nodes is not None:
-            names = nodes.keys()
-            for i in names:
-                size = str(nodes[i]['data size'])
-                format = nodes[i]['data format']
-                command = 'self.' + i + ' = MoabVariableMS(self.core, data_size = ' + size + ', var_type = "nodes", data_format = ' + "'" + format + "'" + ', name_tag =' + "'" + i + "'" + ')'
-                exec(command)
-        if edges is not None:
-            names = edges.keys()
-            for i in names:
-                size = str(edges[i]['data size'])
-                format = edges[i]['data format']
-                command = 'self.' + i + ' = MoabVariableMS(self.core, data_size = ' + size + ', var_type = "edges", data_format = ' + "'" + format + "'" + ', name_tag =' + "'" + i + "'" + ')'
-                print(command)
-                exec(command)
-        if faces is not None:
-            names = faces.keys()
-            for i in names:
-                size = str(faces[i]['data size'])
-                format = faces[i]['data format']
-                command = 'self.' + i + ' = MoabVariableMS(self.core, data_size = ' + size + ', var_type = "faces", data_format = ' + "'" + format + "'" + ', name_tag =' + "'" + i + "'" + ')'
-                print(command)
-                exec(command)
-        if volumes is not None:
-            names = volumes.keys()
-            for i in names:
-                size = str(volumes[i]['data size'])
-                format = volumes[i]['data format']
-                command = 'self.' + i + ' = MoabVariableMS(self.core, data_size = ' + size + ', var_type = "volumes", data_format = ' + "'" + format + "'" + ', name_tag =' + "'" + i + "'" + ')'
-                print(command)
-                exec(command)
+        if self.var_config is None:
+            self.var_config = variableInit()
+        for command in self.var_config.get_var(self.core.level):
+            exec(command)
 
     def init_partition(self):
         #import pdb; pdb.set_trace()
@@ -185,10 +151,6 @@ class GetCoarseItem(object):
             for el in array:
                 s = np.concatenate((s, self.__getitem__(int(el))))
             return s
-
-
-
-
 
 
 class MultiscaleCoarseGrid(object):
