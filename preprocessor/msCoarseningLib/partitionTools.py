@@ -6,6 +6,7 @@ import os
 from ..meshHandle.finescaleMesh import FineScaleMesh
 from pymoab import types
 
+
 class configManager(object):
     def __init__(self, empty=False, file_path=None):
         if file_path == None:
@@ -110,7 +111,6 @@ class smartPartition(object):
             dual.core.mb.create_element(types.MBTET, tetra.ravel().astype("uint64"))
         dual.run()
         return dual
-
 
 
 class simplePartition(object):

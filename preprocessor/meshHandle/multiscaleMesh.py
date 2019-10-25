@@ -19,7 +19,6 @@ print('Initializing Finescale Mesh for Multiscale Methods')
 class FineScaleMeshMS(FineScaleMesh):
     def __init__(self,mesh_file, dim = 3):
         super().__init__(mesh_file,dim)
-
         print("Creating Coarse Grid")
         # import pdb; pdb.set_trace()
         self.coarse = MultiscaleCoarseGrid(self)

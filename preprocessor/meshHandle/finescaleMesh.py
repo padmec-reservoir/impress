@@ -4,6 +4,7 @@ Module for management of fine scale mesh
 import time
 import pdb
 import numpy as np
+from preprocessor.meshHandle.configTools.configClasses import variableInit
 from math import sqrt
 from pymoab import core, types, rng, topo_util
 from . corePymoab import CoreMoab
@@ -13,7 +14,7 @@ print('Standard fine-scale mesh loaded: No multiscale components available')
 
 
 class FineScaleMesh:
-    def __init__(self, mesh_file, dim=3):
+    def __init__(self, mesh_file, dim=3, var_config=None):
         self.dim = dim
         self.core = CoreMoab(mesh_file, dim)
         if mesh_file is not None:
@@ -26,7 +27,10 @@ class FineScaleMesh:
         self.macro_dim()
 
     def init_variables(self):
-        pass
+        if var_config=None:
+            var_config = variableInit()
+        for command in init_var_obj.get_var(0):
+            exec(command)
         # self.alma = MoabVariable(self.core,data_size=1,var_type= "volumes",  data_format="int", name_tag="alma")
         # self.ama = MoabVariable(self.core,data_size=1,var_type= "faces",  data_format="float", name_tag="ama",
         #                         entity_index= self.faces.boundary, data_density="dense")
