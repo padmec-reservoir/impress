@@ -57,8 +57,8 @@ class FineScaleMesh:
         self.rz= (min_coord[2], max_coord[2])
 
     def init_dimmension(self):
-        center = MoabVariable(self.core, data_size=3, var_type=0, data_format='float', name_tag='CENTER', data_density='dense')
-        import pdb; pdb.set_trace()
+        # center = MoabVariable(self.core, data_size=3, var_type=0, data_format='float', name_tag='CENTER', data_density='dense')
+        # import pdb; pdb.set_trace()
         pass
 
 
