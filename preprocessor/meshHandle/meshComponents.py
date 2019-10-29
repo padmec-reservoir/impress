@@ -119,9 +119,11 @@ class MeshEntities(object):
             return centers
         elif self.vID == 1:
             edges_adj = self.connectivities[index]
+            if edges_adj.ndim == 1:
+                return 0.5*(self._coords(edges_adj[0]) + self._coords(edges_adj[1]))
             v0 = np.array([edges_adj[i][0] for i in range (edges_adj.shape[0])])
             v1 = np.array([edges_adj[i][1] for i in range (edges_adj.shape[0])])
-            centers  = 0.5 * (self._coords(v0) + self._coords(v1))
+            centers = 0.5 * (self._coords(v0) + self._coords(v1))
             return centers
         elif self.vID == 2 or self.vID == 3:
             if not isinstance(index, np.ndarray) and index is not None:
@@ -129,6 +131,8 @@ class MeshEntities(object):
             else:
                 el_handle = self.elements_handle.get_array(index)
             adj = self.mb.get_ord_connectivity(el_handle, tag_opt = False)
+            if adj.ndim==1:
+                return gtool.get_average(np.reshape(self.mb.get_coords(adj),(-1,3)))
             centers = np.empty((adj.shape[0],3))
             for i in range(adj.shape[0]):
                 centers[i] = gtool.get_average(np.reshape(self.mb.get_coords(adj[i]),(-1,3)))
@@ -140,6 +144,12 @@ class MeshEntities(object):
 
         #normal_vec = np.zeros(( np.shape(range_vec)[0],3 ))
         adj = self.connectivities[index]
+        if adj.ndim==1:
+            if self.vID == 1:
+                return gtool.normal_vec_2d(self._coords(adj[0]), self._coords(adj[1]))
+            elif self.vID == 2:
+                return gtool.normal_vec(self._coords(adj[0]),self._coords(adj[1]),self._coords(adj[2]))
+            return
         v0 = np.array([adj[i][0] for i in range (adj.shape[0])])
         v1 = np.array([adj[i][1] for i in range (adj.shape[0])])
         if self.vID == 1:
