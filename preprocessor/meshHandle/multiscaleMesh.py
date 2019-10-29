@@ -22,9 +22,13 @@ class FineScaleMeshMS(FineScaleMesh):
         self.var_config = var_config
         super().__init__(mesh_file, dim)
         print("Creating Coarse Grid")
-        # import pdb; pdb.set_trace()
         self.coarse = MultiscaleCoarseGrid(self)
         self.enhance_entities()
+
+    def __getitem__ (self, key):
+        if not isinstance(key, int):
+            raise ValueError("Invalid key type provided")
+        return self.coarse.elements[key]
 
     def enhance_entities(self):
         for i,el in zip(range(len(self.coarse.elements)),self.coarse.elements):
@@ -93,19 +97,21 @@ class CoarseVolume(FineScaleMeshMS):
         self.dim = dim
         self.level = father_core.level + 1
         self.coarse_num = i
+        self.coarse_vec = coarse_vec
 
         print("Level {0} - Volume {1}".format(self.level,self.coarse_num))
         self.core = MsCoreMoab(father_core, i, coarse_vec)
 
         self.init_entities()
-        self.init_variables()
+        #self.init_variables()
         self.init_coarse_variables()
         self.macro_dim()
 
     def init_variables(self):
-        #self.pressure = MoabVariableMS(self.core,data_size=1,var_type= "volumes",  data_format="float", name_tag="pressure", level=self.level, coarse_num=self.coarse_num)
-
-        pass
+        if self.var_config is None:
+            self.var_config = variableInit()
+        for command in self.var_config.get_var(self.core.level):
+            exec(command)
 
     def __call__(self,i,general):
         self.nodes.enhance(i, general)
@@ -157,7 +163,7 @@ class MultiscaleCoarseGrid(object):
     def __init__(self, M):
         self.mb = M.core.mb
         self.partition = M.init_partition()
-        self.elements = [CoarseVolume(M.core, M.dim, i, self.partition[:] == i) for i in range(self.partition[:].max()+1 )]
+        self.elements = [CoarseVolume(M.core, M.dim, i, self.partition[:].ravel() == i) for i in range(self.partition[:].max()+1 )]
         self.num_coarse = len(self.elements)
         self.num = {"nodes": 0, "node": 0, "edges": 1, "edge": 1, "faces": 2, "face": 2, "volumes": 3, "volume": 3,
                              0: 0, 1: 1, 2: 2, 3: 3}
@@ -184,8 +190,8 @@ class MultiscaleCoarseGrid(object):
         partition = self.partition[:].ravel()
         internal = faces[0:self.num_internal_faces]
         external = faces[self.num_internal_faces:]
-        internal_volumes = M.faces.bridge_adjacencies(internal, interface="faces",target="volumes")
-        external_volumes = M.faces.bridge_adjacencies(external, interface="faces",target="volumes")
+        internal_volumes = np.concatenate(M.faces.bridge_adjacencies(internal, interface="faces",target="volumes")).reshape((-1, 2))
+        external_volumes = np.concatenate(M.faces.bridge_adjacencies(external, interface="faces",target="volumes"))
         int_neigh = np.vstack((partition[internal_volumes[:,0]],partition[internal_volumes[:,1]])).T
         ext_neigh = np.zeros((external_volumes.shape[0],2))
         ext_neigh[:,0], ext_neigh[:,1] = partition[external_volumes].ravel(), partition[external_volumes].ravel()

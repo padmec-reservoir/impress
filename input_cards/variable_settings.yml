@@ -7,25 +7,59 @@
 # level must be an integer
 
 nodes:
-  happiness:
-    data size: 1
-    data format: 'float'
-    level: 0
+  # happiness:
+  #   data size: 1
+  #   data format: 'float'
+  #   level: 0
 
 edges:
-  joy:
+  # joy:
+  #   data size: 1
+  #   data format: 'float'
+  #   level: 0
+
+faces:
+  dirichlet_faces:
     data size: 1
     data format: 'float'
     level: 0
+<<<<<<< HEAD:input_cards/variable_settings.yml
 
 faces:
   pride:
+    data size: 3
+=======
+  neumann_faces:
+    data size: 1
+>>>>>>> speedChanges:variable_settings.yml
+    data format: 'float'
+    level: 0
+  v_lr:
+    data size: 3
+    data format: 'float'
+    level: 0
+  n_ijk:
     data size: 3
     data format: 'float'
     level: 0
 
 volumes:
+<<<<<<< HEAD:input_cards/variable_settings.yml
   dreams:
     data size: 3
     data format: 'float'
     level: 0
+=======
+  permeability:
+    data size: 9
+    data format: 'float'
+    level: 0
+  source_term:
+   data size: 1
+   data format: 'float'
+   level: 0
+  poro:
+   data size: 1
+   data format: 'float'
+   level: 0
+>>>>>>> speedChanges:variable_settings.yml

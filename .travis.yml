@@ -1,0 +1,18 @@
+sudo: required
+
+language: python
+
+services:
+  - docker
+
+before_install:
+  - docker build -t desenvolvimento docker-image/
+
+install:
+  - pip install coveralls
+
+script:
+  - sudo docker run -t -it -v $PWD:/impress desenvolvimento bash -c "cd /impress;python test_elements.py test"
+
+after_success:
+  - coveralls
