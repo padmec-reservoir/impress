@@ -123,10 +123,10 @@ class MeshEntities(object):
             centers  = 0.5 * (self._coords(v0) + self._coords(v1))
             return centers
         elif self.vID == 2 or self.vID == 3:
-            if isinstance(index, np.ndarray):
-                if index.dtype == "bool":
-                    index = np.where(index)[0]
-            el_handle = self.elements_handle[index]
+            if not isinstance(index, np.ndarray) and index is not None:
+                el_handle = self.elements_handle[index]
+            else:
+                el_handle = self.elements_handle.get_array(index)
             adj = self.mb.get_ord_connectivity(el_handle, tag_opt = False)
             centers = np.empty((adj.shape[0],3))
             for i in range(adj.shape[0]):
