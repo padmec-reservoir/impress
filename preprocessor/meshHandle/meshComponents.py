@@ -296,25 +296,25 @@ class MoabVariable(object):
         return self.mb.tag_get_data(self.tag_handle, self.elements_handle)
 
     def __setitem__(self, index, data):
-        if isinstance(index, np.ndarray):
-            if index.dtype == "bool":
-                index = np.where(index)[0]
-        range_el = self.elements_handle[index]
+        if not isinstance(index, np.ndarray) and index is not None:
+            el_handle = self.elements_handle[index]
+        else:
+            el_handle = self.elements_handle.get_array(index)
         if isinstance(data, int) or isinstance(data, float) or isinstance(data, bool):
-            data = data * np.ones((range_el.size(), self.data_size)).astype(self.data_format)
+            data = data * np.ones((el_handle.size(), self.data_size)).astype(self.data_format)
         elif (isinstance(data, np.ndarray)) and (len(data) == self.data_size):
-            data = np.tile(data, (range_el.size(), 1)).astype(self.data_format)
+            data = np.tile(data, (el_handle.size(), 1)).astype(self.data_format)
         elif isinstance(data, list) & (len(data) == self.data_size):
             data = np.array(data)
-            data = np.tile(data, (range_el.size(), 1)).astype(self.data_format)
-        self.mb.tag_set_data(self.tag_handle, range_el, data)
+            data = np.tile(data, (el_handle.size(), 1)).astype(self.data_format)
+        self.mb.tag_set_data(self.tag_handle, el_handle, data)
 
     def __getitem__(self, index):
-        if isinstance(index, np.ndarray):
-            if index.dtype == "bool":
-                index = np.where(index)[0]
-        range_el = rng.Range(self.elements_handle[index]).get_array()
-        return self.mb.tag_get_data(self.tag_handle, range_el)
+        if not isinstance(index, np.ndarray) and index is not None:
+            el_handle = self.elements_handle[index]
+        else:
+            el_handle = self.elements_handle.get_array(index)
+        return self.mb.tag_get_data(self.tag_handle, el_handle)
 
 
     def __str__(self):
