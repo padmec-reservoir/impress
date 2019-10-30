@@ -41,13 +41,6 @@ class MsCoreMoab(CoreMoab):
         self.internal_edges = rng.subtract(self.all_edges, self.boundary_edges)
         self.internal_faces = rng.subtract(self.all_faces, self.boundary_faces)
         self.internal_volumes = rng.subtract(self.all_volumes, self.boundary_volumes)
-
-
-        # self.print_set2 = self.mb.create_meshset()
-        # self.mb.add_entities(self.print_set2, self.all_faces)
-        # self.mb.write_file('auxfaces'+f'{self.coarse_num}'+'.h5m', [self.print_set2])
-
-
         if self.level == 1:
             self.id_name = "LOCAL_ID_L" + str(self.level) + "-" + str(self.coarse_num)
             self.father_id_name = self.father_core.id_name

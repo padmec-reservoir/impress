@@ -6,7 +6,8 @@ import pdb
 import numpy as np
 from pymoab import types, rng, topo_util
 from ..geoUtil import geoTools as gtool
-from preprocessor.meshHandle.configTools.configClasses import variableInit
+#from preprocessor.meshHandle.configTools.configClasses import variableInit
+
 
 class GetItem(object):
     def __init__(self, adj):
@@ -71,11 +72,11 @@ class MeshEntities(object):
                      if value[self.vID].empty() is not True}
         # print("Mesh Entity type {0} successfully initialized".format(entity_type))
 
-
     def bridge_adjacencies(self, index, interface, target):
-
-        if not isinstance(index, np.ndarray) and index is not None:
-            el_handle = self.elements_handle[index]
+        if isinstance(index, np.int64) or isinstance(index, int):
+            el_handle = np.array([self.elements_handle[index]])
+        elif not isinstance(index, np.ndarray) and index is not None:
+            el_handle = self.elements_handle[index].get_array()
         else:
             el_handle = self.elements_handle.get_array(index)
         if self.level==0:
@@ -83,7 +84,9 @@ class MeshEntities(object):
         return self.mtu.get_ord_bridge_adjacencies(el_handle, self.num[interface], self.num[target], self.mb, self.tag_handle, self.list_all[self.num[target]], self.level)
 
     def _coords(self, index):
-        if not isinstance(index, np.ndarray) and index is not None:
+        if isinstance(index, np.int64) or isinstance(index, int):
+            el_handle = np.array([self.elements_handle[index]])
+        elif not isinstance(index, np.ndarray) and index is not None:
             el_handle = self.nodes[index]
         else:
             el_handle = self.nodes.get_array(index)
@@ -107,8 +110,10 @@ class MeshEntities(object):
                 dim_tag = self.vID - 1
             else:
                 dim_tag = 0
-        if not isinstance(index, np.ndarray) and index is not None:
-            el_handle = self.elements_handle[index]
+        if isinstance(index, np.int64) or isinstance(index, int):
+            el_handle = np.array([self.elements_handle[index]])
+        elif not isinstance(index, np.ndarray) and index is not None:
+            el_handle = self.elements_handle[index].get_array()
         else:
             el_handle = self.elements_handle.get_array(index)
         return self.mb.get_ord_adjacencies(el_handle, dim_tag, tag_handle = self.tag_handle)
@@ -125,7 +130,7 @@ class MeshEntities(object):
             return centers
         elif self.vID == 2 or self.vID == 3:
             if not isinstance(index, np.ndarray) and index is not None:
-                el_handle = self.elements_handle[index]
+                el_handle = self.elements_handle[index].get_array()
             else:
                 el_handle = self.elements_handle.get_array(index)
             adj = self.mb.get_ord_connectivity(el_handle, tag_opt = False)
@@ -151,10 +156,11 @@ class MeshEntities(object):
             v2 = np.array([adj[i][2] for i in range (adj.shape[0])])
             return  gtool.normal_vec(self._coords(v0),self._coords(v1),self._coords(v2))
 
-
     def _connectivities(self,index):
-        if not isinstance(index, np.ndarray) and index is not None:
-            el_handle = self.elements_handle[index]
+        if isinstance(index, np.int64) or isinstance(index, int):
+            el_handle = np.array([self.elements_handle[index]])
+        elif not isinstance(index, np.ndarray) and index is not None:
+            el_handle = self.elements_handle[index].get_array()
         else:
             el_handle = self.elements_handle.get_array(index)
         return self.mb.get_ord_connectivity(el_handle, tag_handle = self.tag_handle)
@@ -297,22 +303,26 @@ class MoabVariable(object):
         return self.mb.tag_get_data(self.tag_handle, self.elements_handle)
 
     def __setitem__(self, index, data):
-        if not isinstance(index, np.ndarray) and index is not None:
-            el_handle = self.elements_handle[index]
+        if isinstance(index, np.int64) or isinstance(index, int):
+            el_handle = np.array([self.elements_handle[index]])
+        elif not isinstance(index, np.ndarray) and index is not None:
+            el_handle = self.elements_handle[index].get_array()
         else:
             el_handle = self.elements_handle.get_array(index)
         if isinstance(data, int) or isinstance(data, float) or isinstance(data, bool):
-            data = data * np.ones((el_handle.size(), self.data_size)).astype(self.data_format)
+            data = data * np.ones((el_handle.size, self.data_size)).astype(self.data_format)
         elif (isinstance(data, np.ndarray)) and (len(data) == self.data_size):
-            data = np.tile(data, (el_handle.size(), 1)).astype(self.data_format)
+            data = np.tile(data, (el_handle.size, 1)).astype(self.data_format)
         elif isinstance(data, list) & (len(data) == self.data_size):
             data = np.array(data)
-            data = np.tile(data, (el_handle.size(), 1)).astype(self.data_format)
+            data = np.tile(data, (el_handle.size, 1)).astype(self.data_format)
         self.mb.tag_set_data(self.tag_handle, el_handle, data)
 
     def __getitem__(self, index):
-        if not isinstance(index, np.ndarray) and index is not None:
-            el_handle = self.elements_handle[index]
+        if isinstance(index, np.int64) or isinstance(index, int):
+            el_handle = np.array([self.elements_handle[index]])
+        elif not isinstance(index, np.ndarray) and index is not None:
+            el_handle = self.elements_handle[index].get_array()
         else:
             el_handle = self.elements_handle.get_array(index)
         return self.mb.tag_get_data(self.tag_handle, el_handle)

@@ -4,36 +4,9 @@ import numpy as np
 import yaml
 import os
 from ..meshHandle.finescaleMesh import FineScaleMesh
+from ..meshHandle.configTools.configClass import variableInit
 from pymoab import types
-
-
-class configManager(object):
-    def __init__(self, empty=False, file_path=None):
-        if file_path == None:
-            file_path = 'input_cards/coarsening.yml'
-        if empty == False:
-            self.read(file_path)
-        else:
-            self.tree = {'Scheme': '', 'Simple': '', 'Smart': ''}
-
-    def scheme(self, scheme = 'smart'):
-        self.tree['Scheme'] =  scheme
-
-    def simple(self, nx=4, ny=4, nz=4):
-        self.tree['Simple'] = {'nx': nx, 'ny': ny, 'nz': nz}
-
-    def smart(self, path='default', file='mesh.h5m'):
-        self.tree['Smart'] = {'path': path, 'file': file}
-
-    def read(self, file_path):
-        with open(file_path) as file: # Use file to refer to the file object
-            data = file.read()
-            self.tree = yaml.safe_load(data)
-
-    def write(self, file_path):
-        with open(file_path, 'w') as f:
-                data = yaml.dump(self.tree, f)
-
+import copy
 
 class partitionManager(object):
     def __init__(self, M, config_object):
@@ -79,7 +52,11 @@ class smartPartition(object):
         return self.run(file_path)
 
     def run(self, file_path):
-        self.primal = FineScaleMesh(file_path)
+        print('Creating Coarse Scale Forming Primal Grid')
+        self.variable_entries = variableInit(empty=True)
+        self.variable_entries.add_entry('pressure', 'volumes', 1, 'float')
+        self.primal = FineScaleMesh(file_path, var_config=copy.deepcopy(self.variable_entries))
+        #import pdb; pdb.set_trace()
         self.dual = self.create_dual()
 
     def create_dual(self):
@@ -92,7 +69,6 @@ class smartPartition(object):
         sizes = np.concatenate((np.array([0]), sizes))
         tag = lambda ind, type: (sizes[type] + ind +1)
         all_tetra = np.array([[], [], [], []]).T
-        import pdb; pdb.set_trace()
         for vol in self.primal.volumes.all:
             faces = self.primal.volumes.adjacencies[vol]
             edges = self.primal.volumes._adjacencies(vol, dim_tag=1)
@@ -100,15 +76,18 @@ class smartPartition(object):
             for edge in edges.T:
                 adj_faces = np.intersect1d(self.primal.edges.bridge_adjacencies(edge, interface="edges",target="faces"), faces)
                 node_edge = self.primal.edges.connectivities[edge.T].ravel()
-                tetras = np.array([[tag(edge, 1)[0], tag(node_edge[0], 0), tag(adj_faces[0], 2), tag(vol, 3)],
-                                   [tag(edge, 1)[0], tag(node_edge[0], 0), tag(adj_faces[1], 2), tag(vol, 3)],
-                                   [tag(edge, 1)[0], tag(node_edge[1], 0), tag(adj_faces[0], 2), tag(vol, 3)],
-                                   [tag(edge, 1)[0], tag(node_edge[1], 0), tag(adj_faces[1], 2), tag(vol, 3)]])
+                tetras = np.array([[tag(edge, 1), tag(node_edge[0], 0), tag(adj_faces[0], 2), tag(vol, 3)],
+                                   [tag(edge, 1), tag(node_edge[0], 0), tag(adj_faces[1], 2), tag(vol, 3)],
+                                   [tag(edge, 1), tag(node_edge[1], 0), tag(adj_faces[0], 2), tag(vol, 3)],
+                                   [tag(edge, 1), tag(node_edge[1], 0), tag(adj_faces[1], 2), tag(vol, 3)]])
                 all_tetra = np.vstack((all_tetra, tetras))
-        dual = FineScaleMesh(mesh_file=None, dim=3)
+        print('Creating Coarse Scale Forming Dual Grid')
+        dual = FineScaleMesh(mesh_file=None, dim=3, var_config=self.variable_entries)
+        import pdb; pdb.set_trace()
         dual.core.mb.create_vertices(np.vstack((nodes_coords, edges_center, faces_center, volumes_center)))
         for tetra in all_tetra:
             dual.core.mb.create_element(types.MBTET, tetra.ravel().astype("uint64"))
+        dual.core.run()
         dual.run()
         return dual
 
@@ -153,9 +132,9 @@ class simplePartition(object):
         return self.tag_adjust(tag, coarseCenters)
 
     def check_in_box(self,coords, x , y, z):
-        tag1 = (coords[:,0] > x[0])   &  (coords[:,0] < x[1])
-        tag2 = (coords[:,1] > y[0])   &  (coords[:,1] < y[1])
-        tag3 = (coords[:,2] > z[0])   &  (coords[:,2] < z[1])
+        tag1 = (coords[:,0] > x[0]) & (coords[:,0] < x[1])
+        tag2 = (coords[:,1] > y[0]) & (coords[:,1] < y[1])
+        tag3 = (coords[:,2] > z[0]) & (coords[:,2] < z[1])
         return tag1 & tag2 & tag3
 
     def tag_adjust(self, tag, coarseCenter):

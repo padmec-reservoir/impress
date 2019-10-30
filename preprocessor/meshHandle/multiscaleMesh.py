@@ -8,7 +8,7 @@ from ..msCoarseningLib import algoritmo
 from . meshComponents import MoabVariable
 from . mscorePymoab import MsCoreMoab
 from . meshComponentsMS import MoabVariableMS,  MeshEntitiesMS
-from preprocessor.meshHandle.configTools.configClasses import variableInit
+from preprocessor.meshHandle.configTools.configClass import variableInit
 from pymoab import core, types, rng
 import numpy as np
 import yaml

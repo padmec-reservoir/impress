@@ -7,8 +7,8 @@
 # level must be an integer
 
 weight:
-  type: nodes
-  data size: 1
+  type: volumes
+  data size: 3
   data type: float
   sparse: False
   level: 0
