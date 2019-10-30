@@ -8,6 +8,7 @@ from ..meshHandle.configTools.configClass import variableInit
 from pymoab import types
 import copy
 
+
 class partitionManager(object):
     def __init__(self, M, config_object):
         scheme = config_object.tree['Scheme']
@@ -25,6 +26,9 @@ class partitionManager(object):
             self.func = self.simple
             self.partitioner = simplePartition(M)
             self.arg = config_object.tree['Simple']['nx'], config_object.tree['Simple']['ny'], config_object.tree['Simple']['nz']
+        elif scheme == 'parallel':
+            print('Looking for Parallel Partition')
+            self.func = self.parallel()
         else:
             print('Scheme ' + scheme + ' not defined.')
 
@@ -36,6 +40,9 @@ class partitionManager(object):
             return self.func(*self.arg)
         else:
             return self.func(*args)
+
+    def parallel(self):
+        return ['parallel', None]
 
     def smart(self, file_path):
         return self.partitioner(file_path)
