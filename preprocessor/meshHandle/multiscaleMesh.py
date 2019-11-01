@@ -12,7 +12,7 @@ from . meshComponentsMS import MoabVariableMS,  MeshEntitiesMS
 from ..meshHandle.configTools.configClass import variableInit, coarseningInit
 from pymoab import core, types, rng
 import numpy as np
-import yaml
+
 
 
 print('Initializing Finescale Mesh for Multiscale Methods')
@@ -23,7 +23,7 @@ class FineScaleMeshMS(FineScaleMesh):
         self.var_config = var_config
         super().__init__(mesh_file, dim)
         print("Creating Coarse Grid")
-        self.coarse = MultiscaleCoarseGrid(self)
+        self.coarse = MultiscaleCoarseGrid(self, var_config)
         self.enhance_entities()
 
     def __getitem__ (self, key):
@@ -70,34 +70,35 @@ class FineScaleMeshMS(FineScaleMesh):
 
 
 class CoarseVolume(FineScaleMeshMS):
-    def __init__(self, father_core, dim, i, coarse_vec):
+    def __init__(self, father_core, dim, i, coarse_vec, var_config=None):
+        self.var_config = var_config
         self.dim = dim
         self.level = father_core.level + 1
         self.coarse_num = i
         self.coarse_vec = coarse_vec
-
         print("Level {0} - Volume {1}".format(self.level,self.coarse_num))
         self.core = MsCoreMoab(father_core, i, coarse_vec)
         self.init_entities()
-        #self.init_variables()
+        self.init_variables()
         self.init_coarse_variables()
         self.macro_dim()
 
     def init_variables(self):
         if self.var_config is None:
             self.var_config = variableInit()
-        for command in self.var_config.get_var(self.core.level):
+        for command in self.var_config.get_var(self.core.level, self.coarse_num):
             exec(command)
 
-    def __call__(self,i,general):
+    def __call__(self, i, general):
         self.nodes.enhance(i, general)
         self.edges.enhance(i, general)
         self.faces.enhance(i, general)
         if self.dim == 3:
-            self.volumes.enhance(i,general)
+            self.volumes.enhance(i, general)
 
     def init_coarse_variables(self):
         pass
+
 
 class GetCoarseItem(object):
     def __init__(self, adj,tag, dic):
@@ -107,13 +108,13 @@ class GetCoarseItem(object):
 
     def __len__(self):
         return len(self.dic)
+
     def __call__(self, item):
         tmp = self.dic[item]
         el_list = rng.Range()
         for e in tmp:
             el_list.insert(e[0])
         return self.fun(self.tag, el_list)
-
 
     def __getitem__(self, item):
         if isinstance(item, int):
@@ -136,10 +137,10 @@ class GetCoarseItem(object):
 
 
 class MultiscaleCoarseGrid(object):
-    def __init__(self, M):
+    def __init__(self, M, var_config):
         self.mb = M.core.mb
         self.partition = M.init_partition()
-        self.elements = [CoarseVolume(M.core, M.dim, i, self.partition[:].ravel() == i) for i in range(self.partition[:].max()+1 )]
+        self.elements = [CoarseVolume(M.core, M.dim, i, self.partition[:].ravel() == i, var_config) for i in range(self.partition[:].max()+1 )]
         self.num_coarse = len(self.elements)
         self.num = {"nodes": 0, "node": 0, "edges": 1, "edge": 1, "faces": 2, "face": 2, "volumes": 3, "volume": 3,
                              0: 0, 1: 1, 2: 2, 3: 3}
@@ -155,7 +156,6 @@ class MultiscaleCoarseGrid(object):
         self.interfaces_edges = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._edges)
         self.interfaces_nodes = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._nodes)
         self.iface_coarse_neighbors = self._internal_faces(M)
-
 
     def _internal_faces(self, M):
         #faces = np.array([self.mb.tag_get_data(self.father_tag,el[0]).ravel() for el in self._faces]).ravel()

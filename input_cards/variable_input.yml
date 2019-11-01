@@ -18,7 +18,7 @@ flux:
   data size: 3
   data type: int
   sparse: False
-  level: 2
+  level: 1
 
 pressure:
   type: volumes

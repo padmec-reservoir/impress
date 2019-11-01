@@ -73,7 +73,8 @@ class MeshEntitiesMS(MeshEntities):
 
 class MoabVariableMS(MoabVariable):
     def __init__(self, core, name_tag, var_type="volumes", data_size=1, data_format="float", data_density="sparse",
-                 entity_index=None, level = 0, coarse_num = 0):
+                 entity_index=None, level=0, coarse_num=0):
+
         self.mb = core.mb
         self.var_type = var_type
         self.data_format = data_format
