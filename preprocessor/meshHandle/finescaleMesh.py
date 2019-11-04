@@ -4,8 +4,8 @@ Module for management of fine scale mesh
 import time
 import pdb
 import numpy as np
-from preprocessor.meshHandle.meshComponents import MoabVariable
-from preprocessor.meshHandle.configTools.configClass import variableInit
+from ..meshHandle.meshComponents import MoabVariable
+from ..meshHandle.configTools.configClass import variableInit
 from math import sqrt
 from pymoab import core, types, rng, topo_util
 from . corePymoab import CoreMoab
