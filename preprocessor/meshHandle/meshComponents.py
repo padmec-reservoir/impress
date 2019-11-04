@@ -85,7 +85,7 @@ class MeshEntities(object):
 
     def _coords(self, index):
         if isinstance(index, np.int64) or isinstance(index, int):
-            el_handle = np.array([self.elements_handle[index]])
+            el_handle = np.array([self.nodes[index]])
         elif not isinstance(index, np.ndarray) and index is not None:
             el_handle = self.nodes[index]
         else:
