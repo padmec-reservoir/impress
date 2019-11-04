@@ -153,9 +153,9 @@ class MeshEntities(object):
         adj = self.connectivities[index]
         if adj.ndim==1:
             if self.vID == 1:
-                return gtool.normal_vec_2d(self._coords(adj[0]), self._coords(adj[1]))
+                return gtool.normal_vec_2d(self._coords(adj[0]), self._coords(adj[1]))[0]
             elif self.vID == 2:
-                return gtool.normal_vec(self._coords(adj[0]),self._coords(adj[1]),self._coords(adj[2]))
+                return gtool.normal_vec(self._coords(adj[0]),self._coords(adj[1]),self._coords(adj[2]))[0]
             return
         v0 = np.array([adj[i][0] for i in range (adj.shape[0])])
         v1 = np.array([adj[i][1] for i in range (adj.shape[0])])
