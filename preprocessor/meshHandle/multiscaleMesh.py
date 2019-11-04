@@ -166,8 +166,8 @@ class MultiscaleCoarseGrid(object):
         partition = self.partition[:].ravel()
         internal = faces[0:self.num_internal_faces]
         external = faces[self.num_internal_faces:]
-        internal_volumes = np.concatenate(M.faces.bridge_adjacencies(internal, interface="faces",target="volumes")).reshape((-1, 2))
-        external_volumes = np.concatenate(M.faces.bridge_adjacencies(external, interface="faces",target="volumes"))
+        internal_volumes = M.faces.bridge_adjacencies(internal, interface="faces",target="volumes")
+        external_volumes = M.faces.bridge_adjacencies(external, interface="faces",target="volumes")
         int_neigh = np.vstack((partition[internal_volumes[:,0]],partition[internal_volumes[:,1]])).T
         ext_neigh = np.zeros((external_volumes.shape[0],2))
         ext_neigh[:,0], ext_neigh[:,1] = partition[external_volumes].ravel(), partition[external_volumes].ravel()
