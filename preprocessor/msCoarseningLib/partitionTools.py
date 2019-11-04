@@ -90,7 +90,6 @@ class smartPartition(object):
                 all_tetra = np.vstack((all_tetra, tetras))
         print('Creating Coarse Scale Forming Dual Grid')
         dual = FineScaleMesh(mesh_file=None, dim=3, var_config=self.variable_entries)
-        import pdb; pdb.set_trace()
         dual.core.mb.create_vertices(np.vstack((nodes_coords, edges_center, faces_center, volumes_center)))
         for tetra in all_tetra:
             dual.core.mb.create_element(types.MBTET, tetra.ravel().astype("uint64"))

@@ -13,12 +13,9 @@ from preprocessor.meshHandle.dualCoarseMesh import DualCoarseMesh as dual
 import preprocessor.geoUtil.geoTools as gtool
 
 
-
 start = time.time()
 M = msh('mesh/semi3.msh', dim = 3)
 # M = msh('mesh/malha03.msh', dim = 2)
-
-
 end = time.time()
 print("The preprocessing step lasted {0}s".format(end-start))
 #l = dual(M)
