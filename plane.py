@@ -18,5 +18,5 @@ former.run()
 
 coord_list = M.nodes.coords[:]
 elements = M.volumes.connectivities[:]
-normal_plane = former.partitioner.dual.faces.normal[0:5][0]
-point_on_plane = former.partitioner.dual.faces.center[0:5][0]
+normal_plane = former.partitioner.dual.faces.normal[0]
+point_on_plane = former.partitioner.dual.faces.center[0]

@@ -131,7 +131,9 @@ class MeshEntities(object):
             centers = 0.5 * (self._coords(v0) + self._coords(v1))
             return centers
         elif self.vID == 2 or self.vID == 3:
-            if not isinstance(index, np.ndarray) and index is not None:
+            if isinstance(index, np.int64) or isinstance(index, int):
+                el_handle = np.array([self.elements_handle[index]])
+            elif not isinstance(index, np.ndarray) and index is not None:
                 el_handle = self.elements_handle[index].get_array()
             else:
                 el_handle = self.elements_handle.get_array(index)
