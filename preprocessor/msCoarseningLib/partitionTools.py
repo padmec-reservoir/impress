@@ -4,9 +4,49 @@ import numpy as np
 import yaml
 import os
 from ..meshHandle.finescaleMesh import FineScaleMesh
+from ..meshHandle import imprutil as ip
+
 from ..meshHandle.configTools.configClass import variableInit
 from pymoab import types
 import copy
+
+
+def plane_check(coords_list, elements, normal_plane, point_on_plane, tol=1e-20):
+    # import pdb; pdb.set_trace()
+    center_to_coords = coord_list - \
+        np.repeat(point_on_plane.reshape((-1,3)), len(coords_list), axis=0)
+    normal_plane = \
+        np.repeat(normal_plane.reshape((-1,3)), len(coords_list), axis=0)
+    inner_product = np.sum(center_to_coords*normal_plane,axis=1)
+    flag = np.zeros(inner_product.shape, dtype=int)
+    flag[inner_product > 0] = 1
+    flag[inner_product < 0] = -1
+    flag[np.abs(inner_product) < tol] = 0
+    # qq = np.array([np.array([1,3,4]),np.array([1,2])])
+    index = elements.shape[1]
+    flag = np.abs(np.sum(flag[elements], axis=1))
+    cross_elements = np.zeros((len(elements), 1), dtype=bool)
+    cross_elements[flag < (index-1)] = True
+    return cross_elements.T.ravel()
+
+
+def check_in_box(coords, x, y, z):
+    tag1 = (coords[:,0] > x[0]) & (coords[:,0] < x[1])
+    tag2 = (coords[:,1] > y[0]) & (coords[:,1] < y[1])
+    tag3 = (coords[:,2] > z[0]) & (coords[:,2] < z[1])
+    return tag1 & tag2 & tag3
+
+
+def tag_adjust(tag, coarseCenter):
+    fineTag = tag
+    elementsOriginal = [*set(tag)]
+    elementsNovo = [*set(range(len(elementsOriginal)))]
+    elementsMissing = set(range(len(coarseCenter))) - set(elementsOriginal)
+    for elo, eln in zip(elementsOriginal,elementsNovo):
+        if elo != eln:
+            pointer = (tag == elo)
+            fineTag[pointer] = eln
+    return fineTag.astype(int), np.delete(coarseCenter, [*elementsMissing], axis = 0)
 
 
 class partitionManager(object):
@@ -64,9 +104,46 @@ class smartPartition(object):
         self.variable_entries.add_entry('pressure', 'volumes', 1, 'float')
         self.primal = FineScaleMesh(file_path, var_config=copy.deepcopy(self.variable_entries))
         #import pdb; pdb.set_trace()
-        self.dual = self.create_dual()
+        self.dual = self.create_forming_dual()
+        return tag_adjust(self.find_primal_coarse_volumes())
 
-    def create_dual(self):
+    def find_primal_coarse_volumes(self):
+        all_coords = self.primal.nodes.coords[:]
+        connectivities = self.primal.volumes.connectivities[:]
+        elements_coords = all_coords[connectivities]
+        max_el = elements_coords.max(axis=1)
+        min_el = elements_coords.min(axis=1)
+        fine_scale_elements_coords = self.M.volumes.center[:]
+        bbox_indicator = np.zeros((len(fine_scale_elements_coords),
+                                   len(self.primal.volumes)), dtype=bool)
+        primal_indicator = np.zeros((len(fine_scale_elements_coords), 1), dtype=int)
+        for el in range(len(max_el)):
+            x = (min_el[el, 0], max_el[el, 0])
+            y = (min_el[el, 1], max_el[el, 1])
+            z = (min_el[el, 2], max_el[el, 2])
+            bbox_indicator[:, el] = check_in_box(fine_scale_elements_coords,
+                                                 x, y, z)
+        index = 0
+        for el in range(len(max_el)):
+            local_coords = elements_coords[el]
+            faces_connectivities = \
+                self.primal.faces.connectivities[self.primal.volumes.adjacencies[el]]
+            global_to_local_dic = {}
+            for key, val in zip(np.unique(faces_connectivities),
+                                np.argsort(np.unique(faces_connectivities))):
+                global_to_local_dic[key] = val
+            local_faces_connectivities = \
+                np.vectorize(global_to_local_dic.get)(faces_connectivities)
+            in_volumes = ip.point_in_volumes(local_coords,
+                                             local_faces_connectivities,
+                                             self.M.volumes.center[bbox_indicator[:,el]],0)
+
+            indices = np.where(bbox_indicator[:,el])[0][in_volumes != 0]
+            primal_indicator[indices] = index
+            index += 1
+        return primal_indicator,self.primal.volumes.center[:]
+
+    def create_forming_dual(self):
         nodes_coords = self.primal.nodes.center[:]
         edges_center = self.primal.edges.center[:]
         faces_center = self.primal.faces.center[:]
@@ -114,7 +191,7 @@ class simplePartition(object):
             nz = 1
             rz = (-1,1)
         box = np.array([0, (rx[1] - rx[0])/nx, 0,
-              (ry[1] - ry[0]) /ny, 0,(rz[1]- rz[0])/(nz+0)]).reshape(3,2)
+               (ry[1] - ry[0]) /ny, 0,(rz[1]- rz[0])/(nz+0)]).reshape(3,2)
         cent_coord_El1 = box.sum(axis =1)/2
         tag = np.zeros(num_of_vol).astype("int")
         coarseCenters = np.zeros((nx*ny*nz,3))
@@ -124,32 +201,12 @@ class simplePartition(object):
             for y in range(ny):
                 for z in range(nz):
                     inc = np.multiply(box[:,1], np.array([x,y,z]))
-
-                    #cent = cent_coord_El1 + inc
                     coarseCenters[index] = cent_coord_El1 + inc
-                    # pdb.set_trace()
-
-                    #inc = np.array([(nx) * x, (ny) * y, (nz) * z])
                     boxMin = box[:,0] + inc + init_coords
                     boxMax = box[:,1] + inc + init_coords
-                    point = self.check_in_box(centerCoord,x=(boxMin[0], boxMax[0]), y=(boxMin[1], boxMax[1]) , z=(boxMin[2], boxMax[2]))
+                    point = check_in_box(centerCoord,x=(boxMin[0], boxMax[0]),
+                                         y=(boxMin[1], boxMax[1]), z=(boxMin[2]
+                                         , boxMax[2]))
                     tag[point] = index
                     index += 1
-        return self.tag_adjust(tag, coarseCenters)
-
-    def check_in_box(self,coords, x , y, z):
-        tag1 = (coords[:,0] > x[0]) & (coords[:,0] < x[1])
-        tag2 = (coords[:,1] > y[0]) & (coords[:,1] < y[1])
-        tag3 = (coords[:,2] > z[0]) & (coords[:,2] < z[1])
-        return tag1 & tag2 & tag3
-
-    def tag_adjust(self, tag, coarseCenter):
-        fineTag =  tag
-        elementsOriginal = [*set(tag)]
-        elementsNovo = [*set(range(len(elementsOriginal)))]
-        elementsMissing = set(range(len(coarseCenter))) - set(elementsOriginal)
-        for elo, eln in zip(elementsOriginal,elementsNovo):
-            if elo != eln:
-                pointer = (tag == elo)
-                fineTag[pointer] = eln
-        return fineTag.astype(int) , np.delete(coarseCenter, [*elementsMissing], axis = 0)
+        return tag_adjust(tag, coarseCenters)

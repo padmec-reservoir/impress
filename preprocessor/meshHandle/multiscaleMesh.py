@@ -50,7 +50,9 @@ class FineScaleMeshMS(FineScaleMesh):
 
     def init_partition(self):
         coarse_config = coarseningInit()
+
         partitioner = partitionManager(self, coarse_config)
+        import pdb; pdb.set_trace()
         [partition, coarse_center] = partitioner()
         if isinstance(partition, str) and partition == 'parallel':
             return self.init_partition_parallel()
