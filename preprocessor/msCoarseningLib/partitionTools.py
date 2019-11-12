@@ -6,6 +6,7 @@ import os
 from ..meshHandle.finescaleMesh import FineScaleMesh
 from ..meshHandle import imprutil as ip
 
+from ..CythonUtil import imprutil as ipq
 from ..meshHandle.configTools.configClass import variableInit
 from pymoab import types
 import copy
@@ -31,9 +32,9 @@ def plane_check(coords_list, elements, normal_plane, point_on_plane, tol=1e-20):
 
 
 def check_in_box(coords, x, y, z):
-    tag1 = (coords[:,0] > x[0]) & (coords[:,0] < x[1])
-    tag2 = (coords[:,1] > y[0]) & (coords[:,1] < y[1])
-    tag3 = (coords[:,2] > z[0]) & (coords[:,2] < z[1])
+    tag1 = (coords[:,0] >= x[0]) & (coords[:,0] <= x[1])
+    tag2 = (coords[:,1] >= y[0]) & (coords[:,1] <= y[1])
+    tag3 = (coords[:,2] >= z[0]) & (coords[:,2] <= z[1])
     return tag1 & tag2 & tag3
 
 
@@ -102,10 +103,18 @@ class smartPartition(object):
         print('Creating Coarse Scale Forming Primal Grid')
         self.variable_entries = variableInit(empty=True)
         self.variable_entries.add_entry('pressure', 'volumes', 1, 'float')
+        self.print_creating('Primal Forming Mesh')
         self.primal = FineScaleMesh(file_path, var_config=copy.deepcopy(self.variable_entries))
-        #import pdb; pdb.set_trace()
+        self.print_creating('Dual Forming Mesh')
         self.dual = self.create_forming_dual()
-        return tag_adjust(self.find_primal_coarse_volumes())
+        [proto_partition, proto_center] =   self.find_primal_coarse_volumes()
+        return tag_adjust(proto_partition.ravel(), proto_center)
+
+    def print_creating(self, text):
+        print('-----------------------------------')
+        print('  Creating {}'.format(text))
+        print('-----------------------------------')
+        pass
 
     def find_primal_coarse_volumes(self):
         all_coords = self.primal.nodes.coords[:]
@@ -134,14 +143,13 @@ class smartPartition(object):
                 global_to_local_dic[key] = val
             local_faces_connectivities = \
                 np.vectorize(global_to_local_dic.get)(faces_connectivities)
-            in_volumes = ip.point_in_volumes(local_coords,
+            in_volumes = ipq.point_in_volumes(local_coords,
                                              local_faces_connectivities,
                                              self.M.volumes.center[bbox_indicator[:,el]],0)
-
             indices = np.where(bbox_indicator[:,el])[0][in_volumes != 0]
             primal_indicator[indices] = index
             index += 1
-        return primal_indicator,self.primal.volumes.center[:]
+        return primal_indicator, self.primal.volumes.center[:]
 
     def create_forming_dual(self):
         nodes_coords = self.primal.nodes.center[:]

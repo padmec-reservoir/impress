@@ -23,6 +23,7 @@ class FineScaleMeshMS(FineScaleMesh):
         self.var_config = var_config
         super().__init__(mesh_file, dim)
         print("Creating Coarse Grid")
+
         self.coarse = MultiscaleCoarseGrid(self, var_config)
         self.enhance_entities()
 
@@ -52,12 +53,18 @@ class FineScaleMeshMS(FineScaleMesh):
         coarse_config = coarseningInit()
 
         partitioner = partitionManager(self, coarse_config)
+        [partition_tag, coarse_center] = partitioner()
         import pdb; pdb.set_trace()
-        [partition, coarse_center] = partitioner()
-        if isinstance(partition, str) and partition == 'parallel':
+        # create maob variabel
+
+        if isinstance(partition_tag, str) and partition == 'parallel':
             return self.init_partition_parallel()
         else:
-            return partition
+            partition_moab = MoabVariable(self.core, data_size=1,
+                                     var_type="volumes", data_format="int",
+                                     name_tag="Partition", data_density="dense")
+            partition_moab[:] = partition_tag
+            return partition_moab
 
     def init_partition_parallel(self):
         if self.dim == 3:
@@ -142,6 +149,7 @@ class MultiscaleCoarseGrid(object):
     def __init__(self, M, var_config):
         self.mb = M.core.mb
         self.partition = M.init_partition()
+        import pdb; pdb.set_trace()
         self.elements = [CoarseVolume(M.core, M.dim, i, self.partition[:].ravel() == i, var_config) for i in range(self.partition[:].max()+1 )]
         self.num_coarse = len(self.elements)
         self.num = {"nodes": 0, "node": 0, "edges": 1, "edge": 1, "faces": 2, "face": 2, "volumes": 3, "volume": 3,
