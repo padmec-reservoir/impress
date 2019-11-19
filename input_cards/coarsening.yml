@@ -21,4 +21,4 @@ Smart:
 # Define the path and the name of the conforming mesh
 # set path as 'default' for the working directory
     path: 'default'
-    file: 'semi.msh'
+    file: 'semi2.msh'

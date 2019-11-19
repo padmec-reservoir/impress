@@ -12,6 +12,32 @@ from pymoab import types
 import copy
 
 
+def global_to_local(global_matrix):
+    global_to_local_dic = {}
+    global_connectivities_id = np.unique(global_matrix)
+    local_connectivities_id = np.arange(len(global_connectivities_id))
+    for key, val in zip(global_connectivities_id,
+                        local_connectivities_id):
+        global_to_local_dic[key] = val
+    return np.vectorize(global_to_local_dic.get)(global_matrix)
+
+
+def semi_plan_check(coords_list, normal_plane, point_on_plane, tol=1e-20):
+    """coord_list -> list of points to be checked
+    normal_plane -> normal vector to plane used for the comparision
+    point_on_plane -> a point on the plane
+    returns a bool of the size of coords_list with True or false """
+    center_to_coords = coords_list - \
+        np.repeat(point_on_plane.reshape((-1,3)), len(coords_list), axis=0)
+    normal_plane = \
+        np.repeat(normal_plane.reshape((-1,3)), len(coords_list), axis=0)
+    inner_product = np.sum(center_to_coords*normal_plane,axis=1)
+    flag = np.zeros(inner_product.shape, dtype=bool)
+    flag[inner_product >= 0] = True
+    flag[np.abs(inner_product) < tol] =True
+    return flag
+
+
 def plane_check(coords_list, elements, normal_plane, point_on_plane, tol=1e-20):
     # import pdb; pdb.set_trace()
     center_to_coords = coord_list - \
@@ -29,6 +55,47 @@ def plane_check(coords_list, elements, normal_plane, point_on_plane, tol=1e-20):
     cross_elements = np.zeros((len(elements), 1), dtype=bool)
     cross_elements[flag < (index-1)] = True
     return cross_elements.T.ravel()
+
+
+def check_nodes_in_volume(el_coords, faces_connectivities, faces_normal, centers):
+    el_center = el_coords.mean(axis=0).reshape((-1, 3))
+    faces_center = el_coords[faces_connectivities].mean(axis=1)
+    pseudo_normal = faces_center - el_center.repeat(len(faces_center), axis=0)
+    change_sign = (faces_normal*pseudo_normal).sum(axis=1) <= 0
+    faces_normal[change_sign] = -1 * faces_normal[change_sign]
+    nodes_indicator = np.zeros((len(centers),
+                                faces_connectivities.shape[0]), dtype=bool)
+    for el in range(faces_connectivities.shape[0]):
+        plane_check = semi_plan_check(centers, faces_normal[el],
+                             el_coords[faces_connectivities[el,0]], tol=1e-8)
+        nodes_indicator[:, el] = plane_check
+    return nodes_indicator.any(axis=1)
+
+
+def check_in_volume(el_coords, faces_connectivities, faces_normal, centers):
+    bbox_indicator = np.zeros((len(centers), 1), dtype=bool)
+    max_el = el_coords.max(axis=0)
+    min_el = el_coords.min(axis=0)
+    x = (min_el[0], max_el[0])
+    y = (min_el[1], max_el[1])
+    z = (min_el[2], max_el[2])
+    bbox_indicator = check_in_box(centers, x, y, z)
+    el_center = el_coords.mean(axis=0).reshape((-1, 3))
+    faces_center = el_coords[faces_connectivities].mean(axis=1)
+    pseudo_normal = faces_center - el_center.repeat(len(faces_center), axis=0)
+    change_sign = (faces_normal*pseudo_normal).sum(axis=1) <= 0
+    faces_normal[change_sign] = -1 * faces_normal[change_sign]
+    t_vec = centers[bbox_indicator] \
+        - el_center.repeat(np.sum(bbox_indicator), axis=0)
+    all_dot_product = np.zeros((len(faces_normal), len(t_vec)))
+    for index, line in enumerate(faces_normal):
+        #t_vec * line.reshape((-1,3)).repeat(len(t_vec), axis=0)
+        all_dot_product[index] = (t_vec * line.reshape((-1,3)).repeat(len(t_vec), axis=0)).sum(axis=1).T
+    bol_cond1 = (all_dot_product >= 0).sum(axis=0) == len(faces_normal)
+    bol_cond2 = (all_dot_product <= 0).sum(axis=0) == len(faces_normal)
+    #import pdb; pdb.set_trace()
+    bbox_indicator[bbox_indicator == True] = np.logical_or(bol_cond1, bol_cond2)
+    return bbox_indicator
 
 
 def check_in_box(coords, x, y, z):
@@ -102,12 +169,18 @@ class smartPartition(object):
     def run(self, file_path):
         print('Creating Coarse Scale Forming Primal Grid')
         self.variable_entries = variableInit(empty=True)
-        self.variable_entries.add_entry('pressure', 'volumes', 1, 'float')
+        self.variable_entries.add_entry('nodein', 'nodes', 1, 'int')
         self.print_creating('Primal Forming Mesh')
         self.primal = FineScaleMesh(file_path, var_config=copy.deepcopy(self.variable_entries))
         self.print_creating('Dual Forming Mesh')
         self.dual = self.create_forming_dual()
-        [proto_partition, proto_center] =   self.find_primal_coarse_volumes()
+        node_indicator = self.find_primal_coarse_volumes2()
+        partition_tag = self.node_indicator_to_partition(node_indicator)
+        # for el in range(node_indicator.shape[1]):
+        #     self.M.nodein[node_indicator[:,el]] = 1*el
+        [proto_partition, proto_center] = self.find_primal_coarse_volumes()
+        #import pdb; pdb.set_trace()
+        #return tag_adjust(partition_tag, proto_center)
         return tag_adjust(proto_partition.ravel(), proto_center)
 
     def print_creating(self, text):
@@ -115,6 +188,58 @@ class smartPartition(object):
         print('  Creating {}'.format(text))
         print('-----------------------------------')
         pass
+
+    def find_primal_coarse_volumes2(self):
+        all_fine_coords = self.M.nodes.coords[:]
+        all_coords = self.primal.nodes.coords[:]
+        connectivities = self.primal.volumes.connectivities[:]
+        elements_coords = all_coords[connectivities]
+        max_el = elements_coords.max(axis=1)
+        min_el = elements_coords.min(axis=1)
+        bbox_indicator = np.zeros((len(all_fine_coords),
+                                   len(self.primal.volumes)), dtype=bool)
+        node_indicator = np.zeros((len(all_fine_coords),
+                                   len(self.primal.volumes)), dtype=bool)
+        # creating bounding box
+        x = (min_el[:, 0], max_el[:, 0])
+        y = (min_el[:, 1], max_el[:, 1])
+        z = (min_el[:, 2], max_el[:, 2])
+        for el in range(len(self.primal.volumes)):
+            x_el = (x[0][el], x[1][el])
+            y_el = (y[0][el], y[1][el])
+            z_el = (z[0][el], z[1][el])
+            bbox_indicator[:, el] = check_in_box(all_fine_coords, x_el, y_el, z_el)
+        for el in range(len(max_el)):
+            local_coords = elements_coords[el]
+            faces_connectivities = \
+                self.primal.faces.connectivities[self.primal.volumes.adjacencies[el]]
+            faces_normals = self.primal.faces.normal[self.primal.volumes.adjacencies[el]]
+            local_faces_connectivities = global_to_local(faces_connectivities)
+            # inodes_volumes = ipq.point_in_volumes(local_coords,
+            #                                   local_faces_connectivities,
+            #                                   all_fine_coords[bbox_indicator[:,el],:], 0)
+            # node_indicator[bbox_indicator[:, el], el] = (inodes_volumes >= 1)
+            in_nodes = check_nodes_in_volume(local_coords,
+                                             local_faces_connectivities,
+                                             faces_normals,
+                                             all_fine_coords[bbox_indicator[:, el], :])
+            node_indicator[bbox_indicator[:, el], el] = in_nodes
+        return node_indicator
+
+    def node_indicator_to_partition(self, node_indicator):
+        fine_connectivities = self.M.volumes.connectivities[:]
+        partition_indicator = np.zeros((fine_connectivities.shape[0],
+                                        node_indicator.shape[1]), dtype=bool)
+        partition_flag = np.zeros((fine_connectivities.shape[0], 1), dtype=int)
+
+        for el in range(len(self.primal.volumes)):
+            partition_indicator[:,el] = node_indicator[fine_connectivities,el].any(axis=1)
+        for el in range(len(self.primal.volumes)):
+            partition_flag[partition_indicator[:,el]] = 1*el
+        #import pdb; pdb.set_trace()
+        return partition_flag
+
+
 
     def find_primal_coarse_volumes(self):
         all_coords = self.primal.nodes.coords[:]
@@ -124,6 +249,8 @@ class smartPartition(object):
         min_el = elements_coords.min(axis=1)
         fine_scale_elements_coords = self.M.volumes.center[:]
         bbox_indicator = np.zeros((len(fine_scale_elements_coords),
+                                   len(self.primal.volumes)), dtype=bool)
+        coarse_indicator = np.zeros((len(fine_scale_elements_coords),
                                    len(self.primal.volumes)), dtype=bool)
         primal_indicator = np.zeros((len(fine_scale_elements_coords), 1), dtype=int)
         for el in range(len(max_el)):
@@ -137,17 +264,34 @@ class smartPartition(object):
             local_coords = elements_coords[el]
             faces_connectivities = \
                 self.primal.faces.connectivities[self.primal.volumes.adjacencies[el]]
-            global_to_local_dic = {}
-            for key, val in zip(np.unique(faces_connectivities),
-                                np.argsort(np.unique(faces_connectivities))):
-                global_to_local_dic[key] = val
-            local_faces_connectivities = \
-                np.vectorize(global_to_local_dic.get)(faces_connectivities)
+
+            # faces_connectivities = \
+            #     1+1
+            # faces_edges = self.primal.faces.adjacencies[self.primal.volumes.adjacencies[el]]
+            # local_faces_edges = global_to_local(faces_edges)
+            # local_inner_edges = global_to_local(self.primal.edges.adjacencies[np.unique(faces_edges)])
+            # local_inner_edges[local_faces_edges]
+            faces_normals = self.primal.faces.normal[self.primal.volumes.adjacencies[el]]
+            local_faces_connectivities = global_to_local(faces_connectivities)
+            # local_faces_connectivities = \
+            #     np.vectorize(global_to_local_dic.get)(faces_connectivities)
+            # #import pdb; pdb.set_trace()
             in_volumes = ipq.point_in_volumes(local_coords,
-                                             local_faces_connectivities,
-                                             self.M.volumes.center[bbox_indicator[:,el]],0)
-            indices = np.where(bbox_indicator[:,el])[0][in_volumes != 0]
-            primal_indicator[indices] = index
+                                              local_faces_connectivities,
+                                              self.M.volumes.center[bbox_indicator[:,el]],0)
+            # in_volumes = ipq.point_in_volumes(local_coords,
+            #                                   local_faces_connectivities,
+            #                                   self.M.volumes.center[:],0)
+            #import pdb; pdb.set_trace()
+            #import pdb; pdb.set_trace()
+            #in_volumes2 = check_in_volume(local_coords, local_faces_connectivities, faces_normals, self.M.volumes.center[:])
+            coarse_indicator[bbox_indicator[:, el], el] = (in_volumes >= 1)
+            #import pdb; pdb.set_trace()
+            # coarse_indicator[:,el] =  (in_volumes >= 1)
+            #indices = np.where(bbox_indicator[:, el])[0][in_volumes != 0]
+            primal_indicator[bbox_indicator[:, el]] = (el * (in_volumes >= 1)).reshape((-1,1))
+            #import pdb; pdb.set_trace()
+            #import pdb; pdb.set_trace()
             index += 1
         return primal_indicator, self.primal.volumes.center[:]
 

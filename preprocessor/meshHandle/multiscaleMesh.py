@@ -54,7 +54,6 @@ class FineScaleMeshMS(FineScaleMesh):
 
         partitioner = partitionManager(self, coarse_config)
         [partition_tag, coarse_center] = partitioner()
-        import pdb; pdb.set_trace()
         # create maob variabel
 
         if isinstance(partition_tag, str) and partition == 'parallel':
@@ -149,11 +148,13 @@ class MultiscaleCoarseGrid(object):
     def __init__(self, M, var_config):
         self.mb = M.core.mb
         self.partition = M.init_partition()
-        import pdb; pdb.set_trace()
-        self.elements = [CoarseVolume(M.core, M.dim, i, self.partition[:].ravel() == i, var_config) for i in range(self.partition[:].max()+1 )]
+        self.elements = [CoarseVolume(M.core, M.dim, i,
+                        self.partition[:].ravel() == i, var_config)
+                        for i in range(self.partition[:].max()+1 )]
         self.num_coarse = len(self.elements)
-        self.num = {"nodes": 0, "node": 0, "edges": 1, "edge": 1, "faces": 2, "face": 2, "volumes": 3, "volume": 3,
-                             0: 0, 1: 1, 2: 2, 3: 3}
+        self.num = {"nodes": 0, "node": 0, "edges": 1, "edge": 1, "faces": 2,
+                    "face": 2, "volumes": 3, "volume": 3,0: 0, 1: 1, 2: 2, 3: 3}
+
         self.local_volumes_tag = [volume.core.handleDic[volume.core.id_name] for volume in self.elements]
         self.father_tag = M.core.handleDic[M.core.id_name]
         self.global_tag = M.core.handleDic["GLOBAL_ID"]

@@ -25,7 +25,7 @@ from numba import jit
     #     self.core.set_data("NORMAL", normal, range_el=self.core.all_faces)
 #@jit(parallel = True)
 
-@jit(parallel = True)
+#@jit(parallel = True)
 def normal_vec_2d(coords0,coords1):
     vec = coords1 - coords0
     norm = np.linalg.norm(vec, axis = 1)
@@ -53,7 +53,7 @@ def normal_vec_2d(coords0,coords1):
 #     # result[1] = a3 * b1 - a1 * b3
 #     # result[2] = a1 * b2 - a2 * b1
 # return result
-@jit
+#@jit
 def normal_vec(coords0, coords1, coords2):
     vec1 = coords1 - coords0
     vec2 = coords2 - coords0
@@ -70,7 +70,7 @@ def point_distance(coords_1, coords_2):
     return distance
 
 #@jit(parallel=True)
-@jit
+#@jit
 def get_average(coords_list):
     N = len(coords_list)
     return sum(coords_list)*(1/N)
