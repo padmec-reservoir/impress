@@ -7,6 +7,18 @@ import preprocessor.meshHandle.imprutil as ipw
 from scipy.spatial import ConvexHull
 slen = np.vectorize(len)
 
+
+def calculate_normal(coords1, coords2, coords3):
+    vec1 = coords1 - coords3
+    vec2 = coords2 - coords3
+    cross_product = np.cross(vec1, vec2)
+    norm_cross = np.power(np.linalg.norm(cross_product,axis=1),-1)
+    cross_product[:, 0] = norm_cross * cross_product[:, 0]
+    cross_product[:, 1] = norm_cross * cross_product[:, 1]
+    cross_product[:, 2] = norm_cross * cross_product[:, 2]
+    return cross_product
+
+
 def global_to_local(global_matrix):
     global_to_local_dic = {}
     global_connectivities_id = np.unique(global_matrix)
@@ -19,25 +31,25 @@ def global_to_local(global_matrix):
 
 def check_nodes_in_volume(el_coords, faces_connectivities, faces_normal, centers):
     el_center = el_coords.mean(axis=0).reshape((-1, 3))
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
     faces_center = el_coords[faces_connectivities].mean(axis=1)
     pseudo_normal = faces_center - el_center.repeat(len(faces_center), axis=0)
     change_sign = (faces_normal*pseudo_normal).sum(axis=1) <= 0
-
     faces_normal[change_sign] = -1 * faces_normal[change_sign]
-    # o erro esta aqui
-
+    # look this up
     nodes_indicator = np.zeros((len(centers),
                                 faces_connectivities.shape[0]), dtype=bool)
     for el in range(faces_connectivities.shape[0]):
-        plane_check = semi_plan_check(centers, faces_normal[el],
-                             el_coords[faces_connectivities[el,0]], tol=1e-8)
-        nodes_indicator[:, el] = plane_check
-    import pdb; pdb.set_trace()
-    return nodes_indicator.any(axis=1)
+        plane_check_flag = semi_plan_check(np.vstack((centers,el_center)), faces_normal[el],
+                                           faces_center[el])
+        if plane_check_flag[-1]:
+            nodes_indicator[:, el] = plane_check_flag[:-1]
+        else:
+            nodes_indicator[:, el] = ~plane_check_flag[:-1]
+    return nodes_indicator.all(axis=1)
 
 
-def semi_plan_check(coords_list, normal_plane, point_on_plane, tol=1e-20):
+def semi_plan_check(coords_list, normal_plane, point_on_plane, tol=1e-8):
     """coord_list -> list of points to be checked
     normal_plane -> normal vector to plane used for the comparision
     point_on_plane -> a point on the plane
@@ -48,8 +60,12 @@ def semi_plan_check(coords_list, normal_plane, point_on_plane, tol=1e-20):
         np.repeat(normal_plane.reshape((-1,3)), len(coords_list), axis=0)
     inner_product = np.sum(center_to_coords*normal_plane,axis=1)
     flag = np.zeros(inner_product.shape, dtype=bool)
-    flag[inner_product >= 0] = True
 
+    #import pdb; pdb.set_trace()
+    #flag[np.abs(inner_product) >= tol] = True
+    flag[inner_product >= 0] = True
+    # import pdb; pdb.set_trace()
+    # flag[np.abs(inner_product) < tol] = True
     #flag[np.abs(inner_product) < tol] =True
     return flag
 
@@ -79,33 +95,49 @@ config_object.smart(file='semi2.msh')
 former = pm(M, config_object)
 former.run()
 
-x = 70
+x = 90
 coord_list = M.nodes.coords[:]
 elements = M.volumes.connectivities[:]
-normal_plane = former.partitioner.dual.faces.normal[x]
+normal_plane = former.partitioner.primal.faces.normal[x]
 
 
-point_on_plane = former.partitioner.dual.faces.center[x]
-nodes_faces = former.partitioner.dual.faces.connectivities[x]
+point_on_plane = former.partitioner.primal.faces.center[x]
+nodes_faces = former.partitioner.primal.faces.connectivities[x]
+vol_connectivities = former.partitioner.primal.volumes.connectivities[x]
 
 
-el_coord = former.partitioner.primal.nodes.coords[former.partitioner.primal.volumes.connectivities[x]]
+el_coord = former.partitioner.primal.nodes.coords[vol_connectivities]
 elements_coord = global_to_local(former.partitioner.primal.volumes.connectivities[x])
 lag = former.partitioner.primal.volumes.adjacencies[x]
+
 faces_connectivities = global_to_local(former.partitioner.primal.faces.connectivities[former.partitioner.primal.volumes.adjacencies[x]])
 
-faces_normal = np.zeros((len(lag), 3))
-# norm_tmp = np.vectorize(former.partitioner.primal.faces._normal)
-# faces_normal = norm_tmp(lag)
-for el in range(len(faces_normal)):
-    faces_normal[el, :] = former.partitioner.primal.faces._normal(lag[el])
+faces_normals = calculate_normal(el_coord[faces_connectivities[:, 0]],
+                                 el_coord[faces_connectivities[:, 1]],
+                                 el_coord[faces_connectivities[:, 2]])
+# faces_normal = np.zeros((len(lag), 3))
+#
+# # norm_tmp = np.vectorize(former.partitioner.primal.faces._normal)
+# # faces_normal = norm_tmp(lag)
+# for el in range(len(faces_normal)):
+#     faces_normal[el, :] = former.partitioner.primal.faces._normal(lag[el])
+#
+# faces_normal = former.partitioner.primal.faces.normal[lag]
+#
 
 
-lemo = check_nodes_in_volume(el_coord, faces_connectivities, faces_normal, M.volumes.center[:])
+lemo = check_nodes_in_volume(el_coord, faces_connectivities, faces_normals, M.nodes.coords[:])
+lemo1 = lemo[M.volumes.connectivities[:]].any(axis=1)
+
+lemo2 = check_nodes_in_volume(el_coord, faces_connectivities, faces_normals, M.volumes.center[:])
+
+
+lemo3 = np.logical_or(lemo1, lemo2)
+#import pdb; pdb.set_trace()
 
 
 #import pdb; pdb.set_trace()
-qq = semi_plan_check(M.volumes.center[:], normal_plane, point_on_plane, tol=1e-20)
+qq = semi_plan_check(M.volumes.center[:], normal_plane, point_on_plane, tol=1e-4)
 qq = plane_check(coord_list, elements, normal_plane, point_on_plane)
 
 normal_plane_rep = np.repeat(normal_plane, len(nodes_faces), axis=0)
@@ -123,6 +155,8 @@ vec_test = ipw.point_in_volumes(all_coords, hull.simplices.astype('int64') , M.v
 dd = np.where(qq)[0][vec_test!=0]
 
 M.pressure[:] = 0
-M.pressure[qq] = 1
+#M.pressure[qq] = 1
+M.pressure[lemo3] = 1
+
 # M.pressure[dd] = 2
-M.core.print(file='plane',case='test')
+M.core.print(file='svolume',case='test')
