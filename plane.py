@@ -9,6 +9,7 @@ slen = np.vectorize(len)
 
 
 def calculate_normal(coords1, coords2, coords3):
+    import pdb; pdb.set_trace()
     vec1 = coords1 - coords3
     vec2 = coords2 - coords3
     cross_product = np.cross(vec1, vec2)
@@ -95,7 +96,7 @@ config_object.smart(file='semi2.msh')
 former = pm(M, config_object)
 former.run()
 
-x = 90
+x = 77
 coord_list = M.nodes.coords[:]
 elements = M.volumes.connectivities[:]
 normal_plane = former.partitioner.primal.faces.normal[x]
@@ -106,11 +107,11 @@ nodes_faces = former.partitioner.primal.faces.connectivities[x]
 vol_connectivities = former.partitioner.primal.volumes.connectivities[x]
 
 
-el_coord = former.partitioner.primal.nodes.coords[vol_connectivities]
+el_coord = former.partitioner.primal.nodes.coords[np.unique(vol_connectivities)]
 elements_coord = global_to_local(former.partitioner.primal.volumes.connectivities[x])
 lag = former.partitioner.primal.volumes.adjacencies[x]
 
-faces_connectivities = global_to_local(former.partitioner.primal.faces.connectivities[former.partitioner.primal.volumes.adjacencies[x]])
+faces_connectivities = global_to_local(former.partitioner.primal.faces.connectivities[lag])
 
 faces_normals = calculate_normal(el_coord[faces_connectivities[:, 0]],
                                  el_coord[faces_connectivities[:, 1]],
@@ -126,10 +127,10 @@ faces_normals = calculate_normal(el_coord[faces_connectivities[:, 0]],
 #
 
 
-lemo = check_nodes_in_volume(el_coord, faces_connectivities, faces_normals, M.nodes.coords[:])
+lemo = check_nodes_in_volume(el_coord, faces_connectivities, faces_normal, M.nodes.coords[:])
 lemo1 = lemo[M.volumes.connectivities[:]].any(axis=1)
 
-lemo2 = check_nodes_in_volume(el_coord, faces_connectivities, faces_normals, M.volumes.center[:])
+lemo2 = check_nodes_in_volume(el_coord, faces_connectivities, faces_normal, M.volumes.center[:])
 
 
 lemo3 = np.logical_or(lemo1, lemo2)

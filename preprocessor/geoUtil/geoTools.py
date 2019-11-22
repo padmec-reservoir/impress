@@ -54,15 +54,27 @@ def normal_vec_2d(coords0,coords1):
 #     # result[2] = a1 * b2 - a2 * b1
 # return result
 #@jit
-def normal_vec(coords0, coords1, coords2):
-    vec1 = coords1 - coords0
-    vec2 = coords2 - coords0
-    #cross = cross_numba(vec1,vec2)
-    cross = np.cross(vec1,vec2)
-    norm = np.linalg.norm(cross, axis = 1)
-    norm = 1/norm
-    return  cross * norm[:,np.newaxis]
-    # a = cross * norm
+
+def normal_vec(coords1, coords2, coords3):
+    vec1 = coords1 - coords3
+    vec2 = coords2 - coords3
+    cross_product = np.cross(vec1, vec2)
+    norm_cross = np.power(np.linalg.norm(cross_product,axis=1),-1)
+    cross_product[:, 0] = norm_cross * cross_product[:, 0]
+    cross_product[:, 1] = norm_cross * cross_product[:, 1]
+    cross_product[:, 2] = norm_cross * cross_product[:, 2]
+    return cross_product
+
+#
+# def normal_vec(coords0, coords1, coords2):
+#     vec1 = coords1 - coords0
+#     vec2 = coords2 - coords0
+#     #cross = cross_numba(vec1,vec2)
+#     cross = np.cross(vec1,vec2)
+#     norm = np.linalg.norm(cross, axis = 1)
+#     norm = 1/norm
+#     return  cross * norm[:,np.newaxis]
+#     # a = cross * norm
 
 def point_distance(coords_1, coords_2):
     dist_vector = coords_1 - coords_2

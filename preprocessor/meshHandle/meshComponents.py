@@ -85,7 +85,7 @@ class MeshEntities(object):
 
     def _coords(self, index):
         if isinstance(index, np.int64) or isinstance(index, int):
-            el_handle = np.array([self.elements_handle[index]])
+            el_handle = np.array([self.nodes [index]])
         elif not isinstance(index, np.ndarray) and index is not None:
             el_handle = self.nodes[index]
         else:
@@ -148,13 +148,13 @@ class MeshEntities(object):
         return None
 
     def _normal(self,index):
-
         #normal_vec = np.zeros(( np.shape(range_vec)[0],3 ))
         adj = self.connectivities[index]
         if adj.ndim==1:
             if self.vID == 1:
                 return gtool.normal_vec_2d(self._coords(adj[0]), self._coords(adj[1]))
             elif self.vID == 2:
+
                 return gtool.normal_vec(self._coords(adj[0]),self._coords(adj[1]),self._coords(adj[2]))
             return
         v0 = np.array([adj[i][0] for i in range (adj.shape[0])])
@@ -166,7 +166,10 @@ class MeshEntities(object):
             #centers  = 0.5* (self._coords(edges_adj[:,0]) + self._coords(edges_adj[:,1]))
         elif self.vID == 2:
             v2 = np.array([adj[i][2] for i in range (adj.shape[0])])
-            return  gtool.normal_vec(self._coords(v0),self._coords(v1),self._coords(v2))
+            #import pdb; pdb.set_trace()
+            return gtool.normal_vec(self._coords(v0), self._coords(v1),
+                                    self._coords(v2))
+            #return  gtool.normal_vec(self._coords(v0),self._coords(v1),self._coords(v2))
 
     def _connectivities(self,index):
         if isinstance(index, np.int64) or isinstance(index, int):
