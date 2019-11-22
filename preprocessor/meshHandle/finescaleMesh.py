@@ -137,9 +137,6 @@ class FineScaleMesh:
             vol_eval = abs(np.dot(np.cross(vect_1, vect_2), vect_3)) / 6.0
         elif qtd_pts == 8:
             pass
-            #SEGUNDA ATIVIDADE PRA RENATINHA
-            #CALCULAR O VOLUME DO HEXAEDRO IERREGULAR DADO OS 8 PONTOS
-
             # pass
             # #pdb.set_trace()
             # vect_1 = coords[7] - coords[0]

@@ -139,9 +139,11 @@ class smartPartition(object):
         self.print_creating('Dual Forming Mesh')
         self.dual = self.create_forming_dual()
         volumes_indicator = self.find_primal_coarse_volumes()
+        self.volumes_indicator_improvemnent(volumes_indicator)
         import pdb; pdb.set_trace()
+
         partition_tag = self.volumes_indicator_to_partition(volumes_indicator)
-        import pdb; pdb.set_trace()
+        proto_center = self.primal.volumes.center[:]
         # partition_tag = self.node_indicator_to_partition(node_indicator)
         # for el in range(node_indicator.shape[1]):
         #     self.M.nodein[node_indicator[:,el]] = 1*el
@@ -154,6 +156,19 @@ class smartPartition(object):
         print('-----------------------------------')
         print('  Creating {}'.format(text))
         print('-----------------------------------')
+        pass
+
+    def volumes_indicator_improvemnent(self, volumes_indicator):
+        print(volumes_indicator)
+        for el in range((volumes_indicator.shape[1])):
+            proto_partition = self.volumes_indicator_to_partition(volumes_indicator)
+            check_volumes = volumes_indicator[:, el]
+            el_multiple_coarse = volumes_indicator[check_volumes, :].sum(axis=1)
+            check_volumes[check_volumes] = (el_multiple_coarse > 1)
+            import pdb; pdb.set_trace()
+
+            import pdb; pdb.set_trace()
+            pass
         pass
 
     def find_primal_coarse_volumes(self):
@@ -170,7 +185,6 @@ class smartPartition(object):
                                    len(self.primal.volumes)), dtype=bool)
         volumes_indicator = np.zeros((len(all_fine_centers),
                                       len(self.primal.volumes)), dtype=bool)
-        # creating bounding box
         x = (min_el[:, 0], max_el[:, 0])
         y = (min_el[:, 1], max_el[:, 1])
         z = (min_el[:, 2], max_el[:, 2])
@@ -200,17 +214,7 @@ class smartPartition(object):
                                            local_faces_connectivities,
                                            faces_normal, all_fine_centers[cbox_indicator[:,el]])
             cbox_indicator[cbox_indicator[:, el], el] = cond_2
-
             cond_3 = np.logical_or(cond_1, cbox_indicator[:, el])
-            # inodes_volumes = ipq.point_in_volumes(local_coords,
-            #                                   local_faces_connectivities,
-            #                                   all_fine_coords[bbox_indicator[:,el],:], 0)
-            # node_indicator[bbox_indicator[:, el], el] = (inodes_volumes >= 1)
-            # in_nodes = check_nodes_in_volume(local_coords_ord,
-            #                                  local_faces_connectivities,
-            #                                  faces_normals,
-            #                                  all_fine_coords[bbox_indicator[:, el], :])
-            #node_indicator[bbox_indicator[:, el], el] = in_nodes
             volumes_indicator[:, el] = cond_3
         return volumes_indicator
 
@@ -224,21 +228,6 @@ class smartPartition(object):
             partition_flag[volumes_indicator[:, el]] = 1*el
         #import pdb; pdb.set_trace()
         return partition_flag
-
-    def node_indicator_to_partition(self, node_indicator):
-        fine_connectivities = self.M.volumes.connectivities[:]
-        partition_indicator = np.zeros((fine_connectivities.shape[0],
-                                        node_indicator.shape[1]), dtype=bool)
-        partition_flag = np.zeros((fine_connectivities.shape[0], 1), dtype=int)
-
-        for el in range(len(self.primal.volumes)):
-            partition_indicator[:,el] = node_indicator[fine_connectivities,el].any(axis=1)
-        for el in range(len(self.primal.volumes)):
-            partition_flag[partition_indicator[:,el]] = 1*el
-        #import pdb; pdb.set_trace()
-        return partition_flag
-
-
 
     def find_primal_coarse_volumes3(self):
         all_coords = self.primal.nodes.coords[:]

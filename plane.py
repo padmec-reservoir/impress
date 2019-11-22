@@ -8,6 +8,12 @@ from scipy.spatial import ConvexHull
 slen = np.vectorize(len)
 
 
+def sign(a):
+    if a > 0:
+        return True
+    else:
+        return False
+
 def calculate_normal(coords1, coords2, coords3):
     import pdb; pdb.set_trace()
     vec1 = coords1 - coords3
