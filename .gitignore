@@ -3,8 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# C extensions
+#Profilings
+*.prof
 
+# C extensions
 
 # Distribution / packaging
 .Python
@@ -108,3 +110,6 @@ venv.bak/
 
 # Cython Files
 *.pyc
+
+# Simulation Saves
+saves

@@ -216,7 +216,7 @@ class CoreMoab:
         if index_vec.size > 0:
             range_el = range_el[index_vec]
         handle_tag = self.handleDic[name_tag]
-        self.mb.tag_set_data(handle_tag, range_el, data)
+        self.mb.tag_set_data(handle_tag, range_el.get_array(), data)
 
     def check_range_by_dimm(self, handle):
         # INPUT: handle or range
