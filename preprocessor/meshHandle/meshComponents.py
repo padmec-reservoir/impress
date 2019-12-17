@@ -23,6 +23,8 @@ class GetItem(object):
         return self.fun(item)
 
 
+
+
 class MeshEntities(object):
     def __init__(self, core, entity_type):
         self.mb = core.mb
@@ -50,15 +52,15 @@ class MeshEntities(object):
             self.father_id_name = core.father_core.id_name
             self.id_name = self.father_id_name + str("L") + str(self.level) + "-" + str(self.coarse_num)
 
-        (self.elements_handle, self.internal_elements, self.boundary_elements), self.vID = list_type[entity_num], entity_num
+        (self.elements_handle, self.internal_range, self.boundary_range), self.vID = list_type[entity_num], entity_num
         # self.internal_elements_array = self.internal_elements.get_array()
         self.entity_type = string[entity_num]
         self.tag_handle = core.handleDic[self.id_name]
         self.global_handle = core.handleDic['GLOBAL_ID']
         self.father_handle = core.handleDic[self.father_id_name]
-        self.all = GetItem(self.get_all)
-        self.internal = GetItem(self.get_internal)
-        self.boundary = GetItem(self.get_boundary)
+        self.all_elements = GetItem(self.get_all)
+        self.internal_elements = GetItem(self.get_internal)
+        self.boundary_elements = GetItem(self.get_boundary)
         if self.vID == 0:
             self.adjacencies = GetItem(self._adjacencies_for_nodes)
             self.coords =  GetItem(self._coords)
@@ -155,7 +157,7 @@ class MeshEntities(object):
             #centers  = 0.5* (self._coords(edges_adj[:,0]) + self._coords(edges_adj[:,1]))
         elif self.vID == 2:
             v2 = np.array([adj[i][2] for i in range (adj.shape[0])])
-            return  gtool.normal_vec(self._coords(v0),self._coords(v1),self._coords(v2))
+            return gtool.normal_vec(self._coords(v0),self._coords(v1),self._coords(v2))
 
     def _connectivities(self,index):
         el_handle = self.get_range_array(index)
@@ -269,20 +271,39 @@ class MeshEntities(object):
         return np.array(list(self.flag.keys())).astype(int)
 
 
+    @property
+    def all(self):
+        return self.read(self.elements_handle)
+
+    @property
+    def boundary(self):
+        return self.read(self.boundary_range.get_array())
+
+    @property
+    def internal(self):
+        return self.read(self.internal_range.get_array())
+
+
 
     def get_all(self, index):
-        return self.read(self.elements_handle[index])
-
+        ret = self.read(self.elements_handle[index])
+        if len(ret)==1:
+            return ret[0]
+        return ret
 
     def get_boundary(self, index):
-        el_range = self.get_range_array(index, self.boundary_elements)
-        return self.read(el_range)
-
+        el_range = self.get_range_array(index, self.boundary_range)
+        ret = self.read(el_range)
+        if len(ret)==1:
+            return ret[0]
+        return ret
 
     def get_internal(self, index):
-        el_range = self.get_range_array(index, self.internal_elements)
-        return self.read(el_range)
-
+        el_range = self.get_range_array(index, self.internal_range)
+        ret = self.read(el_range)
+        if len(ret)==1:
+            return ret[0]
+        return ret
 
 
 class MoabVariable(object):
