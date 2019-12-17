@@ -13,16 +13,16 @@ weight:
   sparse: False
   level: 0
 
-flux:
-  type: faces
-  data size: 3
+nodein:
+  type: node
+  data size: 1
   data type: int
   sparse: False
-  level: 1
+  level: 0
 
 pressure:
   type: volumes
   data size: 1
   data type: int
   sparse: False
-  level: 1
+  level: 0

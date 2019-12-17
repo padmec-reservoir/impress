@@ -12,6 +12,7 @@ from . meshComponentsMS import MoabVariableMS,  MeshEntitiesMS
 from ..meshHandle.configTools.configClass import variableInit, coarseningInit
 from pymoab import core, types, rng
 import numpy as np
+import pickle
 
 
 
@@ -19,11 +20,11 @@ print('Initializing Finescale Mesh for Multiscale Methods')
 
 
 class FineScaleMeshMS(FineScaleMesh):
-    def __init__(self, mesh_file, dim=3, var_config=None):
+    def __init__(self, mesh_file, dim=3, var_config=None, load = False):
         self.var_config = var_config
-        super().__init__(mesh_file, dim)
+        super().__init__(mesh_file, dim, load = load)
         print("Creating Coarse Grid")
-        self.coarse = MultiscaleCoarseGrid(self, var_config)
+        self.coarse = MultiscaleCoarseGrid(self, var_config, load = load)
         self.enhance_entities()
 
     def __getitem__ (self, key):
@@ -36,13 +37,39 @@ class FineScaleMeshMS(FineScaleMesh):
             el(i,self.coarse)
 
     def init_entities(self):
-        self.nodes = MeshEntitiesMS(self.core, entity_type="node")
-        self.edges = MeshEntitiesMS(self.core, entity_type="edges")
-        self.faces = MeshEntitiesMS(self.core, entity_type="faces")
+        self.nodes = MeshEntitiesMS(self.core, entity_type= "node")
+        self.edges = MeshEntitiesMS(self.core, entity_type= "edges")
+        self.faces = MeshEntitiesMS(self.core, entity_type= "faces")
         if self.dim == 3:
             self.volumes = MeshEntitiesMS(self.core, entity_type="volumes")
 
+    def save_variables(self, name_file):
+        self.core.mb.write_file('saves/'+name_file+'.h5m')
+        file = open('saves/'+name_file+'.imp', 'wb')
+        pickle.dump([(tags.name_tag, tags.var_type, tags.data_size, tags.data_format, tags.data_density) for tags in self.var_handle_list], file)
+        file.close()
+        for elements in self.coarse.elements:
+            elements.save_variables(name_file)
+        return
+
+    def load_variables(self):
+        self.var_handle_list = []
+        file = open(self.mesh_file.split('.')[0]+'.imp', 'rb')
+        tag_list = pickle.load(file)
+        file.close()
+        for tags in tag_list:
+            self.create_variable(name_tag = tags[0], var_type = tags[1], data_size = tags[2], data_format = tags[3], data_density = tags[4], create = False)
+        return
+
+    def create_variable( self, name_tag, var_type= "volumes", data_size=1, data_format= "float", data_density= "sparse",
+                 entity_index=None,  level=0, coarse_num=0, create = True):
+        var = MoabVariableMS(self.core, data_size = data_size, var_type = var_type, data_format = data_format, name_tag = name_tag, data_density = data_density, entity_index = entity_index, level = level, coarse_num = coarse_num, create = create)
+        exec(f'self.{name_tag} = var')
+        self.var_handle_list.append(var)
+        return var
+
     def init_variables(self):
+        self.var_handle_list = []
         if self.var_config is None:
             self.var_config = variableInit()
         for command in self.var_config.get_var(self.core.level):
@@ -50,12 +77,19 @@ class FineScaleMeshMS(FineScaleMesh):
 
     def init_partition(self):
         coarse_config = coarseningInit()
+
         partitioner = partitionManager(self, coarse_config)
-        [partition, coarse_center] = partitioner()
-        if isinstance(partition, str) and partition == 'parallel':
+        [partition_tag, coarse_center] = partitioner()
+        # create maob variabel
+
+        if isinstance(partition_tag, str) and partition == 'parallel':
             return self.init_partition_parallel()
         else:
-            return partition
+            partition_moab = MoabVariable(self.core, data_size=1,
+                                     var_type="volumes", data_format="int",
+                                     name_tag="Partition", data_density="dense")
+            partition_moab[:] = partition_tag
+            return partition_moab
 
     def init_partition_parallel(self):
         if self.dim == 3:
@@ -70,24 +104,58 @@ class FineScaleMeshMS(FineScaleMesh):
 
 
 class CoarseVolume(FineScaleMeshMS):
-    def __init__(self, father_core, dim, i, coarse_vec, var_config=None):
+    def __init__(self, father_core, dim, i, coarse_vec, var_config=None , load = False, mesh_file = None):
         self.var_config = var_config
         self.dim = dim
+        self.mesh_file = mesh_file
         self.level = father_core.level + 1
         self.coarse_num = i
         self.coarse_vec = coarse_vec
         print("Level {0} - Volume {1}".format(self.level,self.coarse_num))
         self.core = MsCoreMoab(father_core, i, coarse_vec)
         self.init_entities()
-        self.init_variables()
-        self.init_coarse_variables()
+        if not load:
+            self.init_variables()
+            self.init_coarse_variables()
+        else:
+            self.load_variables()
         self.macro_dim()
 
     def init_variables(self):
+        self.var_handle_list = []
         if self.var_config is None:
             self.var_config = variableInit()
         for command in self.var_config.get_var(self.core.level, self.coarse_num):
             exec(command)
+
+    def save_variables(self, name_file):
+        name = self.core.id_name
+        name = name[(name.find("ID") + 3):]
+        file = open('saves/'+name_file+name+'.imp', 'wb')
+        pickle.dump([(tags.name_tag, tags.var_type, tags.data_size, tags.data_format, tags.data_density) for tags in self.var_handle_list], file)
+        file.close()
+        return
+
+    def load_variables(self):
+        self.var_handle_list = []
+        name = self.core.id_name
+        name = name[(name.find("ID") + 3):]
+        file = open(self.mesh_file.split('.')[0]+name+'.imp', 'rb')
+        tag_list = pickle.load(file)
+        file.close()
+        for tags in tag_list:
+            self.create_variable(name_tag = tags[0], var_type = tags[1], data_size = tags[2], data_format = tags[3], data_density = tags[4], level = self.level, coarse_num = self.coarse_num, create = False, suffix = name)
+        return
+
+
+    def create_variable(self, name_tag, var_type="volumes", data_size=1, data_format="float", data_density="sparse",
+                 entity_index=None,  level=0, coarse_num=0, create = True, suffix = None):
+        var = MoabVariableMS(self.core, data_size = data_size, var_type = var_type, data_format = data_format, name_tag = name_tag, data_density = data_density, entity_index = entity_index, level = level, coarse_num = coarse_num, create = create)
+        if suffix is not None:
+            name_tag = name_tag.replace(suffix, '')
+        exec(f'self.{name_tag} = var')
+        self.var_handle_list.append(var)
+        return var
 
     def __call__(self, i, general):
         self.nodes.enhance(i, general)
@@ -137,13 +205,16 @@ class GetCoarseItem(object):
 
 
 class MultiscaleCoarseGrid(object):
-    def __init__(self, M, var_config):
+    def __init__(self, M, var_config, load = False):
         self.mb = M.core.mb
         self.partition = M.init_partition()
-        self.elements = [CoarseVolume(M.core, M.dim, i, self.partition[:].ravel() == i, var_config) for i in range(self.partition[:].max()+1 )]
+        self.elements = [CoarseVolume(M.core, M.dim, i,
+                        self.partition[:].ravel() == i, var_config)
+                        for i in range(self.partition[:].max()+1 )]
         self.num_coarse = len(self.elements)
-        self.num = {"nodes": 0, "node": 0, "edges": 1, "edge": 1, "faces": 2, "face": 2, "volumes": 3, "volume": 3,
-                             0: 0, 1: 1, 2: 2, 3: 3}
+        self.num = {"nodes": 0, "node": 0, "edges": 1, "edge": 1, "faces": 2,
+                    "face": 2, "volumes": 3, "volume": 3,0: 0, 1: 1, 2: 2, 3: 3}
+
         self.local_volumes_tag = [volume.core.handleDic[volume.core.id_name] for volume in self.elements]
         self.father_tag = M.core.handleDic[M.core.id_name]
         self.global_tag = M.core.handleDic["GLOBAL_ID"]
