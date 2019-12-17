@@ -9,6 +9,9 @@ from ..geoUtil import geoTools as gtool
 #from preprocessor.meshHandle.configTools.configClasses import variableInit
 
 
+
+
+
 class GetItem(object):
     def __init__(self, adj):
         self.fun = adj
@@ -18,6 +21,8 @@ class GetItem(object):
 
     def __getitem__(self, item):
         return self.fun(item)
+
+
 
 
 class MeshEntities(object):
@@ -47,12 +52,15 @@ class MeshEntities(object):
             self.father_id_name = core.father_core.id_name
             self.id_name = self.father_id_name + str("L") + str(self.level) + "-" + str(self.coarse_num)
 
-        (self.elements_handle, self.internal_elements, self.boundary_elements), self.vID = list_type[entity_num], entity_num
+        (self.elements_handle, self.internal_range, self.boundary_range), self.vID = list_type[entity_num], entity_num
         # self.internal_elements_array = self.internal_elements.get_array()
         self.entity_type = string[entity_num]
         self.tag_handle = core.handleDic[self.id_name]
         self.global_handle = core.handleDic['GLOBAL_ID']
         self.father_handle = core.handleDic[self.father_id_name]
+        self.all_elements = GetItem(self.get_all)
+        self.internal_elements = GetItem(self.get_internal)
+        self.boundary_elements = GetItem(self.get_boundary)
         if self.vID == 0:
             self.adjacencies = GetItem(self._adjacencies_for_nodes)
             self.coords =  GetItem(self._coords)
@@ -73,23 +81,15 @@ class MeshEntities(object):
         # print("Mesh Entity type {0} successfully initialized".format(entity_type))
 
     def bridge_adjacencies(self, index, interface, target):
-        if isinstance(index, np.int64) or isinstance(index, int):
-            el_handle = np.array([self.elements_handle[index]])
-        elif not isinstance(index, np.ndarray) and index is not None:
-            el_handle = self.elements_handle[index].get_array()
-        else:
-            el_handle = self.elements_handle.get_array(index)
+        el_handle = self.get_range_array(index)
         if self.level==0:
             return self.mtu.get_ord_bridge_adjacencies(el_handle, self.num[interface], self.num[target], self.mb, self.tag_handle)
         return self.mtu.get_ord_bridge_adjacencies(el_handle, self.num[interface], self.num[target], self.mb, self.tag_handle, self.list_all[self.num[target]], self.level)
 
     def _coords(self, index):
-        if isinstance(index, np.int64) or isinstance(index, int):
-            el_handle = np.array([self.nodes [index]])
-        elif not isinstance(index, np.ndarray) and index is not None:
-            el_handle = self.nodes[index]
-        else:
-            el_handle = self.nodes.get_array(index)
+        el_handle = self.get_range_array(index, search_range = self.nodes)
+        if len(el_handle) == 1:
+            return self.mb.get_coords(el_handle)
         return np.reshape(self.mb.get_coords(el_handle),(-1,3))
 
     # def _global_id(self, index):
@@ -110,12 +110,7 @@ class MeshEntities(object):
                 dim_tag = self.vID - 1
             else:
                 dim_tag = 0
-        if isinstance(index, np.int64) or isinstance(index, int):
-            el_handle = np.array([self.elements_handle[index]])
-        elif not isinstance(index, np.ndarray) and index is not None:
-            el_handle = self.elements_handle[index].get_array()
-        else:
-            el_handle = self.elements_handle.get_array(index)
+        el_handle = self.get_range_array(index)
         return self.mb.get_ord_adjacencies(el_handle, dim_tag, tag_handle = self.tag_handle)
 
     def _center(self,index):
@@ -131,16 +126,13 @@ class MeshEntities(object):
             centers = 0.5 * (self._coords(v0) + self._coords(v1))
             return centers
         elif self.vID == 2 or self.vID == 3:
-            if isinstance(index, np.int64) or isinstance(index, int):
-                el_handle = np.array([self.elements_handle[index]])
-            elif not isinstance(index, np.ndarray) and index is not None:
-                el_handle = self.elements_handle[index].get_array()
-            else:
-                el_handle = self.elements_handle.get_array(index)
+            el_handle = self.get_range_array(index)
             adj = self.mb.get_ord_connectivity(el_handle, tag_opt = False)
             if adj.ndim==1:
                 return gtool.get_average(np.reshape(self.mb.get_coords(adj),(-1,3)))
             centers = np.empty((adj.shape[0],3))
+            #if adj.dtype != object:
+
             for i in range(adj.shape[0]):
                 centers[i] = gtool.get_average(np.reshape(self.mb.get_coords(adj[i]),(-1,3)))
                 #pdb.set_trace()
@@ -152,7 +144,7 @@ class MeshEntities(object):
         adj = self.connectivities[index]
         if adj.ndim==1:
             if self.vID == 1:
-                return gtool.normal_vec_2d(self._coords(adj[0]), self._coords(adj[1]))
+                return gtool.normal_vec_2d(self._coords(adj[0]).reshape(1,3), self._coords(adj[1]).reshape(1,3))[0]
             elif self.vID == 2:
 
                 return gtool.normal_vec(self._coords(adj[0]),self._coords(adj[1]),self._coords(adj[2]))
@@ -172,12 +164,7 @@ class MeshEntities(object):
             #return  gtool.normal_vec(self._coords(v0),self._coords(v1),self._coords(v2))
 
     def _connectivities(self,index):
-        if isinstance(index, np.int64) or isinstance(index, int):
-            el_handle = np.array([self.elements_handle[index]])
-        elif not isinstance(index, np.ndarray) and index is not None:
-            el_handle = self.elements_handle[index].get_array()
-        else:
-            el_handle = self.elements_handle.get_array(index)
+        el_handle = self.get_range_array(index)
         return self.mb.get_ord_connectivity(el_handle, tag_handle = self.tag_handle)
 
     def create_range_vec(self, index):
@@ -241,6 +228,17 @@ class MeshEntities(object):
         type_list = np.array([self.mb.type_from_handle(el) for el in range])
         return type_list
 
+    def get_range_array(self, index, search_range = None):
+        if search_range == None:
+            search_range = self.elements_handle
+        if isinstance(index, np.int64) or isinstance(index, int):
+            el_handle = np.array([search_range[index]])
+        elif not isinstance(index, np.ndarray) and index is not None:
+            el_handle = search_range[index].get_array()
+        else:
+            el_handle = search_range.get_array(index)
+        return el_handle
+
     def range_index(self, vec_index, flag_nodes=False):
         if not flag_nodes:
             range_handle = self.elements_handle
@@ -276,22 +274,45 @@ class MeshEntities(object):
     def all_flags(self):
         return np.array(list(self.flag.keys())).astype(int)
 
+
     @property
     def all(self):
         return self.read(self.elements_handle)
 
     @property
     def boundary(self):
-        return self.read(self.boundary_elements.get_array())
+        return self.read(self.boundary_range.get_array())
 
     @property
     def internal(self):
-        return self.read(self.internal_elements.get_array())
+        return self.read(self.internal_range.get_array())
+
+
+
+    def get_all(self, index):
+        ret = self.read(self.elements_handle[index])
+        if len(ret)==1:
+            return ret[0]
+        return ret
+
+    def get_boundary(self, index):
+        el_range = self.get_range_array(index, self.boundary_range)
+        ret = self.read(el_range)
+        if len(ret)==1:
+            return ret[0]
+        return ret
+
+    def get_internal(self, index):
+        el_range = self.get_range_array(index, self.internal_range)
+        ret = self.read(el_range)
+        if len(ret)==1:
+            return ret[0]
+        return ret
 
 
 class MoabVariable(object):
     def __init__(self, core, name_tag, var_type="volumes", data_size=1, data_format="float", data_density="sparse",
-                 entity_index=None):
+                 entity_index=None, create = True):
         # pdb.set_trace()
         dic_dtf = {'float': types.MB_TYPE_DOUBLE, 'int': types.MB_TYPE_INTEGER, 'bool': types.MB_TYPE_BIT}
         dic_dst = {'dense': types.MB_TAG_DENSE, 'sparse': types.MB_TAG_SPARSE, 'bit': types.MB_TAG_BIT}
@@ -302,17 +323,16 @@ class MoabVariable(object):
         self.data_size = data_size
         self.data_density = data_density
         self.name_tag = name_tag
-        self.custom = False
         if var_type in dic_elem:
             self.elements_handle = dic_elem[var_type]
-        if entity_index is not None:
-            self.elements_handle = self.range_index(entity_index)
-            self.custom = True
         if data_density not in dic_dst:
             print("Please define a valid tag type")
         if data_format not in dic_dtf:
             print("Please define a valid data format")
-        self.tag_handle = self.mb.tag_get_handle(name_tag, data_size, dic_dtf[data_format], dic_dst[data_density], True)
+        if create == True:
+            self.tag_handle = self.mb.tag_get_handle(name_tag, data_size, dic_dtf[data_format], dic_dst[data_density], True)
+        else:
+            self.tag_handle = self.mb.tag_get_handle(name_tag)
         print("Component class {0} successfully intialized".format(self.name_tag))
 
     def __call__(self):
@@ -334,7 +354,7 @@ class MoabVariable(object):
             data = np.tile(data, (el_handle.size, 1)).astype(self.data_format)
         self.mb.tag_set_data(self.tag_handle, el_handle, data)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index = None):
         if isinstance(index, np.int64) or isinstance(index, int):
             el_handle = np.array([self.elements_handle[index]])
         elif not isinstance(index, np.ndarray) and index is not None:
@@ -347,8 +367,6 @@ class MoabVariable(object):
         string = "{0} variable: {1} based - Type: {2} - Length: {3} - Data Type: {4}"\
             .format(self.name_tag.capitalize(), self.var_type.capitalize(), self.data_format.capitalize(),
                     self.data_size, self.data_density.capitalize())
-        if self.custom:
-            string = string + " - Custom variable"
         return string
 
     def __len__(self):

@@ -52,15 +52,18 @@ class variableInit(object):
         command_list = []
         cmd_pattern = 'self.{0} = MoabVariable(self.core, data_size={1}, var_type=\'{2}\', data_format=\'{3}\', name_tag=\'{0}\', data_density=\'{4}\')'
         cmd_pattern_level = 'self.{0} = MoabVariableMS(self.core, data_size={1}, var_type=\'{2}\',level={5}, coarse_num={6}, data_format=\'{3}\', name_tag=\'{0}\', data_density=\'{4}\')'
+        cmd_pattern_list = 'self.var_handle_list.append(self.{0})'
         density = ['dense', 'sparse']
         if level == 0:
             for var in var_list:
                 sparse = density[bool(var[-2])]
                 command_list.append(cmd_pattern.format(var[1], var[3], var[2], var[-3], sparse))
+                command_list.append(cmd_pattern_list.format(var[1]))
         else:
             for var in var_list:
                 sparse = density[bool(var[-2])]
                 command_list.append(cmd_pattern_level.format(var[1], var[3], var[2], var[4], sparse, level, coarse_num))
+                command_list.append(cmd_pattern_list.format(var[1]))
         return command_list
 
     def add_entry(self, name, type, data_size, data_type, sparse=False,
