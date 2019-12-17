@@ -108,3 +108,6 @@ venv.bak/
 
 # Cython Files
 *.pyc
+
+# Simulation Saves
+saves
