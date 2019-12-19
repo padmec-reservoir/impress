@@ -19,12 +19,17 @@ import pickle
 print('Initializing Finescale Mesh for Multiscale Methods')
 
 
+def jag_apply(func, *args):
+    
+    pass
+
+
 class FineScaleMeshMS(FineScaleMesh):
-    def __init__(self, mesh_file, dim=3, var_config=None, load = False):
+    def __init__(self, mesh_file, dim=3, var_config=None, load=False):
         self.var_config = var_config
         super().__init__(mesh_file, dim, load = load)
         print("Creating Coarse Grid")
-        self.coarse = MultiscaleCoarseGrid(self, var_config, load = load)
+        self.coarse = MultiscaleCoarseGrid(self, var_config, load=load)
         self.enhance_entities()
 
     def __getitem__ (self, key):
@@ -33,7 +38,7 @@ class FineScaleMeshMS(FineScaleMesh):
         return self.coarse.elements[key]
 
     def enhance_entities(self):
-        for i,el in zip(range(len(self.coarse.elements)), self.coarse.elements):
+        for i, el in zip(range(len(self.coarse.elements)), self.coarse.elements):
             el(i,self.coarse)
 
     def init_entities(self):
@@ -147,7 +152,6 @@ class CoarseVolume(FineScaleMeshMS):
             self.create_variable(name_tag = tags[0], var_type = tags[1], data_size = tags[2], data_format = tags[3], data_density = tags[4], level = self.level, coarse_num = self.coarse_num, create = False, suffix = name)
         return
 
-
     def create_variable(self, name_tag, var_type="volumes", data_size=1, data_format="float", data_density="sparse",
                  entity_index=None,  level=0, coarse_num=0, create = True, suffix = None):
         var = MoabVariableMS(self.core, data_size = data_size, var_type = var_type, data_format = data_format, name_tag = name_tag, data_density = data_density, entity_index = entity_index, level = level, coarse_num = coarse_num, create = create)
@@ -222,7 +226,7 @@ class MultiscaleCoarseGrid(object):
         self._all_faces = M.core.all_faces
         self._all_edges = M.core.all_edges
         self._all_nodes = M.core.all_nodes
-        self.find_coarse_neighbours()
+        self.find_coarse_neighbours(M)
         self.interfaces_faces = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._faces)
         self.interfaces_edges = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._edges)
         self.interfaces_nodes = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._nodes)
@@ -244,7 +248,88 @@ class MultiscaleCoarseGrid(object):
         ext_neigh[:,0], ext_neigh[:,1] = partition[external_volumes].ravel(), partition[external_volumes].ravel()
         return np.vstack((int_neigh,ext_neigh)).astype("uint64")
 
-    def find_coarse_neighbours(self):
+    def find_coarse_neighbours(self, M):
+        self.connectivities = np.zeros((self.num_coarse,self.num_coarse+1 ,3)).astype('bool')
+        self._nodes_neighbors  = np.zeros((self.num_coarse,self.num_coarse+1), dtype = object)
+        self._edges_neighbors  = np.zeros((self.num_coarse,self.num_coarse+1), dtype = object)
+        self._faces_neighbors  = np.zeros((self.num_coarse,self.num_coarse+1), dtype = object)
+        self._nodes_neighbors[:], self._edges_neighbors[:], self._faces_neighbors[:] = None , None, None
+        self._nodes = list()
+        self._faces = list()
+        self._edges = list()
+        self.all_nodes_neighbors = rng.Range()
+        self.all_edges_neighbors = rng.Range()
+        self.all_faces_neighbors = rng.Range()
+        self.all_volumes_neighbors = rng.Range()
+        #print(self.all_nodes_neighbors, self.all_edges_neighbors, self.all_faces_neighbors)
+        # import pdb; pdb.set_trace()
+        node_count, edge_count, face_count = 0, 0, 0
+        # faces_
+        iboundary =  M.faces.bridge_adjacencies(M.faces.internal, "faces", "volumes")
+        elemloc_boundary = np.sort(self.partition[:].ravel()[iboundary], axis=1)
+        dif_elemloc_boundary = elemloc_boundary[:,0] != elemloc_boundary[:,1]
+        faces_connect = np.unique(elemloc_boundary[dif_elemloc_boundary], axis=0)
+        face_count = len(faces_connect)
+        self.connectivities[faces_connect[:, 0], faces_connect[:, 1], 2] = True
+        self.connectivities[faces_connect[:, 1], faces_connect[:, 0], 2] = True
+        self._faces_neighbors[faces_connect[:, 0], faces_connect[:, 1]] = np.arange(face_count)
+        self._faces_neighbors[faces_connect[:, 1], faces_connect[:, 0]] = np.arange(face_count)
+        for el in faces_connect:
+            self._faces.append(M.core.all_faces[M.faces.internal[np.all(elemloc_boundary == el, axis=1)]])
+        import pdb; pdb.set_trace()
+
+        for x in range(self.num_coarse):
+            for y in range(x+1,self.num_coarse):
+                node_intersect = rng.intersect(self.elements[x].core.boundary_nodes, self.elements[y].core.boundary_nodes)
+                if not node_intersect.empty():
+                    self._nodes.append(node_intersect)
+                    #self._nodes = np.append(self._nodes,node_intersect)
+                    self._nodes_neighbors[x,y], self._nodes_neighbors[y,x],= node_count ,node_count
+                    self.connectivities[x, y, 0],self.connectivities[y, x, 0] = True, True
+                    node_count += 1
+                    [self.all_nodes_neighbors.insert(e) for e in node_intersect]
+                edges_intersect = rng.intersect(self.elements[x].core.boundary_edges, self.elements[y].core.boundary_edges)
+                if not edges_intersect.empty():
+                    self._edges.append(edges_intersect)
+                    # self._edges = np.append(self._edges,edges_intersect)
+                    self._edges_neighbors[x,y], self._edges_neighbors[y,x]= edge_count ,edge_count
+                    self.connectivities[x, y, 1], self.connectivities[y, x, 1] =  True, True
+                    edge_count += 1
+                    [self.all_edges_neighbors.insert(e) for e in edges_intersect]
+                faces_intersect = rng.intersect(self.elements[x].core.boundary_faces, self.elements[y].core.boundary_faces)
+                if not faces_intersect.empty():
+                    self._faces.append(faces_intersect)
+                    #self._faces = np.append(self._faces,faces_intersect)
+                    self._faces_neighbors[x,y], self._faces_neighbors[y,x]= face_count ,face_count
+                    self.connectivities[x, y, 2],self.connectivities[y, x, 2]  = True, True
+                    face_count += 1
+                    [self.all_faces_neighbors.insert(e) for e in faces_intersect]
+        self.num_internal_nodes = node_count
+        self.num_internal_edges = edge_count
+        self.num_internal_faces = face_count
+
+        for x in range(self.num_coarse):
+            #  fix the interesection - second variable poorly choosen
+            node_intersect = rng.subtract(self.elements[x].core.boundary_nodes, self.all_nodes_neighbors)
+            if not node_intersect.empty():
+                self._nodes.append(node_intersect)
+                self._nodes_neighbors[x, -1] = node_count
+                self.connectivities[x, -1, 0] = True
+                node_count += 1
+            edge_intersect = rng.subtract(self.elements[x].core.boundary_edges, self.all_edges_neighbors)
+            if not edge_intersect.empty():
+                self._edges.append(edge_intersect)
+                self._edges_neighbors[x, -1] = edge_count
+                self.connectivities[x, -1, 1] = True
+                edge_count += 1
+            face_intersect = rng.subtract(self.elements[x].core.boundary_faces, self.all_faces_neighbors)
+            if not face_intersect.empty():
+                self._faces.append(face_intersect)
+                self._faces_neighbors[x, -1] = face_count
+                self.connectivities[x, -1, 2] = True
+                face_count += 1
+
+    def find_coarse_neighbours2(self):
         self.connectivities = np.zeros((self.num_coarse,self.num_coarse+1 ,3)).astype('bool')
         self._nodes_neighbors  = np.zeros((self.num_coarse,self.num_coarse+1), dtype = object)
         self._edges_neighbors  = np.zeros((self.num_coarse,self.num_coarse+1), dtype = object)
@@ -310,6 +395,8 @@ class MultiscaleCoarseGrid(object):
                 self._faces_neighbors[x, -1] = face_count
                 self.connectivities[x, -1, 2] = True
                 face_count += 1
+
+
 
     def iface_neighbors(self, x):
         tmp = -1* np.ones(self._faces_neighbors[x].shape)
