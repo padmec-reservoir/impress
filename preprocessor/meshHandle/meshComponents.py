@@ -228,12 +228,49 @@ class MeshEntities(object):
         type_list = np.array([self.mb.type_from_handle(el) for el in range])
         return type_list
 
+    def load_array(self, array = None):
+        if array == None:
+            self.all_elements = self.all_elements[:]
+            self.internal_elements = self.internal_elements[:]
+            self.boundary_elements = self.boundary_elements[:]
+        elif array == 'all':
+            self.all_elements = self.all_elements[:]
+        elif array == 'internal':
+            print ('a')
+            self.internal_elements = self.internal_elements[:]
+        elif array == 'boundary':
+            self.boundary_elements = self.boundary_elements[:]
+
+    def unload_array(self, array = None):
+        if array == None:
+            self.all_elements = GetItem(self.get_all)
+            self.internal_elements = GetItem(self.get_internal)
+            self.boundary_elements = GetItem(self.get_boundary)
+        elif array == 'all':
+            self.all_elements = GetItem(self.get_all)
+        elif array == 'internal':
+            self.internal_elements = GetItem(self.get_internal)
+        elif array == 'boundary':
+            self.boundary_elements = GetItem(self.get_boundary)
+
+
     def get_range_array(self, index, search_range = None):
+        el_handle = None
         if search_range == None:
             search_range = self.elements_handle
         if isinstance(index, np.int64) or isinstance(index, int):
-            el_handle = np.array([search_range[index]])
-        elif not isinstance(index, np.ndarray) and index is not None:
+            return np.array([search_range[index]])
+        # if self.level == 0:
+        #     if isinstance(index, np.ndarray):
+        #         base_handle = search_range[index[0]]
+        #         return base_handle+index.astype(np.uint64)
+            # elif isinstance(index, slice):
+            #     if index.step == None and index.start == None and index.stop == None:
+            #         base_handle = search_range[0]
+            #         return base_handle+np.arange(search_range.size(), dtype = np.uint64)
+            #     base_handle = search_range[index.start]
+            #     return base_handle+np.arange(index.start, index.stop, index.step, dtype = np.uint64)
+        if not isinstance(index, np.ndarray) and index is not None:
             el_handle = search_range[index].get_array()
         else:
             el_handle = search_range.get_array(index)
@@ -290,7 +327,19 @@ class MeshEntities(object):
 
 
     def get_all(self, index):
-        ret = self.read(self.elements_handle[index])
+        if self.level==0 and isinstance(index, np.ndarray):
+            ret = index.astype(np.int64)
+        elif self.level==0 and isinstance(index, slice):
+            if index.start == None and index.stop == None:
+                ret = np.arange(self.elements_handle.size())
+            elif index.start == None:
+                ret = np.arange(0, min(index.stop, self.elements_handle.size()), index.step, dtype = np.int64)
+            elif index.stop == None:
+                ret = np.arange(index.start, self.elements_handle.size(), index.step, dtype = np.int64)
+            else:
+                ret = np.arange(index.start, min(index.stop, self.elements_handle.size()), index.step, dtype = np.int64)
+        else:
+            ret = self.read(self.elements_handle[index])
         if len(ret)==1:
             return ret[0]
         return ret

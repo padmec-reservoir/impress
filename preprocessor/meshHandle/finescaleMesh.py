@@ -79,6 +79,37 @@ class FineScaleMesh:
         elif self.dim == 2:
             return len(self.faces)
 
+    def load_array(self, type = None, array = None):
+        if type == None:
+            self.nodes.load_array(array)
+            self.edges.load_array(array)
+            self.faces.load_array(array)
+            self.volumes.load_array(array)
+        if type == 'nodes' or type == 0:
+            self.nodes.load_array(array)
+        if type == 'edges' or type == 1:
+            self.edges.load_array(array)
+        if type == 'faces' or type == 2:
+            self.faces.load_array(array)
+        if type == 'volumes' or type == 3:
+            self.volumes.load_array(array)
+
+    def unload_array(self, type = None, array = None):
+        if type == None:
+            self.nodes.unload_array(array)
+            self.edges.unload_array(array)
+            self.faces.unload_array(array)
+            self.volumes.unload_array(array)
+        if type == 'nodes' or type == 0:
+            self.nodes.unload_array(array)
+        if type == 'edges' or type == 1:
+            self.edges.unload_array(array)
+        if type == 'faces' or type == 2:
+            self.faces.unload_array(array)
+        if type == 'volumes' or type == 3:
+            self.volumes.unload_array(array)
+
+
     def macro_dim(self):
         # coords = self.core.mb.get_coords(self.core.all_nodes).reshape(len(self.core.all_nodes),3)
         min_coord = self.nodes.coords[:].min(axis = 0)

@@ -11,10 +11,9 @@ import time
 from preprocessor.meshHandle.multiscaleMesh import FineScaleMeshMS as msh
 from preprocessor.meshHandle.dualCoarseMesh import DualCoarseMesh as dual
 import preprocessor.geoUtil.geoTools as gtool
-1+1
 
 start = time.time()
-M = msh('mesh/semi3.msh', dim = 3)
+M = msh('mesh/40.h5m', dim = 3)
 # M = msh('mesh/malha03.msh', dim = 2)
 end = time.time()
 print("The preprocessing step lasted {0}s".format(end-start))
