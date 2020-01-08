@@ -236,7 +236,6 @@ class MeshEntities(object):
         elif array == 'all':
             self.all_elements = self.all_elements[:]
         elif array == 'internal':
-            print ('a')
             self.internal_elements = self.internal_elements[:]
         elif array == 'boundary':
             self.boundary_elements = self.boundary_elements[:]
