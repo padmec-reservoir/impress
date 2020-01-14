@@ -141,11 +141,15 @@ class smartPartition(object):
         self.print_creating('Dual Forming Mesh')
         self.dual = self.create_forming_dual()
         volumes_indicator = self.find_primal_coarse_volumes()
-        #import pdb; pdb.set_trace()
-        #self.volumes_indicator_improvemnent(volumes_indicator)
-        #import pdb; pdb.set_trace()
-        #import pdb; pdb.set_trace()
+        self.M.pre_vol_indicator = np.copy(volumes_indicator)
+        # import pdb; pdb.set_trace()
         volumes_indicator = self.volumes_indicator_face_improv(volumes_indicator)
+        volumes_indicator = self.check_intersection(volumes_indicator)
+        self.M.vol_indicator = volumes_indicator
+        # import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
+        # volumes_indicator = self.volumes_indicator_face_improv(volumes_indicator)
         # volumes_indicator = self.volumes_indicator_face_improv(volumes_indicator)
         # volumes_indicator = self.volumes_indicator_face_improv(volumes_indicator)
         #volumes_indicator = self.volumes_indicator_improvemnent(volumes_indicator)
@@ -205,6 +209,8 @@ class smartPartition(object):
                 volumes_indicator[index, winner] = True
             print(index)
         return volumes_indicator
+
+
         # all_nodes.append(np.isin(disputed_el_nodes,np.unique(self.M.volumes.connectivities[row_mod.T]).sum()))
 
         # for coarse_el in range((volumes_indicator.shape[1])):
@@ -269,6 +275,33 @@ class smartPartition(object):
             cond_3 = np.logical_or(cond_1, cbox_indicator[:, el])
             volumes_indicator[:, el] = cond_3
         return volumes_indicator
+
+
+    def check_intersection(self, volumes_indicator):
+        all_faces_adj = self.M.volumes.adjacencies(self.M.volumes.all_elements[:])
+        all_vol_adj = self.M.volumes.bridge_adjacencies(self.M.volumes.all_elements[:], 2, 3) #pega todas as adjacencias
+        return self.M.core.mb.check_intersection(volumes_indicator, all_faces_adj, all_vol_adj)
+        # for i in range(volumes_indicator.shape[0]): #para cada volume da malha fina
+        #     indexes = volumes_indicator[i].nonzero()[0] #verifica em que volumes da malha coarse esta localizado
+        #     if indexes.size>1: #se for mais de 1
+        #         self.M.pressure[i]=2000
+                # import pdb; pdb.set_trace()
+                # score = np.zeros(indexes.size)
+                # aux = np.zeros(indexes.size)
+                # neighbours_tuple = volumes_indicator[:, indexes].transpose().nonzero() #verifica quais os volumes adjacentes
+                # my_faces = all_faces_adj[i]
+                # my_neighbours = all_vol_adj[i]
+                # their_faces = all_faces_adj[my_neighbours]
+                # import pdb; pdb.set_trace()
+                # counts = np.array([np.intersect1d(my_faces, their_faces[i]).size for i in range(their_faces.shape[0])])
+                # for j in range(counts.size):
+                #     coarses = neighbours_tuple[0][np.where(neighbours_tuple[1] == my_neighbours[j])[0]]
+                #     for c in coarses:
+                #         aux[np.where(indexes == c)[0]]
+                #         score = score + aux
+                #         aux[:] = 0
+                # volumes_indicator[i][:] = False
+                # volumes_indicator[i][indexes[np.argmax(score)]] = True
 
     def volumes_indicator_to_partition(self, volumes_indicator):
         #import pdb; pdb.set_trace()
