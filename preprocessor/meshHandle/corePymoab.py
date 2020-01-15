@@ -15,7 +15,11 @@ class CoreMoab:
         self.mb = core.Core()
         self.mtu = topo_util.MeshTopoUtil(self.mb)
         if mesh_file is not None:
-            self.mb.load_file(mesh_file)
+            try:
+                self.mb.load_file(mesh_file)
+            except Exception as e:
+                print(f'Nao carregou {meshfile}')
+                raise e
             self.run()
 
     def run(self):
@@ -76,7 +80,6 @@ class CoreMoab:
 
         print("Skinning Operation Successful")
         return [nodes_on_skin_handles, edges_on_skin_handles, faces_on_skin_handles, volumes_on_skin_handles]
-
 
     def check_integrity(self):
         # check if the mesh contains
@@ -264,11 +267,11 @@ class CoreMoab:
                 range_merged.merge(arg)
         return range_merged
 
-    def print(self, file=None, extension=".h5m", case = None,  config_input="input_cards/print_settings.yml"):
+    def print(self, folder=None, file=None, extension=".h5m", case = None,  config_input="input_cards/print_settings.yml"):
         if case is None:
             case = ''
         text =  file
-        folder = "results/" + case
+        # folder = "results/" + case
         with open(config_input, 'r') as f:
             data = yaml.safe_load(f)
         nodes = data['nodes']
