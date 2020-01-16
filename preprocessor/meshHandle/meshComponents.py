@@ -362,9 +362,11 @@ class MoabVariable(object):
     def __init__(self, core, name_tag, var_type="volumes", data_size=1, data_format="float", data_density="sparse",
                  entity_index=None, create = True):
         # pdb.set_trace()
+
         dic_dtf = {'float': types.MB_TYPE_DOUBLE, 'int': types.MB_TYPE_INTEGER, 'bool': types.MB_TYPE_BIT}
         dic_dst = {'dense': types.MB_TAG_DENSE, 'sparse': types.MB_TAG_SPARSE, 'bit': types.MB_TAG_BIT}
-        dic_elem = {'nodes': core.all_nodes, 'edges': core.all_edges, 'faces': core.all_faces, 'volumes': core.all_volumes}
+        dic_elem = {'node': core.all_nodes, 'nodes': core.all_nodes,'edge': core.all_edges, 'edges': core.all_edges, 'face': core.all_faces, 'faces': core.all_faces, 'volume': core.all_volumes, 'volumes': core.all_volumes}
+        self.data = None
         self.mb = core.mb
         self.var_type = var_type
         self.data_format = data_format
@@ -378,13 +380,37 @@ class MoabVariable(object):
         if data_format not in dic_dtf:
             print("Please define a valid data format")
         if create == True:
-            self.tag_handle = self.mb.tag_get_handle(name_tag, data_size, dic_dtf[data_format], dic_dst[data_density], True)
+            self.tag_handle = self.mb.tag_get_handle(name_tag, data_size, dic_dtf[data_format], dic_dst[data_density], True, 0)
         else:
             self.tag_handle = self.mb.tag_get_handle(name_tag)
+        self.storage = 'moab'
+        self.moab_updated = True
         print("Component class {0} successfully intialized".format(self.name_tag))
 
+    def to_numpy(self):
+        if self.storage == 'numpy':
+            print('Variable is already on numpy')
+            return
+        self.storage = 'numpy'
+        self.data = self.mb.tag_get_data(self.tag_handle, self.elements_handle)
+        if self.data_size == 1:
+            self.data = self.data.flatten()
+
+    def to_moab(self):
+        if self.storage == 'moab':
+            print('Variable is already on moab')
+            return
+        self.storage = 'moab'
+        self.mb.tag_set_data(self.tag_handle, self.elements_handle, self.data)
+        self.data = None
+        self.moab_updated = True
+
+
     def __call__(self):
-        return self.mb.tag_get_data(self.tag_handle, self.elements_handle)
+        if self.storage == 'moab':
+            return self.mb.tag_get_data(self.tag_handle, self.elements_handle)
+        else:
+            return self.data
 
     def __setitem__(self, index, data):
         if isinstance(index, np.int64) or isinstance(index, int):
@@ -400,16 +426,35 @@ class MoabVariable(object):
         elif isinstance(data, list) & (len(data) == self.data_size):
             data = np.array(data)
             data = np.tile(data, (el_handle.size, 1)).astype(self.data_format)
-        self.mb.tag_set_data(self.tag_handle, el_handle, data)
+
+        if self.storage == 'moab':
+            self.mb.tag_set_data(self.tag_handle, el_handle, data)
+        if self.storage == 'numpy':
+            if self.data_size == 1:
+                data = data.flatten()
+            self.data[index] = data
+            self.moab_updated = False
+
+
 
     def __getitem__(self, index = None):
-        if isinstance(index, np.int64) or isinstance(index, int):
-            el_handle = np.array([self.elements_handle[index]])
-        elif not isinstance(index, np.ndarray) and index is not None:
-            el_handle = self.elements_handle[index].get_array()
+        if self.storage == 'moab':
+            if isinstance(index, np.int64) or isinstance(index, int):
+                el_handle = np.array([self.elements_handle[index]])
+            elif not isinstance(index, np.ndarray) and index is not None:
+                el_handle = self.elements_handle[index].get_array()
+            else:
+                el_handle = self.elements_handle.get_array(index)
+            return self.mb.tag_get_data(self.tag_handle, el_handle)
         else:
-            el_handle = self.elements_handle.get_array(index)
-        return self.mb.tag_get_data(self.tag_handle, el_handle)
+            if index is not None:
+                return self.data[index]
+            else:
+                return self.data
+
+    def update_moab(self):
+        self.mb.tag_set_data(self.tag_handle, self.elements_handle, self.data)
+        self.moab_updated = True
 
     def __str__(self):
         string = "{0} variable: {1} based - Type: {2} - Length: {3} - Data Type: {4}"\

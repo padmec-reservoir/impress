@@ -68,6 +68,18 @@ class FineScaleMeshMS(FineScaleMesh):
         self.var_handle_list.append(var)
         return var
 
+    def to_moab(self):
+        for vars in self.var_handle_list:
+            vars.to_moab()
+        for elements in self.coarse.elements:
+            elements.to_moab()
+
+    def to_numpy(self):
+        for vars in self.var_handle_list:
+            vars.to_numpy()
+        for elements in self.coarse.elements:
+            elements.to_numpy()
+
     def init_variables(self):
         self.var_handle_list = []
         if self.var_config is None:
@@ -156,6 +168,14 @@ class CoarseVolume(FineScaleMeshMS):
         exec(f'self.{name_tag} = var')
         self.var_handle_list.append(var)
         return var
+
+    def to_moab(self):
+        for vars in self.var_handle_list:
+            vars.to_moab()
+
+    def to_numpy(self):
+        for vars in self.var_handle_list:
+            vars.to_numpy()
 
     def __call__(self, i, general):
         self.nodes.enhance(i, general)
