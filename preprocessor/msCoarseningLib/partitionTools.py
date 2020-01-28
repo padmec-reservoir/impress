@@ -141,9 +141,9 @@ class smartPartition(object):
         self.print_creating('Dual Forming Mesh')
         self.dual = self.create_forming_dual()
         volumes_indicator = self.find_primal_coarse_volumes()
-        self.M.pre_vol_indicator = np.copy(volumes_indicator)
         # import pdb; pdb.set_trace()
         volumes_indicator = self.volumes_indicator_face_improv(volumes_indicator)
+        self.M.pre_vol_indicator = np.copy(volumes_indicator)
         volumes_indicator = self.check_intersection(volumes_indicator)
         self.M.vol_indicator = volumes_indicator
         # import pdb; pdb.set_trace()
@@ -278,9 +278,8 @@ class smartPartition(object):
 
 
     def check_intersection(self, volumes_indicator):
-        all_faces_adj = self.M.volumes.adjacencies(self.M.volumes.all_elements[:])
         all_vol_adj = self.M.volumes.bridge_adjacencies(self.M.volumes.all_elements[:], 2, 3) #pega todas as adjacencias
-        return self.M.core.mb.check_intersection(volumes_indicator, all_faces_adj, all_vol_adj)
+        return self.M.core.mb.check_intersection(volumes_indicator, all_vol_adj)
         # for i in range(volumes_indicator.shape[0]): #para cada volume da malha fina
         #     indexes = volumes_indicator[i].nonzero()[0] #verifica em que volumes da malha coarse esta localizado
         #     if indexes.size>1: #se for mais de 1
