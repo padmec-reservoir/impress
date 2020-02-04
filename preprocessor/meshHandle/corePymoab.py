@@ -264,11 +264,11 @@ class CoreMoab:
                 range_merged.merge(arg)
         return range_merged
 
-    def print(self, file=None, extension=".h5m", case = None,  config_input="input_cards/print_settings.yml"):
+    def print(self, folder=None, file=None, extension=".h5m", case = None,  config_input="input_cards/print_settings.yml"):
         if case is None:
             case = ''
         text =  file
-        folder = "results/" + case
+        # folder = "results/" + case
         with open(config_input, 'r') as f:
             data = yaml.safe_load(f)
         nodes = data['nodes']
