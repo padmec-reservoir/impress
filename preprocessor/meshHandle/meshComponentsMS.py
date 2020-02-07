@@ -26,14 +26,12 @@ class MeshEntitiesMS(MeshEntities):
         self.father_id = GetItem(self._father_id)
 
     def _global_id(self, index):
-        range_vec = self.create_range_vec(index)
-        element_handle = self.range_index(range_vec)
-        return self.mb.tag_get_data(self.global_handle, element_handle).ravel()
+        el_handle = self.get_range_array(index)
+        return self.mb.tag_get_data(self.global_handle, el_handle, flat = True).astype(np.int64)
 
     def _father_id(self, index):
-        range_vec = self.create_range_vec(index)
-        element_handle = self.range_index(range_vec)
-        return self.mb.tag_get_data(self.father_handle, element_handle).ravel()
+        el_handle = self.get_range_array(index)
+        return self.mb.tag_get_data(self.father_handle, el_handle, flat = True).astype(np.int64)
 
     def enhance(self,i, general):
         self._coarse_neighbors_dic = {}
