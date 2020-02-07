@@ -107,11 +107,15 @@ class MoabVariableMS(MoabVariable):
         self.coarse_num = coarse_num
         #import pdb; pdb.set_trace()
         #"-L" + str(self.level) + "-" + str(self.coarse_num)
+
+        self.storage = 'moab'
+        self.moab_updated = True
+
         if create:
             name = core.id_name
             name = name[(name.find("ID") + 3):]
             self.name_tag = self.name_tag  + name
-            self.tag_handle = self.mb.tag_get_handle(self.name_tag, data_size, data_format, data_density, True)
+            self.tag_handle = self.mb.tag_get_handle(self.name_tag, data_size, data_format, data_density, True, 0)
         else:
             self.tag_handle = self.mb.tag_get_handle(self.name_tag)
         print("Component class {0} successfully intialized".format(self.name_tag))

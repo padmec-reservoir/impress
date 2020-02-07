@@ -94,6 +94,16 @@ class FineScaleMesh:
         if type == 'volumes' or type == 3:
             self.volumes.load_array(array)
 
+    def to_moab(self):
+        for vars in self.var_handle_list:
+            vars.to_moab()
+
+
+    def to_numpy(self):
+        for vars in self.var_handle_list:
+            vars.to_numpy()
+
+
     def unload_array(self, type = None, array = None):
         if type == None:
             self.nodes.unload_array(array)
