@@ -243,8 +243,8 @@ class MultiscaleCoarseGrid(object):
         self._all_faces = M.core.all_faces
         self._all_edges = M.core.all_edges
         self._all_nodes = M.core.all_nodes
-        # self.new_find_coarse_neighbours()
-        self.find_coarse_neighbours()
+        self.new_find_coarse_neighbours()
+        # self.find_coarse_neighbours()
         self.interfaces_faces = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._faces)
         # self.interfaces_edges = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._edges)
         # self.interfaces_nodes = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._nodes)
@@ -282,6 +282,7 @@ class MultiscaleCoarseGrid(object):
         # self.all_volumes_neighbors = rng.Range()
 
         self._faces_neighbors  = -1 * np.ones((self.num_coarse,self.num_coarse+1), dtype = np.int16)
+        self._edges_neighbors  = -1 * np.ones((self.num_coarse,self.num_coarse+1), dtype = np.int16)
         print('faces int')
         faces_array = self.M.faces.internal_range.get_array()
         print('vol vizinhos')
@@ -302,27 +303,40 @@ class MultiscaleCoarseGrid(object):
         self.connectivities = np.zeros((self.num_coarse,self.num_coarse+1 ,3)).astype(np.uint16)
         print('iniciando func')
         self._faces, self.num_internal_faces = self.M.core.mb.get_interface_faces(self.connectivities, parts, inters_faces, boundaries, boundary_parts, self.num_coarse, self._faces_neighbors)
-        self.connectivities = self.connectivities.astype(np.bool)
-#         self.inters_edges = np.unique(self.mb.get_ord_adjacencies(inters_faces, 1).astype(np.uint64))
-#         self.inters_nodes = np.unique(self.mb.get_ord_adjacencies(inters_faces, 0).astype(np.uint64))
-# #
-#         # temp_jagged = self.M.core.mb.get_ord_adjacencies(self.inters_edges, 3)
-#         # jagged_index = np.array([temp_jagged[i].size for i in range(temp_jagged.shape[0])], dtype = np.int32)
-#         # jagged_index = np.cumsum(jagged_index, dtype = np.int32)[:-1]
-#         # coarse_array = M.core.mb.tag_get_data(M.core.mb.tag_get_handle('Partition'), np.concatenate(temp_jagged), flat = True)
-#         # coarse_jagged = np.array(np.split(coarse_array, jagged_index))
-#         # indx = np.array([np.unique(coarse_jagged[i]).size>2 for i in range(coarse_jagged.shape[0])])
-#         # self.M.core.mb.coarse_intersection(self.inters_edges[indx], coarse_jagged[indx])
-#         #############################################
-#         self.tg2 = self.mb.tag_get_handle('GLOBAL_ID')
-#         self.intersect_faces = self.mb.tag_get_data(self.tg2, inters_faces, flat = True).astype(np.int64).reshape(-1)
-#         self.intersect_edges = self.mb.tag_get_data(self.tg2, self.inters_edges, flat = True).astype(np.int64).reshape(-1)
-#         self.intersect_nodes = self.mb.tag_get_data(self.tg2, self.inters_nodes, flat = True).astype(np.int64).reshape(-1)
+        # self.connectivities = self.connectivities.astype(np.bool)
+
+        self.inters_edges = np.unique(self.mb.get_ord_adjacencies(inters_faces, 1).astype(np.uint64))
+        temp_jagged = self.M.core.mb.get_ord_adjacencies(self.inters_edges, 3)
+        jagged_index = np.array([temp_jagged[i].size for i in range(temp_jagged.shape[0])], dtype = np.int32)
+        jagged_index = np.cumsum(jagged_index, dtype = np.int32)[:-1]
+        coarse_array = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat = True)
+        coarse_jagged = np.array(np.split(coarse_array, jagged_index))
+        coarse_jagged = np.array([np.unique(coarse_jagged[i]) for i in range(coarse_jagged.shape[0])])
+        indx = np.array([coarse_jagged[i].size>2 for i in range(coarse_jagged.shape[0])])
+
+        boundaries = self.M.core.boundary_edges.get_array()
+        temp_jagged = self.M.core.mb.get_ord_adjacencies(boundaries, 3)
+        jagged_index = np.array([temp_jagged[i].size for i in range(temp_jagged.shape[0])], dtype = np.int32)
+        jagged_index = np.cumsum(jagged_index, dtype = np.int32)[:-1]
+        boundary_parts = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat = True)
+        boundary_parts = np.array(np.split(boundary_parts, jagged_index))
+        boundary_parts = np.array([np.unique(boundary_parts[i]) for i in range(boundary_parts.shape[0])])
+
+        self.edges, self.num_internal_edges = self.M.core.mb.get_interface_edges(self.connectivities, self.inters_edges, coarse_jagged, indx, boundaries, boundary_parts, self.num_coarse, self._edges_neighbors)
+        # import pdb; pdb.set_trace()
+        # boundary_parts = self.mb.tag_get_data(tg, self.mb.get_ord_adjacencies(boundaries, 3), flat = True)
+        # import pdb; pdb.set_trace()
+        # self.M.core.mb.coarse_intersection(self.inters_edges[indx], coarse_jagged[indx])
+        #############################################
+        # self.tg2 = self.mb.tag_get_handle('GLOBAL_ID')
+        # self.intersect_faces = self.mb.tag_get_data(self.tg2, inters_faces, flat = True).astype(np.int64).reshape(-1)
+        # self.intersect_edges = self.mb.tag_get_data(self.tg2, self.inters_edges, flat = True).astype(np.int64).reshape(-1)
+        # self.intersect_nodes = self.mb.tag_get_data(self.tg2, self.inters_nodes, flat = True).astype(np.int64).reshape(-1)
 
     def find_coarse_neighbours(self):
         self.connectivities = np.zeros((self.num_coarse,self.num_coarse+1 ,3)).astype('bool')
         # self._nodes_neighbors  = np.zeros((self.num_coarse,self.num_coarse+1), dtype = object)
-        # self._edges_neighbors  = np.zeros((self.num_coarse,self.num_coarse+1), dtype = object)
+        self._edges_neighbors  = np.zeros((self.num_coarse,self.num_coarse+1), dtype = object)
         self._faces_neighbors  = np.zeros((self.num_coarse,self.num_coarse+1), dtype = object)
         self._faces_neighbors[:] = None
         # self._nodes_neighbors[:], self._edges_neighbors[:], self._faces_neighbors[:] = None , None, None
@@ -390,7 +404,7 @@ class MultiscaleCoarseGrid(object):
                 face_count += 1
     def iface_neighbors(self, x):
         tmp = -1* np.ones(self._faces_neighbors[x].shape)
-        tag = self._faces_neighbors[x] != None
+        tag = self._faces_neighbors[x] >= 0
         tmp[tag] = self._faces_neighbors[x,tag]
         #import pdb; pdb.set_trace()
         indices = np.where(tmp >= 0)[0]
