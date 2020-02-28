@@ -5,7 +5,7 @@ __pycache__/
 
 #Profilings
 *.prof
-
+*.dat
 # C extensions
 
 # Distribution / packaging
