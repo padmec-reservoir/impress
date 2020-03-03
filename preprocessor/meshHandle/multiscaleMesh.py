@@ -284,8 +284,12 @@ class MultiscaleCoarseGrid(object):
         self._faces_neighbors  = -1 * np.ones((self.num_coarse,self.num_coarse+1), dtype = np.int16)
         self._edges_neighbors  = -1 * np.ones((self.num_coarse,self.num_coarse+1), dtype = np.int16)
         self._nodes_neighbors  = -1 * np.ones((self.num_coarse,self.num_coarse+1), dtype = np.int16)
-        faces_array = self.M.faces.internal_range.get_array()
+        faces_array = self.M.core.all_faces.get_array()
         adj_array = self.mb.get_ord_adjacencies(faces_array, 3)
+        internal_index = np.asarray([ adj_array[i].size == 2 for i in range(adj_array.shape[0]) ])
+        adj_array = adj_array[internal_index]
+        adj_array = np.concatenate(adj_array).reshape(-1,2)
+        faces_array = faces_array[internal_index]
         tg = self.mb.tag_get_handle('Partition')
         boundaries = self.M.core.boundary_faces.get_array()
         parts = self.mb.tag_get_data(tg, adj_array.reshape(-1)).reshape(-1,2)
