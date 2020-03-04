@@ -252,20 +252,18 @@ class MultiscaleCoarseGrid(object):
         # import pdb; pdb.set_trace()
 
     def _internal_faces(self, M):
-        #faces = np.array([self.mb.tag_get_data(self.father_tag,el[0]).ravel() for el in self._faces]).ravel()
-        #faces = [self.interfaces_faces[int(el)] for el in range(len(self.interfaces_faces))]
-        faces = []
-        for el in range(len(self.interfaces_faces)):
-            faces.append(self.interfaces_faces[el][0])
+        faces = [self.interfaces_faces[el][0] for el in range (len(self.interfaces_faces))]
         partition = self.partition[:].ravel()
-        internal = faces[0:self.num_internal_faces]
         external = faces[self.num_internal_faces:]
-        internal_volumes = M.faces.bridge_adjacencies(internal, interface="faces",target="volumes")
         external_volumes = M.faces.bridge_adjacencies(external, interface="faces",target="volumes")
-        int_neigh = np.vstack((partition[internal_volumes[:,0]],partition[internal_volumes[:,1]])).T
         ext_neigh = np.zeros((external_volumes.shape[0],2))
         ext_neigh[:,0], ext_neigh[:,1] = partition[external_volumes].ravel(), partition[external_volumes].ravel()
-        return np.vstack((int_neigh,ext_neigh)).astype("uint64")
+        if self.num_internal_faces == 0:
+            return ext_neigh
+        internal = faces[0:self.num_internal_faces]
+        internal_volumes = M.faces.bridge_adjacencies(internal, interface="faces",target="volumes")
+        int_neigh = np.vstack((partition[internal_volumes[:,0]],partition[internal_volumes[:,1]])).T
+        return np.vstack((int_neigh,ext_neigh)).astype("int32")
 
     def new_find_coarse_neighbours(self):
         # self.connectivities = np.zeros((self.num_coarse,self.num_coarse+1 ,3)).astype('bool')
