@@ -10,7 +10,7 @@
 # Artur Castiel
 #
 # Use 'simple' or 'smart' coarsening technique?
-Scheme: 'smart'
+Scheme: 'simple'
 # Simple Technique Attributes
 Simple:
 # Define the number of coarse volumes in the x,y and z directions
