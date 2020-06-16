@@ -302,15 +302,19 @@ class MultiscaleCoarseGrid(object):
         self.connectivities = np.zeros((self.num_coarse,self.num_coarse+1 ,3)).astype(np.uint16)
         self._faces, self.num_internal_faces = self.M.core.mb.get_interface_faces(self.connectivities, parts, inters_faces, boundaries, boundary_parts, self.num_coarse, self._faces_neighbors)
         # self.connectivities = self.connectivities.astype(np.bool)
-
-        inters_edges = np.unique(self.mb.get_ord_adjacencies(inters_faces, 1).astype(np.uint64))
-        temp_jagged = self.M.core.mb.get_ord_adjacencies(inters_edges, 3)
-        jagged_index = np.array([temp_jagged[i].size for i in range(temp_jagged.shape[0])], dtype = np.int32)
-        jagged_index = np.cumsum(jagged_index, dtype = np.int32)[:-1]
-        coarse_array = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat = True)
-        coarse_jagged = np.array(np.split(coarse_array, jagged_index))
-        coarse_jagged = np.array([np.unique(coarse_jagged[i]) for i in range(coarse_jagged.shape[0])])
-        indx = np.array([coarse_jagged[i].size>2 for i in range(coarse_jagged.shape[0])])
+        if(inters_faces.size == 0):
+            inters_edges = np.array([], dtype = np.uint64)
+            indx = np.array([], dtype = np.int64)
+            coarse_jagged = np.array([], dtype = np.uint64)
+        else:
+            inters_edges = np.unique(self.mb.get_ord_adjacencies(inters_faces, 1).astype(np.uint64))
+            temp_jagged = self.M.core.mb.get_ord_adjacencies(inters_edges, 3)
+            jagged_index = np.array([temp_jagged[i].size for i in range(temp_jagged.shape[0])], dtype = np.int32)
+            jagged_index = np.cumsum(jagged_index, dtype = np.int32)[:-1]
+            coarse_array = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat = True)
+            coarse_jagged = np.array(np.split(coarse_array, jagged_index))
+            coarse_jagged = np.array([np.unique(coarse_jagged[i]) for i in range(coarse_jagged.shape[0])])
+            indx = np.array([coarse_jagged[i].size>2 for i in range(coarse_jagged.shape[0])])
 
         boundaries = self.M.core.boundary_edges.get_array()
         temp_jagged = self.M.core.mb.get_ord_adjacencies(boundaries, 3)
@@ -322,14 +326,19 @@ class MultiscaleCoarseGrid(object):
 
         self._edges, self.num_internal_edges = self.M.core.mb.get_interface_entities(1, self.connectivities, inters_edges, coarse_jagged, indx, boundaries, boundary_parts, self.num_coarse, self._edges_neighbors)
 
-        inters_nodes = np.unique(self.mb.get_ord_adjacencies(inters_faces, 0).astype(np.uint64))
-        temp_jagged = self.M.core.mb.get_ord_adjacencies(inters_nodes, 3)
-        jagged_index = np.array([temp_jagged[i].size for i in range(temp_jagged.shape[0])], dtype = np.int32)
-        jagged_index = np.cumsum(jagged_index, dtype = np.int32)[:-1]
-        coarse_array = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat = True)
-        coarse_jagged = np.array(np.split(coarse_array, jagged_index))
-        coarse_jagged = np.array([np.unique(coarse_jagged[i]) for i in range(coarse_jagged.shape[0])])
-        indx = np.array([coarse_jagged[i].size>2 for i in range(coarse_jagged.shape[0])])
+        if(inters_faces.size == 0):
+            inters_nodes = np.array([], dtype = np.uint64)
+            indx = np.array([], dtype = np.int64)
+            coarse_jagged = np.array([], dtype = np.uint64)
+        else:
+            inters_nodes = np.unique(self.mb.get_ord_adjacencies(inters_faces, 0).astype(np.uint64))
+            temp_jagged = self.M.core.mb.get_ord_adjacencies(inters_nodes, 3)
+            jagged_index = np.array([temp_jagged[i].size for i in range(temp_jagged.shape[0])], dtype = np.int32)
+            jagged_index = np.cumsum(jagged_index, dtype = np.int32)[:-1]
+            coarse_array = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat = True)
+            coarse_jagged = np.array(np.split(coarse_array, jagged_index))
+            coarse_jagged = np.array([np.unique(coarse_jagged[i]) for i in range(coarse_jagged.shape[0])])
+            indx = np.array([coarse_jagged[i].size>2 for i in range(coarse_jagged.shape[0])])
 
         boundaries = self.M.core.boundary_nodes.get_array()
         temp_jagged = self.M.core.mb.get_ord_adjacencies(boundaries, 3)
