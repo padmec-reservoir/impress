@@ -85,4 +85,4 @@ class variableInit(object):
                             int(tree[var]['data size']),
                             tree[var]['data type'], bool(tree[var]['sparse']),
                             list()])
-        return np.array(all_var)
+        return np.array(all_var, dtype = np.object)

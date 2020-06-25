@@ -6,23 +6,39 @@
 # data format must be a string
 # level must be an integer
 
-weight:
+# weight:
+#   type: volumes
+#   data size: 3
+#   data type: float
+#   sparse: False
+#   level: 0
+#
+# nodein:
+#   type: node
+#   data size: 1
+#   data type: int
+#   sparse: False
+#   level: 0
+#
+# pressure:
+#   type: volumes
+#   data size: 1
+#   data type: int
+#   sparse: False
+#   level: 1
+
+
+
+variavelX:
   type: volumes
-  data size: 3
+  data size: 1
   data type: float
   sparse: False
   level: 0
 
-nodein:
-  type: node
+variavelY:
+  type: nodes
   data size: 1
-  data type: int
-  sparse: False
-  level: 0
-
-pressure:
-  type: volumes
-  data size: 1
-  data type: int
+  data type: float
   sparse: False
   level: 0

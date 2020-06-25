@@ -36,14 +36,17 @@ class MeshEntitiesMS(MeshEntities):
     def enhance(self,i, general):
         self._coarse_neighbors_dic = {}
         if self.vID == 0:
-            index = general._nodes_neighbors[i, np.where(general.connectivities[i, :, 0])[0]].astype("uint64")
-            self._coarse_neighbors_dic = {x: general._nodes[y] for x,y in zip(np.where(general.connectivities[i, :, 0])[0], index)}
+            interfaces = np.where(general.connectivities[i, :, 0])[0]
+            index = general._nodes_neighbors[i, interfaces].astype("uint64")
+            self._coarse_neighbors_dic = {x: general._nodes[y] for x,y in zip(interfaces, index)}
         elif self.vID == 1:
-            index = general._edges_neighbors[i, np.where(general.connectivities[i, :, 1])[0]].astype("uint64")
-            self._coarse_neighbors_dic = {x: general._edges[y] for x,y in zip(np.where(general.connectivities[i, :, 1])[0], index)}
+            interfaces = np.where(general.connectivities[i, :, 1])[0]
+            index = general._edges_neighbors[i, interfaces].astype("uint64")
+            self._coarse_neighbors_dic = {x: general._edges[y] for x,y in zip(interfaces, index)}
         elif self.vID == 2:
-            index = general._faces_neighbors[i, np.where(general.connectivities[i, :, 2])[0]].astype("uint64")
-            self._coarse_neighbors_dic = {x: general._faces[y] for x,y in zip(np.where(general.connectivities[i, :, 2])[0], index)}
+            interfaces = np.where(general.connectivities[i, :, 2])[0]
+            index = general._faces_neighbors[i, interfaces].astype("uint64")
+            self._coarse_neighbors_dic = {x: general._faces[y] for x,y in zip(interfaces, index)}
         if self.vID < 3:
             self.coarse_neighbors = np.where(general.connectivities[i, :, self.vID])[0].astype("uint64")
             self.is_on_father_boundary = general.connectivities[i, -1, self.vID]

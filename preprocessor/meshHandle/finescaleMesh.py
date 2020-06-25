@@ -4,6 +4,7 @@ Module for management of fine scale mesh
 import time
 import pdb
 import numpy as np
+from ..meshHandle.serialization import IMPRESSPickler, IMPRESSUnpickler
 from ..meshHandle.meshComponents import MoabVariable
 from ..meshHandle.configTools.configClass import variableInit
 from math import sqrt
@@ -48,6 +49,16 @@ class FineScaleMesh:
         pickle.dump([(tags.name_tag, tags.var_type, tags.data_size, tags.data_format, tags.data_density) for tags in self.var_handle_list], file)
         file.close()
         return
+
+    def load(file_name):
+        file = open(file_name, "rb")
+        unpic = IMPRESSUnpickler(file)
+        return unpic.load()
+
+    def dump(self, file_name):
+        file = open(file_name, "wb+")
+        pic = IMPRESSPickler(file)
+        pic.dump(self)
 
     def init_variables(self):
         self.var_handle_list = []
