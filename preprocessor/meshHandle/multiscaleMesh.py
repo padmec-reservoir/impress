@@ -123,7 +123,6 @@ class CoarseVolume(FineScaleMeshMS):
         self.mesh_file = mesh_file
         self.level = father_core.level + 1
         self.coarse_num = i
-        self.coarse_vec = coarse_vec
         print("Level {0} - Volume {1}".format(self.level,self.coarse_num))
         self.core = MsCoreMoab(father_core, i, coarse_vec)
         self.init_entities()
