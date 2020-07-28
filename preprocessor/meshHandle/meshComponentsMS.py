@@ -36,20 +36,20 @@ class MeshEntitiesMS(MeshEntities):
     def enhance(self,i, general):
         self._coarse_neighbors_dic = {}
         if self.vID == 0:
-            interfaces = np.where(general.connectivities[i, :, 0])[0]
-            index = general._nodes_neighbors[i, interfaces].astype("uint64")
-            self._coarse_neighbors_dic = {x: general._nodes[y] for x,y in zip(interfaces, index)}
+            index = np.where(general.connectivities[0][i, :].A[0])[0]
+            interfaces = general._nodes_neighbors[i, index].A[0].astype("uint64")-1
+            self._coarse_neighbors_dic = {x: general._nodes[y] for x,y in zip(index, interfaces)}
         elif self.vID == 1:
-            interfaces = np.where(general.connectivities[i, :, 1])[0]
-            index = general._edges_neighbors[i, interfaces].astype("uint64")
-            self._coarse_neighbors_dic = {x: general._edges[y] for x,y in zip(interfaces, index)}
+            index = np.where(general.connectivities[1][i, :].A[0])[0]
+            interfaces = general._edges_neighbors[i, index].A[0].astype("uint64")-1
+            self._coarse_neighbors_dic = {x: general._edges[y] for x,y in zip(index, interfaces)}
         elif self.vID == 2:
-            interfaces = np.where(general.connectivities[i, :, 2])[0]
-            index = general._faces_neighbors[i, interfaces].astype("uint64")
-            self._coarse_neighbors_dic = {x: general._faces[y] for x,y in zip(interfaces, index)}
+            index = np.where(general.connectivities[2][i, :].A[0])[0]
+            interfaces = general._faces_neighbors[i, index].A[0].astype("uint64")-1
+            self._coarse_neighbors_dic = {x: general._faces[y] for x,y in zip(index, interfaces)}
         if self.vID < 3:
-            self.coarse_neighbors = np.where(general.connectivities[i, :, self.vID])[0].astype("uint64")
-            self.is_on_father_boundary = general.connectivities[i, -1, self.vID]
+            self.coarse_neighbors = np.where(general.connectivities[self.vID][i, :].A[0])[0].astype("uint64")
+            self.is_on_father_boundary = general.connectivities[self.vID][i, -1]
         self.neighborhood = GetItem(self._elements_in_coarse_neighborhood)
 
     def _elements_in_coarse_neighborhood(self,x):
