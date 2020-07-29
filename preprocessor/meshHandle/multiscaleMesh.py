@@ -207,7 +207,7 @@ class GetCoarseItem(object):
 
     def __getitem__(self, item):
         if isinstance(item, int):
-            return self.fun(self.tag, self.dic[item]).ravel()
+            return self.fun(self.tag, self.dic[item].get_array(), flat = True).astype(np.int64)
         elif isinstance(item, slice):
             start = item.start
             step = item.step
@@ -251,7 +251,8 @@ class MultiscaleCoarseGrid(object):
         self.iface_coarse_neighbors = self._internal_faces(M)
 
     def _internal_faces(self, M):
-        faces = [self.interfaces_faces[el][0] for el in range (len(self.interfaces_faces))]
+        faces = np.array([self._faces[el][0] for el in range (len(self._faces))], dtype = np.uint64)
+        faces = self.mb.tag_get_data(self.father_tag, faces, flat = True)
         partition = self.partition[:].ravel()
         external = faces[self.num_internal_faces:]
         external_volumes = M.faces.bridge_adjacencies(external, interface="faces",target="volumes")
@@ -262,7 +263,7 @@ class MultiscaleCoarseGrid(object):
         internal = faces[0:self.num_internal_faces]
         internal_volumes = M.faces.bridge_adjacencies(internal, interface="faces",target="volumes")
         int_neigh = np.vstack((partition[internal_volumes[:,0]],partition[internal_volumes[:,1]])).T
-        return np.vstack((int_neigh,ext_neigh)).astype("int32")
+        return np.vstack((int_neigh,ext_neigh)).astype(np.int64)
 
     def find_coarse_neighbours2(self):
 
