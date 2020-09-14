@@ -1,154 +1,193 @@
 """
 Module for implementation of multiscale mesh and CoarseVolumes objects functionalities
 """
-#import time
+
 import pdb
 from . finescaleMesh import FineScaleMesh
 from ..msCoarseningLib import algoritmo
+from ..msCoarseningLib.partitionTools import partitionManager
+from . serialization import IMPRESSPickler, IMPRESSUnpickler
 from . meshComponents import MoabVariable
 from . mscorePymoab import MsCoreMoab
 from . meshComponentsMS import MoabVariableMS,  MeshEntitiesMS
+from ..meshHandle.configTools.configClass import variableInit, coarseningInit
 from pymoab import core, types, rng
 import numpy as np
-import yaml
+import pickle
+from scipy.sparse import lil_matrix
+
 
 
 print('Initializing Finescale Mesh for Multiscale Methods')
 
 
 class FineScaleMeshMS(FineScaleMesh):
-    def __init__(self,mesh_file, dim = 3):
-        super().__init__(mesh_file,dim)
-
+    def __init__(self, mesh_file, dim=3, var_config=None, load = False):
+        self.var_config = var_config
+        super().__init__(mesh_file, dim, load = load)
         print("Creating Coarse Grid")
-        # import pdb; pdb.set_trace()
-        self.coarse = MultiscaleCoarseGrid(self)
+        self.coarse = MultiscaleCoarseGrid(self, var_config, load = load)
         self.enhance_entities()
 
+    def __getitem__ (self, key):
+        if not isinstance(key, int):
+            raise ValueError("Invalid key type provided")
+        return self.coarse.elements[key]
 
     def enhance_entities(self):
-        for i,el in zip(range(len(self.coarse.elements)),self.coarse.elements):
+        for i,el in zip(range(len(self.coarse.elements)), self.coarse.elements):
             el(i,self.coarse)
 
     def init_entities(self):
-        self.nodes = MeshEntitiesMS(self.core, entity_type = "node")
-        self.edges = MeshEntitiesMS(self.core, entity_type = "edges")
-        self.faces = MeshEntitiesMS(self.core, entity_type = "faces")
+        self.nodes = MeshEntitiesMS(self.core, entity_type= "node")
+        self.edges = MeshEntitiesMS(self.core, entity_type= "edges")
+        self.faces = MeshEntitiesMS(self.core, entity_type= "faces")
         if self.dim == 3:
-            self.volumes = MeshEntitiesMS(self.core, entity_type = "volumes")
+            self.volumes = MeshEntitiesMS(self.core, entity_type="volumes")
+
+    def save_variables(self, name_file):
+        self.core.mb.write_file('saves/'+name_file+'.h5m')
+        file = open('saves/'+name_file+'.imp', 'wb')
+        pickle.dump([(tags.name_tag, tags.var_type, tags.data_size, tags.data_format, tags.data_density) for tags in self.var_handle_list], file)
+        file.close()
+        for elements in self.coarse.elements:
+            elements.save_variables(name_file)
+        return
+
+    def load_variables(self):
+        self.var_handle_list = []
+        file = open(self.mesh_file.split('.')[0]+'.imp', 'rb')
+        tag_list = pickle.load(file)
+        file.close()
+        for tags in tag_list:
+            self.create_variable(name_tag = tags[0], var_type = tags[1], data_size = tags[2], data_format = tags[3], data_density = tags[4], create = False)
+        return
+
+    def create_variable( self, name_tag, var_type= "volumes", data_size=1, data_format= "float", data_density= "sparse",
+                 entity_index=None,  level=0, coarse_num=0, create = True):
+        var = MoabVariableMS(self.core, data_size = data_size, var_type = var_type, data_format = data_format, name_tag = name_tag, data_density = data_density, entity_index = entity_index, level = level, coarse_num = coarse_num, create = create)
+        exec(f'self.{name_tag} = var')
+        self.var_handle_list.append(var)
+        return var
+
+    def to_moab(self):
+        for vars in self.var_handle_list:
+            vars.to_moab()
+        for elements in self.coarse.elements:
+            elements.to_moab()
+
+    def to_numpy(self):
+        for vars in self.var_handle_list:
+            vars.to_numpy()
+        for elements in self.coarse.elements:
+            elements.to_numpy()
 
     def init_variables(self):
-        config = self.read_config('variable_settings.yml')
-
-        nodes = config['nodes']
-        edges = config['edges']
-        faces = config['faces']
-        volumes = config['volumes']
-        not_empty = []
-        parameters = [0,1]
-
-        if nodes is not None:
-            names = nodes.keys()
-            for i in names:
-                size = str(nodes[i]['data size'])
-                format = nodes[i]['data format']
-                command = 'self.' + i + ' = MoabVariableMS(self.core, data_size = ' + size + ', var_type = "nodes", data_format = ' + "'" + format + "'" + ', name_tag =' + "'" + i + "'" + ')'
-                exec(command)
-        if edges is not None:
-            names = edges.keys()
-            for i in names:
-                size = str(edges[i]['data size'])
-                format = edges[i]['data format']
-                command = 'self.' + i + ' = MoabVariableMS(self.core, data_size = ' + size + ', var_type = "edges", data_format = ' + "'" + format + "'" + ', name_tag =' + "'" + i + "'" + ')'
-                print(command)
-                exec(command)
-        if faces is not None:
-            names = faces.keys()
-            for i in names:
-                size = str(faces[i]['data size'])
-                format = faces[i]['data format']
-                command = 'self.' + i + ' = MoabVariableMS(self.core, data_size = ' + size + ', var_type = "faces", data_format = ' + "'" + format + "'" + ', name_tag =' + "'" + i + "'" + ')'
-                print(command)
-                exec(command)
-        if volumes is not None:
-            names = volumes.keys()
-            for i in names:
-                size = str(volumes[i]['data size'])
-                format = volumes[i]['data format']
-                command = 'self.' + i + ' = MoabVariableMS(self.core, data_size = ' + size + ', var_type = "volumes", data_format = ' + "'" + format + "'" + ', name_tag =' + "'" + i + "'" + ')'
-                print(command)
-                exec(command)
+        self.var_handle_list = []
+        if self.var_config is None:
+            self.var_config = variableInit()
+        for command in self.var_config.get_var(self.core.level):
+            exec(command)
 
     def init_partition(self):
-        config = self.read_config('msCoarse.yml')
-        particionador_type = config["Partitioner Scheme"]
-        specific_attributes = config["Coarsening"]
-        if particionador_type != '0':
-            if self.dim == 3:
-                partition = MoabVariable(self.core,data_size=1,var_type= "volumes",  data_format="int", name_tag="Partition",
-                                             data_density="sparse")
-                name_function = "scheme" + particionador_type
-                used_attributes = []
-                used_attributes.append(specific_attributes[0]["nx"])
-                used_attributes.append(specific_attributes[1]["ny"])
-                used_attributes.append(specific_attributes[2]["nz"])
-                [partition[:],coarse_center]  = getattr(algoritmo, name_function)(self.volumes.center[:],
-                           len(self), self.rx, self.ry, self.rz,*used_attributes)
-            elif self.dim == 2:
-                partition = MoabVariable(self.core,data_size=1,var_type= "faces",  data_format="int", name_tag="Partition",
-                                             data_density="sparse")
-                name_function = "scheme" + particionador_type
-                specific_attributes = config["Coarsening"]
-                used_attributes = []
-                used_attributes.append(specific_attributes[0]["nx"])
-                used_attributes.append(specific_attributes[1]["ny"])
-                [partition[:],coarse_center]  = getattr(algoritmo, name_function)(self.faces.center[:],
-                           len(self), self.rx, self.ry, self.rz,*used_attributes)
-            return partition
+        coarse_config = coarseningInit()
+
+        partitioner = partitionManager(self, coarse_config)
+        [partition_tag, coarse_center] = partitioner()
+        # create maob variabel
+
+        if isinstance(partition_tag, str) and partition == 'parallel':
+            return self.init_partition_parallel()
+        else:
+            partition_moab = MoabVariable(self.core, data_size=1,
+                                     var_type="volumes", data_format="int",
+                                     name_tag="Partition", data_density="dense")
+            partition_moab[:] = partition_tag
+            return partition_moab
 
     def init_partition_parallel(self):
         if self.dim == 3:
-            partition = MoabVariable(self.core,data_size=1,var_type= "volumes",  data_format="int", name_tag="Parallel",
-                                         data_density="sparse")
-
+            partition = MoabVariable(self.core, data_size=1,
+                                     var_type="volumes", data_format="int",
+                                     name_tag="Parallel", data_density="sparse")
         elif self.dim == 2:
-            partition = MoabVariable(self.core,data_size=1,var_type= "faces",  data_format="int", name_tag="Parallel", data_density="sparse")
+            partition = MoabVariable(self.core, data_size=1, var_type="faces",
+                                     data_format="int", name_tag="Parallel",
+                                     data_density="sparse")
         return partition
-
-    def read_config(self, config_input):
-        with open(config_input, 'r') as f:
-            config_file = yaml.safe_load(f)
-        return config_file
 
 
 class CoarseVolume(FineScaleMeshMS):
-    def __init__(self, father_core, dim, i, coarse_vec):
+    def __init__(self, father_core, dim, i, coarse_vec, var_config=None , load = False, mesh_file = None):
+        self.var_config = var_config
         self.dim = dim
+        self.mesh_file = mesh_file
         self.level = father_core.level + 1
         self.coarse_num = i
-
         print("Level {0} - Volume {1}".format(self.level,self.coarse_num))
         self.core = MsCoreMoab(father_core, i, coarse_vec)
-
         self.init_entities()
-        self.init_variables()
-        self.init_coarse_variables()
+        if not load:
+            self.init_variables()
+            self.init_coarse_variables()
+        else:
+            self.load_variables()
         self.macro_dim()
 
     def init_variables(self):
-        #self.pressure = MoabVariableMS(self.core,data_size=1,var_type= "volumes",  data_format="float", name_tag="pressure", level=self.level, coarse_num=self.coarse_num)
+        self.var_handle_list = []
+        if self.var_config is None:
+            self.var_config = variableInit()
+        for command in self.var_config.get_var(self.core.level, self.coarse_num):
+            exec(command)
 
-        pass
+    def save_variables(self, name_file):
+        name = self.core.id_name
+        name = name[(name.find("ID") + 3):]
+        file = open('saves/'+name_file+name+'.imp', 'wb')
+        pickle.dump([(tags.name_tag, tags.var_type, tags.data_size, tags.data_format, tags.data_density) for tags in self.var_handle_list], file)
+        file.close()
+        return
 
-    def __call__(self,i,general):
+    def load_variables(self):
+        self.var_handle_list = []
+        name = self.core.id_name
+        name = name[(name.find("ID") + 3):]
+        file = open(self.mesh_file.split('.')[0]+name+'.imp', 'rb')
+        tag_list = pickle.load(file)
+        file.close()
+        for tags in tag_list:
+            self.create_variable(name_tag = tags[0], var_type = tags[1], data_size = tags[2], data_format = tags[3], data_density = tags[4], level = self.level, coarse_num = self.coarse_num, create = False, suffix = name)
+        return
+
+
+    def create_variable(self, name_tag, var_type="volumes", data_size=1, data_format="float", data_density="sparse",
+                 entity_index=None,  level=0, coarse_num=0, create = True, suffix = None):
+        var = MoabVariableMS(self.core, data_size = data_size, var_type = var_type, data_format = data_format, name_tag = name_tag, data_density = data_density, entity_index = entity_index, level = level, coarse_num = coarse_num, create = create)
+        if suffix is not None:
+            name_tag = name_tag.replace(suffix, '')
+        exec(f'self.{name_tag} = var')
+        self.var_handle_list.append(var)
+        return var
+
+    def to_moab(self):
+        for vars in self.var_handle_list:
+            vars.to_moab()
+
+    def to_numpy(self):
+        for vars in self.var_handle_list:
+            vars.to_numpy()
+
+    def __call__(self, i, general):
         self.nodes.enhance(i, general)
         self.edges.enhance(i, general)
         self.faces.enhance(i, general)
         if self.dim == 3:
-            self.volumes.enhance(i,general)
+            self.volumes.enhance(i, general)
 
     def init_coarse_variables(self):
         pass
+
 
 class GetCoarseItem(object):
     def __init__(self, adj,tag, dic):
@@ -158,6 +197,7 @@ class GetCoarseItem(object):
 
     def __len__(self):
         return len(self.dic)
+
     def __call__(self, item):
         tmp = self.dic[item]
         el_list = rng.Range()
@@ -165,27 +205,38 @@ class GetCoarseItem(object):
             el_list.insert(e[0])
         return self.fun(self.tag, el_list)
 
-
     def __getitem__(self, item):
-        tmp = self.dic[item]
-        el_list = rng.Range()
-        if not isinstance(item, int):
-            for e in tmp:
-                el_list.insert(e[0])
-            return self.fun(self.tag, el_list)
-        else:
-            return self.fun(self.tag, tmp)
-
+        if isinstance(item, int):
+            return self.fun(self.tag, self.dic[item].get_array(), flat = True).astype(np.int64)
+        elif isinstance(item, slice):
+            start = item.start
+            step = item.step
+            stop = item.stop
+            if step == None:
+                step = 1
+            if start == None:
+                start = 0
+            if stop == None:
+                stop = len(self.dic)
+            array = np.array(range(start, stop, step))
+            s = np.array([])
+            for el in array:
+                s = np.concatenate((s, self.__getitem__(int(el))))
+            return s
 
 
 class MultiscaleCoarseGrid(object):
-    def __init__(self, M):
+    def __init__(self, M, var_config, load = False):
         self.mb = M.core.mb
+        self.M = M
         self.partition = M.init_partition()
-        self.elements = [CoarseVolume(M.core, M.dim, i, self.partition[:] == i) for i in range(self.partition[:].max()+1 )]
+        self.elements = [CoarseVolume(M.core, M.dim, i,
+                        self.partition[:].ravel() == i, var_config)
+                        for i in range(self.partition[:].max()+1 )]
         self.num_coarse = len(self.elements)
-        self.num = {"nodes": 0, "node": 0, "edges": 1, "edge": 1, "faces": 2, "face": 2, "volumes": 3, "volume": 3,
-                             0: 0, 1: 1, 2: 2, 3: 3}
+        self.num = {"nodes": 0, "node": 0, "edges": 1, "edge": 1, "faces": 2,
+                    "face": 2, "volumes": 3, "volume": 3,0: 0, 1: 1, 2: 2, 3: 3}
+
         self.local_volumes_tag = [volume.core.handleDic[volume.core.id_name] for volume in self.elements]
         self.father_tag = M.core.handleDic[M.core.id_name]
         self.global_tag = M.core.handleDic["GLOBAL_ID"]
@@ -193,79 +244,132 @@ class MultiscaleCoarseGrid(object):
         self._all_faces = M.core.all_faces
         self._all_edges = M.core.all_edges
         self._all_nodes = M.core.all_nodes
-        self.find_coarse_neighbours()
+        self.find_coarse_neighbours2()
         self.interfaces_faces = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._faces)
         self.interfaces_edges = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._edges)
         self.interfaces_nodes = GetCoarseItem(self.mb.tag_get_data, self.father_tag, self._nodes)
+        self.iface_coarse_neighbors = self._internal_faces(M)
 
+    def _internal_faces(self, M):
+        faces = np.array([self._faces[el][0] for el in range (len(self._faces))], dtype = np.uint64)
+        faces = self.mb.tag_get_data(self.father_tag, faces, flat = True)
+        partition = self.partition[:].ravel()
+        external = faces[self.num_internal_faces:]
+        external_volumes = M.faces.bridge_adjacencies(external, interface="faces",target="volumes")
+        ext_neigh = np.zeros((external_volumes.shape[0],2))
+        ext_neigh[:,0], ext_neigh[:,1] = partition[external_volumes].ravel(), partition[external_volumes].ravel()
+        if self.num_internal_faces == 0:
+            return ext_neigh
+        internal = faces[0:self.num_internal_faces]
+        internal_volumes = M.faces.bridge_adjacencies(internal, interface="faces",target="volumes")
+        int_neigh = np.vstack((partition[internal_volumes[:,0]],partition[internal_volumes[:,1]])).T
+        return np.vstack((int_neigh,ext_neigh)).astype(np.int64)
 
+    def find_coarse_neighbours2(self):
 
-    def find_coarse_neighbours(self):
-        self.connectivities = np.zeros((self.num_coarse,self.num_coarse+1 ,3)).astype('bool')
-        self.nodes_neighbors  = np.zeros((self.num_coarse,self.num_coarse+1), dtype = object)
-        self.edges_neighbors  = np.zeros((self.num_coarse,self.num_coarse+1), dtype = object)
-        self.faces_neighbors  = np.zeros((self.num_coarse,self.num_coarse+1), dtype = object)
-        self.nodes_neighbors[:], self.edges_neighbors[:], self.faces_neighbors[:] = None , None, None
-        self._nodes = list()
-        self._faces = list()
-        self._edges = list()
         self.all_nodes_neighbors = rng.Range()
         self.all_edges_neighbors = rng.Range()
         self.all_faces_neighbors = rng.Range()
         self.all_volumes_neighbors = rng.Range()
-        #print(self.all_nodes_neighbors, self.all_edges_neighbors, self.all_faces_neighbors)
-        # import pdb; pdb.set_trace()
-        node_count, edge_count, face_count = 0, 0, 0
-        for x in range(self.num_coarse):
-            for y in range(x+1,self.num_coarse):
-                node_intersect = rng.intersect(self.elements[x].core.boundary_nodes, self.elements[y].core.boundary_nodes)
-                if not node_intersect.empty():
-                    self._nodes.append(node_intersect)
-                    #self._nodes = np.append(self._nodes,node_intersect)
-                    self.nodes_neighbors[x,y], self.nodes_neighbors[y,x],= node_count ,node_count
-                    self.connectivities[x, y, 0],self.connectivities[y, x, 0] = True, True
-                    node_count += 1
-                    [self.all_nodes_neighbors.insert(e) for e in node_intersect]
-                edges_intersect = rng.intersect(self.elements[x].core.boundary_edges, self.elements[y].core.boundary_edges)
-                if not edges_intersect.empty():
-                    self._edges.append(edges_intersect)
-                    # self._edges = np.append(self._edges,edges_intersect)
-                    self.edges_neighbors[x,y], self.edges_neighbors[y,x]= edge_count ,edge_count
-                    self.connectivities[x, y, 1], self.connectivities[y, x, 1] =  True, True
-                    edge_count += 1
-                    [self.all_edges_neighbors.insert(e) for e in edges_intersect]
-                faces_intersect = rng.intersect(self.elements[x].core.boundary_faces, self.elements[y].core.boundary_faces)
-                if not faces_intersect.empty():
-                    self._faces.append(faces_intersect)
-                    #self._faces = np.append(self._faces,faces_intersect)
-                    self.faces_neighbors[x,y], self.faces_neighbors[y,x]= face_count ,face_count
-                    self.connectivities[x, y, 2],self.connectivities[y, x, 2]  = True, True
-                    face_count += 1
-                    [self.all_faces_neighbors.insert(e) for e in faces_intersect]
-        self.num_internal_nodes = node_count
-        self.num_internal_edges = edge_count
-        self.num_internal_faces = face_count
+        self._faces_neighbors  = lil_matrix((self.num_coarse,self.num_coarse+1), dtype = np.uint32)
+        self._edges_neighbors  = lil_matrix((self.num_coarse,self.num_coarse+1), dtype = np.uint32)
+        self._nodes_neighbors  = lil_matrix((self.num_coarse,self.num_coarse+1), dtype = np.uint32)
+        self.faces_connectivities = lil_matrix((self.num_coarse,self.num_coarse+1), dtype = np.bool)
+        self.edges_connectivities = lil_matrix((self.num_coarse,self.num_coarse+1), dtype = np.bool)
+        self.nodes_connectivities = lil_matrix((self.num_coarse,self.num_coarse+1), dtype = np.bool)
+        faces_array = self.M.core.internal_faces.get_array()
+        adj_array = self.mb.get_ord_adjacencies(faces_array, 3)[0]
+        tg = self.mb.tag_get_handle('Partition')
+        boundaries = self.M.core.boundary_faces.get_array()
+        boundary_vol = self.M.core.mb.get_ord_adjacencies(boundaries, 3)[0]
+        self.all_volumes_neighbors.insert(boundary_vol)
+        self.all_faces_neighbors.insert(boundaries)
+        parts = self.mb.tag_get_data(tg, adj_array).reshape(-1,2)
+        boundary_parts = self.mb.tag_get_data(tg, boundary_vol, flat = True)
+        indx = np.where(parts[:,0]!=parts[:,1])[0]
+        parts = parts[indx]
+        inters_faces = faces_array[indx]
+        self._faces, self.num_internal_faces = self.M.core.mb.get_interface_faces2(self.faces_connectivities, parts, inters_faces, boundaries, boundary_parts, self.num_coarse, self._faces_neighbors)
+        print('Matrix of coarse faces adjacencies created')
+        if(inters_faces.size == 0):
+            inters_edges = np.array([], dtype = np.uint64)
+            indx = np.array([], dtype = np.int64)
+            coarse_jagged = np.array([], dtype = np.uint64)
+        else:
+            self.all_faces_neighbors.insert(inters_faces)
+            self.all_volumes_neighbors.insert(adj_array.reshape(-1,2)[indx].ravel())
+            inters_edges = np.unique(self.mb.get_ord_adjacencies(inters_faces, 1)[0])
+            self.all_edges_neighbors.insert(inters_edges)
+            aux_tuple = self.M.core.mb.get_ord_adjacencies(inters_edges, 3)
+            temp_jagged = np.delete(np.array(np.split(aux_tuple[0], aux_tuple[1]), dtype=object), -1)
+            jagged_index = np.array([temp_jagged[i].size for i in range(temp_jagged.shape[0])], dtype = np.int32)
+            jagged_index = np.cumsum(jagged_index, dtype = np.int32)[:-1]
+            coarse_array = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat = True)
+            coarse_jagged = np.array(np.split(coarse_array, jagged_index), dtype=object)
+            coarse_jagged = np.array([np.unique(coarse_jagged[i]) for i in range(coarse_jagged.shape[0])], dtype=object)
+            indx = np.array([coarse_jagged[i].size>2 for i in range(coarse_jagged.shape[0])])
 
-        for x in range(self.num_coarse):
-            #  fix the interesection - second variable poorly choosen
-            node_intersect = rng.subtract(self.elements[x].core.boundary_nodes, self.all_nodes_neighbors)
-            if not node_intersect.empty():
-                self._nodes.append(node_intersect)
-                self.nodes_neighbors[x, -1] = node_count
-                self.connectivities[x, -1, 0] = True
-                node_count += 1
-            edge_intersect = rng.subtract(self.elements[x].core.boundary_edges, self.all_edges_neighbors)
-            if not edge_intersect.empty():
-                self._edges.append(edge_intersect)
-                self.edges_neighbors[x, -1] = edge_count
-                self.connectivities[x, -1, 1] = True
-                edge_count += 1
-            face_intersect = rng.subtract(self.elements[x].core.boundary_faces, self.all_faces_neighbors)
-            if not face_intersect.empty():
-                self._faces.append(face_intersect)
-                self.faces_neighbors[x, -1] = face_count
-                self.connectivities[x, -1, 2] = True
-                face_count += 1
+        boundaries = self.M.core.boundary_edges.get_array()
+        self.all_edges_neighbors.insert(boundaries)
+        aux_tuple = self.M.core.mb.get_ord_adjacencies(boundaries, 3)
+        temp_jagged = np.delete(np.array(np.split(aux_tuple[0], aux_tuple[1]), dtype=object), -1)
+        jagged_index = np.array([temp_jagged[i].size for i in range(temp_jagged.shape[0])], dtype = np.int32)
+        jagged_index = np.cumsum(jagged_index, dtype = np.int32)[:-1]
+        boundary_parts = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat = True)
+        boundary_parts = np.array(np.split(boundary_parts, jagged_index), dtype=object)
+        boundary_parts = np.array([np.unique(boundary_parts[i]).astype(np.int32) for i in range(boundary_parts.shape[0])], dtype = np.object)
+        self._edges, self.num_internal_edges = self.M.core.mb.get_interface_entities2(self.edges_connectivities, inters_edges, coarse_jagged, indx, boundaries, boundary_parts, self.num_coarse, self._edges_neighbors)
+        print('Matrix of coarse edges adjacencies created')
+        if(inters_faces.size == 0):
+            inters_nodes = np.array([], dtype = np.uint64)
+            indx = np.array([], dtype = np.int64)
+            coarse_jagged = np.array([], dtype = np.uint64)
+        else:
+            inters_nodes = np.unique(self.mb.get_ord_adjacencies(inters_faces, 0)[0])
+            self.all_nodes_neighbors.insert(inters_nodes)
+            aux_tuple = self.M.core.mb.get_ord_adjacencies(inters_nodes, 3)
+            temp_jagged = np.delete(np.array(np.split(aux_tuple[0], aux_tuple[1]), dtype=object), -1)
+            jagged_index = np.array([temp_jagged[i].size for i in range(temp_jagged.shape[0])], dtype = np.int32)
+            jagged_index = np.cumsum(jagged_index, dtype = np.int32)[:-1]
+            coarse_array = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat = True)
+            coarse_jagged = np.array(np.split(coarse_array, jagged_index), dtype=object)
+            coarse_jagged = np.array([np.unique(coarse_jagged[i]) for i in range(coarse_jagged.shape[0])], dtype=object)
+            indx = np.array([coarse_jagged[i].size>2 for i in range(coarse_jagged.shape[0])])
+
+        boundaries = self.M.core.boundary_nodes.get_array()
+        self.all_nodes_neighbors.insert(boundaries)
+        aux_tuple = self.M.core.mb.get_ord_adjacencies(boundaries, 3)
+        temp_jagged = np.delete(np.array(np.split(aux_tuple[0], aux_tuple[1]), dtype=object), -1)
+        jagged_index = np.array([temp_jagged[i].size for i in range(temp_jagged.shape[0])], dtype = np.int32)
+        jagged_index = np.cumsum(jagged_index, dtype = np.int32)[:-1]
+        boundary_parts = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat = True)
+        boundary_parts = np.array(np.split(boundary_parts, jagged_index), dtype=object)
+        boundary_parts = np.array([np.unique(boundary_parts[i]) for i in range(boundary_parts.shape[0])], dtype=object)
+        self._nodes, self.num_internal_nodes = self.M.core.mb.get_interface_entities2(self.nodes_connectivities, inters_nodes, coarse_jagged, indx, boundaries, boundary_parts, self.num_coarse, self._nodes_neighbors)
+        print('Matrix of coarse nodes adjacencies created')
+        self._faces_neighbors  = self._faces_neighbors.tocsr()
+        self._edges_neighbors  = self._edges_neighbors.tocsr()
+        self._nodes_neighbors  = self._nodes_neighbors.tocsr()
+        self.faces_connectivities = self.faces_connectivities.tocsr()
+        self.edges_connectivities = self.edges_connectivities.tocsr()
+        self.nodes_connectivities = self.nodes_connectivities.tocsr()
+        self.connectivities = (self.nodes_connectivities, self.edges_connectivities, self.faces_connectivities)
+        return
+
+    def iface_neighbors(self, x):
+        tmp = self._faces_neighbors[x].A[0]
+        indx = np.nonzero(tmp)[0]
+        return indx, (tmp[indx]-1).astype(np.int64)
+
+    def iedge_neighbors(self, x):
+        tmp = self._edges_neighbors[x].A[0]
+        indx = np.nonzero(tmp)[0]
+        return indx, (tmp[indx]-1).astype(np.int64)
+
+    def inode_neighbors(self, x):
+        tmp = self._nodes_neighbors[x].A[0]
+        indx = np.nonzero(tmp)[0]
+        return indx, (tmp[indx]-1).astype(np.int64)
 
     def father_to_local_id(self, vec_range,  element, target):
         flag = self.num[element]
@@ -283,27 +387,27 @@ class MultiscaleCoarseGrid(object):
     def neighbours(self, x,y, element):
           flag = self.num[element]
           if flag == 0:
-              return self.mb.tag_get_data(self.father_tag, self._nodes[self.nodes_neighbors[x,y]])
+              return self.mb.tag_get_data(self.father_tag, self._nodes[self._nodes_neighbors[x,y]-1].get_array(), flat = True).astype(np.int64)
           elif flag == 1:
-              return self.mb.tag_get_data(self.father_tag, self._edges[self.edges_neighbors[x,y]])
+              return self.mb.tag_get_data(self.father_tag, self._edges[self._edges_neighbors[x,y]-1].get_array(), flat = True).astype(np.int64)
           elif flag == 2:
-              return self.mb.tag_get_data(self.father_tag, self._faces[self.faces_neighbors[x,y]])
+              return self.mb.tag_get_data(self.father_tag, self._faces[self._faces_neighbors[x,y]-1].get_array(), flat = True).astype(np.int64)
 
     @property
     def all_interface_nodes(self):
-        return self.mb.tag_get_data(self.father_tag, self.all_nodes_neighbors)
+        return self.mb.tag_get_data(self.father_tag, self.all_nodes_neighbors.get_array(), flat = True).astype(np.int64)
 
     @property
     def all_interface_edges(self):
-        return self.mb.tag_get_data(self.father_tag, self.all_edges_neighbors)
+        return self.mb.tag_get_data(self.father_tag, self.all_edges_neighbors.get_array(), flat = True).astype(np.int64)
 
     @property
     def all_interface_faces(self):
-        return self.mb.tag_get_data(self.father_tag, self.all_faces_neighbors)
+        return self.mb.tag_get_data(self.father_tag, self.all_faces_neighbors.get_array(), flat = True).astype(np.int64)
 
     @property
-    def all_neighbors_volumes(self):
-        return self.mb.tag_get_data(self.father_tag, self.all_volumes_neighbors)
+    def all_interface_volumes(self):
+        return self.mb.tag_get_data(self.father_tag, self.all_volumes_neighbors.get_array(), flat = True).astype(np.int64)
 
     def create_range_vec(self, index):
         range_vec = None

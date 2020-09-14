@@ -1,0 +1,44 @@
+# Input file for variable settings
+
+# Inform us the name of the variable you want to create, its data size, format and the level of mesh in which the variable must be stored (pay attetion to the identation!):
+
+# data size must be an integer
+# data format must be a string
+# level must be an integer
+
+# weight:
+#   type: volumes
+#   data size: 3
+#   data type: float
+#   sparse: False
+#   level: 0
+#
+# nodein:
+#   type: node
+#   data size: 1
+#   data type: int
+#   sparse: False
+#   level: 0
+#
+# pressure:
+#   type: volumes
+#   data size: 1
+#   data type: int
+#   sparse: False
+#   level: 1
+
+
+
+variavelX:
+  type: volumes
+  data size: 1
+  data type: float
+  sparse: False
+  level: 0
+
+variavelY:
+  type: nodes
+  data size: 1
+  data type: float
+  sparse: False
+  level: 0

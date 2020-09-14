@@ -1,0 +1,16 @@
+# Print settings
+
+# Because of some visualization difficulties, it is necessary to write diferent
+# files for visualization of nodes, faces, edges and volumes tags. Writing
+# four vtk files makes the process expensive. So, if you won't need all of
+# these files, let us know, setting 1 in the entities whose tags you want to
+# visualize and 0 in those that you don't, so we can make the preprocessing
+# faster. We hope this is a temporary procedure until we develop our own
+# function to solve this problem with the desired efficiency ;)
+
+# Do you want to visualize tags stored in:
+nodes: 0
+edges: 0
+faces: 1
+volumes: 1
+all entities: 0

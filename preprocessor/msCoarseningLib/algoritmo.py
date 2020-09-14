@@ -36,7 +36,6 @@ def scheme1(centerCoord, num_of_vol, rx,ry,rz ,nx = 3, ny = 3, nz =3 ):
     if (rz[1] == 0)  &  (rz[0] == 0):
         nz = 1
         rz = (-1,1)
-
     box = np.array([0, (rx[1] - rx[0])/nx, 0,(ry[1] - ry[0]) /ny, 0,(rz[1] - rz[0])/(nz+0)]).reshape(3,2)
     cent_coord_El1 = box.sum(axis =1)/2
     tag = np.zeros(num_of_vol).astype("int")

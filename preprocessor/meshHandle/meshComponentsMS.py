@@ -20,43 +20,40 @@ class GetItem(object):
 
 class MeshEntitiesMS(MeshEntities):
     def __init__(self, core, entity_type):
-        # pdb.set_trace()
         super().__init__(core, entity_type)
-        # print(core)
-        # print(entity_type)
-        #import pdb; pdb.set_trace()
         self.father_handle = core.handleDic[core.father_id_name]
         self.global_id = GetItem(self._global_id)
         self.father_id = GetItem(self._father_id)
 
     def _global_id(self, index):
-        range_vec = self.create_range_vec(index)
-        element_handle = self.range_index(range_vec)
-        return self.mb.tag_get_data(self.global_handle, element_handle).ravel()
+        el_handle = self.get_range_array(index)
+        return self.mb.tag_get_data(self.global_handle, el_handle, flat = True).astype(np.int64)
 
     def _father_id(self, index):
-        range_vec = self.create_range_vec(index)
-        element_handle = self.range_index(range_vec)
-        return self.mb.tag_get_data(self.father_handle, element_handle).ravel()
+        el_handle = self.get_range_array(index)
+        return self.mb.tag_get_data(self.father_handle, el_handle, flat = True).astype(np.int64)
 
     def enhance(self,i, general):
-        self.coarse_neighbors_dic = {}
+        self._coarse_neighbors_dic = {}
         if self.vID == 0:
-            index = general.nodes_neighbors[i, np.where(general.connectivities[i, :, 0])[0]].astype("uint64")
-            self.coarse_neighbors_dic = {x: general._nodes[y] for x,y in zip(np.where(general.connectivities[i, :, 0])[0], index)}
+            index = np.where(general.connectivities[0][i, :].A[0])[0]
+            interfaces = general._nodes_neighbors[i, index].A[0].astype("uint64")-1
+            self._coarse_neighbors_dic = {x: general._nodes[y] for x,y in zip(index, interfaces)}
         elif self.vID == 1:
-            index = general.edges_neighbors[i, np.where(general.connectivities[i, :, 1])[0]].astype("uint64")
-            self.coarse_neighbors_dic = {x: general._edges[y] for x,y in zip(np.where(general.connectivities[i, :, 1])[0], index)}
+            index = np.where(general.connectivities[1][i, :].A[0])[0]
+            interfaces = general._edges_neighbors[i, index].A[0].astype("uint64")-1
+            self._coarse_neighbors_dic = {x: general._edges[y] for x,y in zip(index, interfaces)}
         elif self.vID == 2:
-            index = general.faces_neighbors[i, np.where(general.connectivities[i, :, 2])[0]].astype("uint64")
-            self.coarse_neighbors_dic = {x: general._faces[y] for x,y in zip(np.where(general.connectivities[i, :, 2])[0], index)}
+            index = np.where(general.connectivities[2][i, :].A[0])[0]
+            interfaces = general._faces_neighbors[i, index].A[0].astype("uint64")-1
+            self._coarse_neighbors_dic = {x: general._faces[y] for x,y in zip(index, interfaces)}
         if self.vID < 3:
-            self.coarse_neighbors = np.where(general.connectivities[i, :, self.vID])[0].astype("uint64")
-            self.is_on_father_boundary = general.connectivities[i, -1, self.vID]
+            self.coarse_neighbors = np.where(general.connectivities[self.vID][i, :].A[0])[0].astype("uint64")
+            self.is_on_father_boundary = general.connectivities[self.vID][i, -1]
         self.neighborhood = GetItem(self._elements_in_coarse_neighborhood)
 
     def _elements_in_coarse_neighborhood(self,x):
-        handle = self.coarse_neighbors_dic[x]
+        handle = self._coarse_neighbors_dic[x]
         return self.read(handle)
 
     @property
@@ -74,16 +71,17 @@ class MeshEntitiesMS(MeshEntities):
             trange = rng.subtract(trange, self.coarse_neighbors_dic[max(self.coarse_neighbors_dic.keys())])
         return self.read(trange)
 
+
 class MoabVariableMS(MoabVariable):
     def __init__(self, core, name_tag, var_type="volumes", data_size=1, data_format="float", data_density="sparse",
-                 entity_index=None, level = 0, coarse_num = 0):
+                 entity_index=None, level=0, coarse_num=0, create = True):
+
         self.mb = core.mb
         self.var_type = var_type
         self.data_format = data_format
         self.data_size = data_size
         self.data_density = data_density
         self.name_tag = name_tag
-        self.custom = False
         if var_type == "nodes":
             self.elements_handle = core.all_nodes
         elif var_type == "edges":
@@ -92,9 +90,6 @@ class MoabVariableMS(MoabVariable):
             self.elements_handle = core.all_faces
         elif var_type == "volumes":
             self.elements_handle = core.all_volumes
-        if entity_index is not None:
-            self.elements_handle = self.range_index(entity_index)
-            self.custom = True
         if data_density == "dense":
             data_density = types.MB_TAG_DENSE
         elif data_density == "sparse":
@@ -111,10 +106,17 @@ class MoabVariableMS(MoabVariable):
             data_format = types.MB_TYPE_BIT
         self.level = level
         self.coarse_num = coarse_num
-        name = core.id_name
-        name = name[(name.find("ID") + 3):]
-        self.name_tag = self.name_tag  + name
         #import pdb; pdb.set_trace()
         #"-L" + str(self.level) + "-" + str(self.coarse_num)
-        self.tag_handle = self.mb.tag_get_handle(self.name_tag, data_size, data_format, data_density, True)
+
+        self.storage = 'moab'
+        self.moab_updated = True
+
+        if create:
+            name = core.id_name
+            name = name[(name.find("ID") + 3):]
+            self.name_tag = self.name_tag  + name
+            self.tag_handle = self.mb.tag_get_handle(self.name_tag, data_size, data_format, data_density, True, 0)
+        else:
+            self.tag_handle = self.mb.tag_get_handle(self.name_tag)
         print("Component class {0} successfully intialized".format(self.name_tag))

@@ -1,0 +1,24 @@
+#           _____ _______
+#     /\   / ____|__   __|
+#    /  \ | |       | |
+#   / /\ \| |       | |
+#  / ____ \ |____   | |
+# /_/    \_\_____|  |_|
+# ----------------------------
+# The Amazing Coarsening tools
+# ----------------------------
+# Artur Castiel
+#
+# Use 'simple' or 'smart' coarsening technique?
+Scheme: 'simple'
+# Simple Technique Attributes
+Simple:
+# Define the number of coarse volumes in the x,y and z directions
+    nx: 3
+    ny: 3
+    nz: 3
+Smart:
+# Define the path and the name of the conforming mesh
+# set path as 'default' for the working directory
+    path: 'default'
+    file: 'semi2.msh'

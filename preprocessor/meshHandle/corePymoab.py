@@ -5,29 +5,31 @@ from pymoab import core, types, rng, topo_util
 from pymoab import skinner as sk
 import numpy as np
 import yaml
-#import pdb
+import time
+
 
 
 class CoreMoab:
-    """CoreMoab description
-    """
-    def __init__(self, mesh_file, dim=3):
+    def __init__(self, mesh_file=None, dim=3):
         self.dimension = dim
         self.mb = core.Core()
+        self.mtu = topo_util.MeshTopoUtil(self.mb)
+        if mesh_file is not None:
+            self.mb.load_file(mesh_file)
+            self.run()
+
+    def run(self):
         self.root_set = self.mb.get_root_set()
         self.father_root_set = self.root_set
-        self.mtu = topo_util.MeshTopoUtil(self.mb)
-        self.mb.load_file(mesh_file)
         self.level = 0
         self.all_volumes = self.mb.get_entities_by_dimension(0, 3)
         self.all_nodes = self.mb.get_entities_by_dimension(0, 0)
         self.mtu.construct_aentities(self.all_nodes)
+        #self.mtu.construct_aentities(self.all_volumes)
         self.all_faces = self.mb.get_entities_by_dimension(0, 2)
         self.all_edges = self.mb.get_entities_by_dimension(0, 1)
-
         self.handleDic = {}
         [self.boundary_nodes, self.boundary_edges, self.boundary_faces, self.boundary_volumes] = self.skinner_operation()
-
         self.internal_nodes = rng.subtract(self.all_nodes, self.boundary_nodes)
         self.internal_edges = rng.subtract(self.all_edges, self.boundary_edges)
         self.internal_faces = rng.subtract(self.all_faces, self.boundary_faces)
@@ -35,7 +37,7 @@ class CoreMoab:
         self.id_name = "GLOBAL_ID"
         self.father_id_name = self.id_name
         self.init_id()
-        self.check_integrity()
+        #self.check_integrity()
         # self.create_id_visualization()
         # self.flag_dic = {}
         [self.flag_list, self.flag_dic] = self.read_flags()
@@ -58,28 +60,23 @@ class CoreMoab:
         self.set_data(self.id_name, np.arange(len(self.all_nodes)), range_el=self.all_nodes)
 
     def skinner_operation(self):
-        skin = sk.Skinner(self.mb)
+        self.skin = sk.Skinner(self.mb)
         print("Entering skinner test")
 
         if self.dimension == 3:
-            faces_on_skin_handles = skin.find_skin(self.root_set, self.all_volumes[:])
-            edges_on_skin_handles = self.access_handle(faces_on_skin_handles)
-            nodes_on_skin_handles = self.access_handle(edges_on_skin_handles)
-            nodes_in_volumes = ([self.mb.get_adjacencies(el_handle,0) for el_handle in self.all_volumes])
-            check_volumes = ([ rng.intersect(el_handle,nodes_on_skin_handles) for el_handle in nodes_in_volumes])
-            external_volumes_index = np.array([el_handle.empty() for el_handle in check_volumes]).astype(bool)
-            volumes_on_skin_handles = self.range_index(np.bitwise_not(external_volumes_index),self.all_volumes)
+            faces_on_skin_handles = self.skin.find_skin(self.root_set, self.all_volumes)
+            edges_on_skin_handles = self.mtu.get_bridge_adjacencies(faces_on_skin_handles, 2, 1)
+            nodes_on_skin_handles = self.mtu.get_bridge_adjacencies(faces_on_skin_handles, 2, 0)
+            volumes_on_skin_handles = self.mtu.get_bridge_adjacencies(faces_on_skin_handles, 0, 3)
         elif self.dimension == 2:
-            edges_on_skin_handles = skin.find_skin(self.root_set, self.all_faces[:])
-            nodes_on_skin_handles = self.access_handle(edges_on_skin_handles)
-            nodes_in_faces = ([self.mb.get_adjacencies(el_handle,0) for el_handle in self.all_faces])
-            check_faces= np.asarray([rng.intersect(el_handle,nodes_on_skin_handles) for el_handle in nodes_in_faces])
-            external_faces_index = np.array([el_handle.empty() for el_handle in check_faces]).astype(bool)
-            faces_on_skin_handles = self.range_index(np.bitwise_not(external_faces_index),self.all_faces)
-            volumes_on_skin_handles = rng.Range()
+            edges_on_skin_handles = self.skin.find_skin(self.root_set, self.all_faces)
+            nodes_on_skin_handles = self.mtu.get_bridge_adjacencies(edges_on_skin_handles, 1, 0)
+            faces_on_skin_handles = self.mtu.get_bridge_adjacencies(edges_on_skin_handles, 0, 2)
+            volumes_on_skin_handles = self.mtu.get_bridge_adjacencies(edges_on_skin_handles, 0, 3) #empty
 
         print("Skinning Operation Successful")
         return [nodes_on_skin_handles, edges_on_skin_handles, faces_on_skin_handles, volumes_on_skin_handles]
+
 
     def check_integrity(self):
         # check if the mesh contains
@@ -148,30 +145,30 @@ class CoreMoab:
             flag_dic[bc_flag] = list_entity
         return np.sort(flag_list), flag_dic
 
-    def access_meshset(self, handle):
-        # returns the entities contained inside a give meshset handle
-        # ie: for a meshset handle the entities inside are returned
-        temp_range = []
-        for el in range(self.dimension+1):
-            sub_el = (self.mb.get_entities_by_dimension(handle, el))
-            temp_range.append(sub_el)
-        temp_range.append(self.mb.get_entities_by_dimension(handle, 11))
-        return temp_range
+    # def access_meshset(self, handle):
+    #     # returns the entities contained inside a give meshset handle
+    #     # ie: for a meshset handle the entities inside are returned
+    #     temp_range = []
+    #     for el in range(self.dimension+1):
+    #         sub_el = (self.mb.get_entities_by_dimension(handle, el))
+    #         temp_range.append(sub_el)
+    #     temp_range.append(self.mb.get_entities_by_dimension(handle, 11))
+    #     return temp_range
 
-    def access_handle(self,handle):
-        # input: range of handles of different dimensions
-        # returns all entities with d-1 dimension the comprises the given range
-        # ie: for a volume, the faces, for a face the edges and for an edge the points.
-        #
-        vecdim = self.check_range_by_dimm(handle)
-        # pdb.set_trace()
-        all_adj = np.array([np.array(self.mb.get_adjacencies(el_handle, dim-1)) for dim, el_handle in zip(vecdim,handle)])
-        #unique_adj = np.unique(np.ma.concatenate(all_adj)).astype("uint64")
-        # print(handle,all_adj)
-        unique_adj = np.unique(np.concatenate(all_adj)).astype("uint64")
-        return rng.Range(unique_adj)
+    # def access_handle(self,handle):
+    #     # input: range of handles of different dimensions
+    #     # returns all entities with d-1 dimension the comprises the given range
+    #     # ie: for a volume, the faces, for a face the edges and for an edge the points.
+    #     #
+    #     vecdim = self.check_range_by_dimm(handle)
+    #     # pdb.set_trace()
+    #     all_adj = np.array([np.array(self.mb.get_adjacencies(el_handle, dim-1)) for dim, el_handle in zip(vecdim,handle)])
+    #     #unique_adj = np.unique(np.ma.concatenate(all_adj)).astype("uint64")
+    #     # print(handle,all_adj)
+    #     unique_adj = np.unique(np.concatenate(all_adj)).astype("uint64")
+    #     return rng.Range(unique_adj)
 
-    def create_tag_handle(self, name_tag, data_size, data_text = "float", data_density = "dense"):
+    def create_tag_handle(self, name_tag, data_size, data_text="float", data_density="dense"):
         if data_density == "dense":
             data_density = types.MB_TAG_DENSE
         elif data_density == "sparse":
@@ -196,30 +193,30 @@ class CoreMoab:
         if range_el is None:
             range_el = self.all_volumes
         if index_vec.size > 0:
-            range_el = self.range_index(index_vec,range_el)
+            range_el = range_el[index_vec]
         try:
             handle_tag = self.handleDic[name_tag]
             return self.mb.tag_get_data(handle_tag, range_el)
         except KeyError:
             print("Tag not found")
 
-    def range_index(self, vec_index, range_handle=None):
-        if range_handle is None:
-            range_handle = self.all_volumes
-        if vec_index.dtype == "bool":
-            vec = np.where(vec_index)[0]
-        else:
-            vec = vec_index.astype("uint")
-        handles = np.asarray(range_handle)[vec.astype("uint")].astype("uint")
-        return rng.Range(handles)
+    # def range_index(self, vec_index, range_handle=None):
+    #     if range_handle is None:
+    #         range_handle = self.all_volumes
+    #     if vec_index.dtype == "bool":
+    #         vec = np.where(vec_index)[0]
+    #     else:
+    #         vec = vec_index.astype("uint")
+    #     handles = np.asarray(range_handle)[vec.astype("uint")].astype("uint")
+    #     return rng.Range(handles)
 
     def set_data(self, name_tag, data, index_vec=np.array([]), range_el=None):
         if range_el is None:
             range_el = self.all_volumes
         if index_vec.size > 0:
-            range_el = self.range_index(index_vec, range_el)
+            range_el = range_el[index_vec]
         handle_tag = self.handleDic[name_tag]
-        self.mb.tag_set_data(handle_tag, range_el, data)
+        self.mb.tag_set_data(handle_tag, range_el.get_array(), data)
 
     def check_range_by_dimm(self, handle):
         # INPUT: handle or range
@@ -267,8 +264,12 @@ class CoreMoab:
                 range_merged.merge(arg)
         return range_merged
 
-    def print(self, text=None, extension = ".h5m", config_input = "print_settings.yml"):
-        with open("print_settings.yml", 'r') as f:
+    def print(self, file=None, extension=".h5m", case = None,  config_input="input_cards/print_settings.yml"):
+        if case is None:
+            case = ''
+        text =  file
+        folder = "results/" + case
+        with open(config_input, 'r') as f:
             data = yaml.safe_load(f)
         nodes = data['nodes']
         edges = data['edges']
@@ -291,6 +292,16 @@ class CoreMoab:
         text3 = text + "-volume" + extension
         text4 = text + "-edges" + extension
         text5 = text + "-all" + extension
+        if folder is not None:
+            import os
+            if not os.path.exists(folder):
+                os.mkdir(folder)
+            text = folder + '/' + text
+            text1 = folder + '/' + text1
+            text2 = folder + '/' + text2
+            text3 = folder + '/' + text3
+            text4 = folder + '/' + text4
+            text5 = folder + '/' + text5
         if nodes != 0:
             self.mb.write_file(text1, [m1])
         if faces != 0:
