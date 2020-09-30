@@ -5,13 +5,11 @@ Geometric methods to compute volumes, areas, distances of the mesh entities
 # Created by Artur Castiel and Renata Tavares
 
 import numpy as np
-from numba import jit
 
-def normal_vec_2d(coords0,coords1):
+def normal_vec_2d(coords0, coords1):
     vec = coords1 - coords0
-    norm = np.linalg.norm(vec, axis = 1)
-    norm = 1/norm
-    return np.array([vec[:,1], -vec[:,0], vec[:,2] ]).T * norm[:,np.newaxis]
+    vec_norm = np.linalg.norm(vec, axis = 1)
+    return np.array([vec[:,1], -vec[:,0], vec[:,2] ]).T / vec_norm[:,np.newaxis]
 
 def normal_vec(coords1, coords2, coords3):
     vec1 = coords1 - coords3
@@ -25,7 +23,7 @@ def normal_vec(coords1, coords2, coords3):
 
 def point_distance(coords_1, coords_2):
     dist_vector = coords_1 - coords_2
-    distance = sqrt(np.dot(dist_vector, dist_vector))
+    distance = np.sqrt(np.dot(dist_vector, dist_vector))
     return distance
 
 def get_average(coords_list):
