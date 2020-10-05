@@ -78,6 +78,27 @@ def polygon_area(moab_core, polygon):
     
     return area
     
+def pyramid_volume(moab_core, face, v):
+    """
+    Compute the volume of a pyramid.
+
+    moab_core: a PyMOAB core instance.
+    face: a PyMOAB EntityHandle representing the base of the pyramid.
+    v: a NumPy array representing the coordinates of the top vertex.
+    """
+    # Get three vertices from the base.
+    vertices_handles = moab_core.get_connectivity(face)[0:3]
+    p1, p2, p3 = moab_core.get_coords(vertices_handles).reshape((3,3))
+
+    # Compute the area of the base.
+    A = polygon_area(moab_core, face)
+
+    # Compute the distance from v to the base plane.
+    u = np.cross(p2 - p1, p3 - p1)
+    n = u / np.linalg.norm(u)
+    h = np.abs(n.dot(v - p1))
+
+    return (A*h) / 3
 
 def polyhedron_volume(moab_core, polyhedron):
     pass
