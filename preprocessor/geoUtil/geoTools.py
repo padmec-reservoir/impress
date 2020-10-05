@@ -100,5 +100,32 @@ def pyramid_volume(moab_core, face, v):
 
     return (A*h) / 3
 
-def polyhedron_volume(moab_core, polyhedron):
-    pass
+def polyhedron_volume(moab_core, polyhedron, center):
+    """
+    Computes the volume of a convex polyhedron.
+
+    moab_core: a PyMOAB core instance.
+    face: a PyMOAB EntityHandle representing the polyhedron.
+    center: a NumPy array containing the coordinates of the
+            centroid.
+    """
+    # If the polyhedron is a pyramid or a tetrahedron, then compute
+    # its volume straight ahead.
+    if moab_core.type_from_handle(polyhedron) == types.MBTET:
+        base = moab_core.get_adjacencies(polyhedron, 2)[0]
+        top_vertex = [v for v in moab_core.get_entities_by_dimension(0, 0) \
+            if v not in moab_core.get_connectivity(base)][0]
+        top_vertex = moab_core.get_coords(top_vertex)
+        return pyramid_volume(moab_core, base, top_vertex)
+    elif moab_core.type_from_handle(polyhedron) == types.MBPYRAMID:
+        all_faces = moab_core.get_adjacencies(polyhedron, 2)
+        base = [face for face in all_faces if moab_core.type_from_handle(face) != types.MBTRI][0]
+        top_vertex = [v for v in moab_core.get_entities_by_dimension(0, 0) \
+            if v not in moab_core.get_connectivity(base)][0]
+        top_vertex = moab_core.get_coords(top_vertex)
+        return pyramid_volume(moab_core, base, top_vertex)
+    
+    faces = moab_core.get_adjacencies(polyhedron, 2)
+    volume = sum([pyramid_volume(moab_core, face, center) for face in faces])
+
+    return volume
