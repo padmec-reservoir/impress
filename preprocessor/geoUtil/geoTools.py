@@ -41,7 +41,7 @@ def polygon_area(moab_core, polygon):
     Calculate the area of a polygon by triangulation.
     """
     # Retrieve vertices handles and coordinates from face handle.
-    vertices = rng.Range(moab_core.get_connectivity(polygon))
+    vertices = moab_core.get_adjacencies(polygon, 0)
 
     # If the polygon is a triangle, then just compute the area by
     # definition.
