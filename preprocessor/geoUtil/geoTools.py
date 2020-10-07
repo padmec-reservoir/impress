@@ -113,15 +113,17 @@ def polyhedron_volume(moab_core, polyhedron, center):
     # its volume straight ahead.
     if moab_core.type_from_handle(polyhedron) == types.MBTET:
         base = moab_core.get_adjacencies(polyhedron, 2)[0]
-        top_vertex = [v for v in moab_core.get_entities_by_dimension(0, 0) \
-            if v not in moab_core.get_connectivity(base)][0]
+        base_vertices = moab_core.get_adjacencies(base, 0)
+        tet_vertices = moab_core.get_adjacencies(polyhedron, 0)
+        top_vertex = [v for v in tet_vertices if v not in base_vertices][0]
         top_vertex = moab_core.get_coords(top_vertex)
         return pyramid_volume(moab_core, base, top_vertex)
     elif moab_core.type_from_handle(polyhedron) == types.MBPYRAMID:
         all_faces = moab_core.get_adjacencies(polyhedron, 2)
         base = [face for face in all_faces if moab_core.type_from_handle(face) != types.MBTRI][0]
-        top_vertex = [v for v in moab_core.get_entities_by_dimension(0, 0) \
-            if v not in moab_core.get_connectivity(base)][0]
+        base_vertices = moab_core.get_adjacencies(base, 0)
+        tet_vertices = moab_core.get_adjacencies(polyhedron, 0)
+        top_vertex = [v for v in tet_vertices if v not in base_vertices][0]
         top_vertex = moab_core.get_coords(top_vertex)
         return pyramid_volume(moab_core, base, top_vertex)
     
