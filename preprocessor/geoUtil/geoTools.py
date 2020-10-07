@@ -109,25 +109,27 @@ def polyhedron_volume(moab_core, polyhedron, center):
     center: a NumPy array containing the coordinates of the
             centroid.
     """
+    faces = moab_core.get_adjacencies(polyhedron, 2)
+    vertices = moab_core.get_adjacencies(polyhedron, 0)
+
     # If the polyhedron is a pyramid or a tetrahedron, then compute
     # its volume straight ahead.
     if moab_core.type_from_handle(polyhedron) == types.MBTET:
-        base = moab_core.get_adjacencies(polyhedron, 2)[0]
+        base = faces[0]
         base_vertices = moab_core.get_adjacencies(base, 0)
-        tet_vertices = moab_core.get_adjacencies(polyhedron, 0)
-        top_vertex = [v for v in tet_vertices if v not in base_vertices][0]
-        top_vertex = moab_core.get_coords(top_vertex)
-        return pyramid_volume(moab_core, base, top_vertex)
+        top_vertex = [v for v in vertices if v not in base_vertices][0]
+        top_vertex_coords = moab_core.get_coords(top_vertex)
+        volume = pyramid_volume(moab_core, base, top_vertex_coords)
     elif moab_core.type_from_handle(polyhedron) == types.MBPYRAMID:
-        all_faces = moab_core.get_adjacencies(polyhedron, 2)
-        base = [face for face in all_faces if moab_core.type_from_handle(face) != types.MBTRI][0]
+        base = [face for face in faces if moab_core.type_from_handle(face) != types.MBTRI][0]
         base_vertices = moab_core.get_adjacencies(base, 0)
-        tet_vertices = moab_core.get_adjacencies(polyhedron, 0)
-        top_vertex = [v for v in tet_vertices if v not in base_vertices][0]
-        top_vertex = moab_core.get_coords(top_vertex)
-        return pyramid_volume(moab_core, base, top_vertex)
-    
-    faces = moab_core.get_adjacencies(polyhedron, 2)
-    volume = sum([pyramid_volume(moab_core, face, center) for face in faces])
+        top_vertex = [v for v in vertices if v not in base_vertices][0]
+        top_vertex_coords = moab_core.get_coords(top_vertex)
+        volume = pyramid_volume(moab_core, base, top_vertex_coords)
+    # Otherwise, compute the volume by splitting the polyhedron
+    # into pyramids, each face acting like the base and the centroid
+    # acting like the top vertex.
+    else:
+        volume = sum([pyramid_volume(moab_core, face, center) for face in faces])
 
     return volume
