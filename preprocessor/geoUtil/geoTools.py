@@ -31,9 +31,16 @@ def get_average(coords_list):
     N = len(coords_list)
     return sum(coords_list)*(1/N)
 
+def cross_product_3d(u, v):
+    w = np.zeros(3)
+    w[0] = u[1]*v[2] - u[2]*v[1]
+    w[1] = u[2]*v[0] - u[0]*v[2]
+    w[2] = u[0]*v[1] - u[1]*v[0]
+    return w
+
 def triangle_area(v1, v2, v3):
-    u = np.cross(v1 - v2, v1 - v3)
-    area = 0.5*np.linalg.norm(u)
+    w = cross_product_3d(v1 - v2, v1 - v3)
+    area = 0.5*np.linalg.norm(w)
     return area
 
 def polygon_area(moab_core, polygon):
@@ -94,7 +101,7 @@ def pyramid_volume(moab_core, face, v):
     A = polygon_area(moab_core, face)
 
     # Compute the distance from v to the base plane.
-    u = np.cross(p2 - p1, p3 - p1)
+    u = cross_product_3d(p2 - p1, p3 - p1)
     n = u / np.linalg.norm(u)
     h = np.abs(n.dot(v - p1))
 
