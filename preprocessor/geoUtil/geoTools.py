@@ -2,7 +2,7 @@
 Geometric methods to compute volumes, areas, distances of the mesh entities
 """
 # Geoemtric Module
-# Created by Artur Castiel and Renata Tavares
+# Created by Artur Castiel, Renata Tavares and Filipe Cumaru.
 
 import numpy as np
 from pymoab import topo_util, types, rng
