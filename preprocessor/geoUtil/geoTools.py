@@ -6,6 +6,7 @@ Geometric methods to compute volumes, areas, distances of the mesh entities
 
 import numpy as np
 from pymoab import topo_util, types, rng
+from numba import njit
 
 def normal_vec_2d(coords0, coords1):
     vec = coords1 - coords0
@@ -77,7 +78,7 @@ def polygon_area(moab_core, polygon):
     area = 0
     while visited_verts.size() < vertices.size():
         vi_neighbors = rng.intersect(vertices, mtu.get_bridge_adjacencies(vi, 1, 0))
-        vj = [v for v in vi_neighbors if v not in visited_verts][0]
+        vj = rng.subtract(vi_neighbors, visited_verts)[0]
         vi_coords, vj_coords = moab_core.get_coords([vi, vj]).reshape((2,3))
         area += triangle_area(v0_coords, vi_coords, vj_coords)
         visited_verts.insert(vj)
@@ -124,13 +125,13 @@ def polyhedron_volume(moab_core, polyhedron, center):
     if moab_core.type_from_handle(polyhedron) == types.MBTET:
         base = faces[0]
         base_vertices = moab_core.get_adjacencies(base, 0)
-        top_vertex = [v for v in vertices if v not in base_vertices][0]
+        top_vertex = rng.subtract(vertices, base_vertices)[0]
         top_vertex_coords = moab_core.get_coords(top_vertex)
         volume = pyramid_volume(moab_core, base, top_vertex_coords)
     elif moab_core.type_from_handle(polyhedron) == types.MBPYRAMID:
         base = [face for face in faces if moab_core.type_from_handle(face) != types.MBTRI][0]
         base_vertices = moab_core.get_adjacencies(base, 0)
-        top_vertex = [v for v in vertices if v not in base_vertices][0]
+        top_vertex = rng.subtract(vertices, base_vertices)[0]
         top_vertex_coords = moab_core.get_coords(top_vertex)
         volume = pyramid_volume(moab_core, base, top_vertex_coords)
     # Otherwise, compute the volume by splitting the polyhedron
