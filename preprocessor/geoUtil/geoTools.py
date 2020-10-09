@@ -50,12 +50,12 @@ def polygon_area(moab_core, polygon):
     """
     # Retrieve vertices handles and coordinates from face handle.
     vertices = moab_core.get_adjacencies(polygon, 0)
+    vert_coords = moab_core.get_coords(vertices).reshape(len(vertices), 3)
+    vertices_dict = dict(zip(vertices, vert_coords))
 
     # If the polygon is a triangle, then just compute the area by
     # definition.
     if moab_core.type_from_handle(polygon) == types.MBTRI or vertices.size() == 3:
-        vert_coords = moab_core.get_coords(vertices)
-        vert_coords = vert_coords.reshape(3, 3)
         return triangle_area(vert_coords[0], vert_coords[1], vert_coords[2])
     
     # Else, compute a triangulation for this shape.
@@ -64,7 +64,7 @@ def polygon_area(moab_core, polygon):
     # sharing an edge with it.
     v0 = vertices[0]
     v0_neighbors = rng.intersect(vertices, mtu.get_bridge_adjacencies(v0, 1, 0))
-    v0_coords = moab_core.get_coords(v0)
+    v0_coords = vertices_dict[v0]
 
     # vi is the vertice currently being visited, and vj is its neighbor not
     # visited yet. At each iteration, we compute the area of the triangle (v0, vi, vj).
@@ -79,7 +79,7 @@ def polygon_area(moab_core, polygon):
     while visited_verts.size() < vertices.size():
         vi_neighbors = rng.intersect(vertices, mtu.get_bridge_adjacencies(vi, 1, 0))
         vj = rng.subtract(vi_neighbors, visited_verts)[0]
-        vi_coords, vj_coords = moab_core.get_coords([vi, vj]).reshape((2,3))
+        vi_coords, vj_coords = vertices_dict[vi], vertices_dict[vj]
         area += triangle_area(v0_coords, vi_coords, vj_coords)
         visited_verts.insert(vj)
         vi = vj
