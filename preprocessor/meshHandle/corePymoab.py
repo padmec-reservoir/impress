@@ -158,18 +158,18 @@ class CoreMoab:
     #     temp_range.append(self.mb.get_entities_by_dimension(handle, 11))
     #     return temp_range
 
-    # def access_handle(self,handle):
-    #     # input: range of handles of different dimensions
-    #     # returns all entities with d-1 dimension the comprises the given range
-    #     # ie: for a volume, the faces, for a face the edges and for an edge the points.
-    #     #
-    #     vecdim = self.check_range_by_dimm(handle)
-    #     # pdb.set_trace()
-    #     all_adj = np.array([np.array(self.mb.get_adjacencies(el_handle, dim-1)) for dim, el_handle in zip(vecdim,handle)])
-    #     #unique_adj = np.unique(np.ma.concatenate(all_adj)).astype("uint64")
-    #     # print(handle,all_adj)
-    #     unique_adj = np.unique(np.concatenate(all_adj)).astype("uint64")
-    #     return rng.Range(unique_adj)
+    def access_handle(self,handle):
+        # input: range of handles of different dimensions
+        # returns all entities with d-1 dimension the comprises the given range
+        # ie: for a volume, the faces, for a face the edges and for an edge the points.
+        #
+        vecdim = self.check_range_by_dimm(handle)
+        # pdb.set_trace()
+        all_adj = np.array([np.array(self.mb.get_adjacencies(el_handle, dim-1)) for dim, el_handle in zip(vecdim,handle)])
+        #unique_adj = np.unique(np.ma.concatenate(all_adj)).astype("uint64")
+        # print(handle,all_adj)
+        unique_adj = np.unique(np.concatenate(all_adj)).astype("uint64")
+        return rng.Range(unique_adj)
 
     def create_tag_handle(self, name_tag, data_size, data_text="float", data_density="dense"):
         if data_density == "dense":

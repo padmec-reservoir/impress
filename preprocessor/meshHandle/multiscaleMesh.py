@@ -99,9 +99,14 @@ class FineScaleMeshMS(FineScaleMesh):
         if isinstance(partition_tag, str) and partition == 'parallel':
             return self.init_partition_parallel()
         else:
-            partition_moab = MoabVariable(self.core, data_size=1,
-                                     var_type="volumes", data_format="int",
-                                     name_tag="Partition", data_density="dense")
+            if self.dim == 2:
+                partition_moab = MoabVariable(self.core, data_size=1,
+                                        var_type="faces", data_format="int",
+                                        name_tag="Partition", data_density="dense")
+            elif self.dim == 3:
+                partition_moab = MoabVariable(self.core, data_size=1,
+                                        var_type="volumes", data_format="int",
+                                        name_tag="Partition", data_density="dense")
             partition_moab[:] = partition_tag
             return partition_moab
 
@@ -278,7 +283,7 @@ class MultiscaleCoarseGrid(object):
         self.edges_connectivities = lil_matrix((self.num_coarse,self.num_coarse+1), dtype = np.bool)
         self.nodes_connectivities = lil_matrix((self.num_coarse,self.num_coarse+1), dtype = np.bool)
         faces_array = self.M.core.internal_faces.get_array()
-        adj_array = self.mb.get_ord_adjacencies(faces_array, 3)[0]
+        adj_array = self.mb.get_ord_adjacencies(faces_array, self.M.dim)[0]
         tg = self.mb.tag_get_handle('Partition')
         boundaries = self.M.core.boundary_faces.get_array()
         boundary_vol = self.M.core.mb.get_ord_adjacencies(boundaries, 3)[0]
@@ -300,25 +305,43 @@ class MultiscaleCoarseGrid(object):
             self.all_volumes_neighbors.insert(adj_array.reshape(-1,2)[indx].ravel())
             inters_edges = np.unique(self.mb.get_ord_adjacencies(inters_faces, 1)[0])
             self.all_edges_neighbors.insert(inters_edges)
-            aux_tuple = self.M.core.mb.get_ord_adjacencies(inters_edges, 3)
-            temp_jagged = np.delete(np.array(np.split(aux_tuple[0], aux_tuple[1]), dtype=object), -1)
-            jagged_index = np.array([temp_jagged[i].size for i in range(temp_jagged.shape[0])], dtype = np.int32)
+            aux_tuple = self.M.core.mb.get_ord_adjacencies(inters_edges, self.M.dim)
+            temp_jagged = np.delete(np.array(np.split(aux_tuple[0], aux_tuple[1]), dtype=object), -1).astype(np.uint64)
+            jagged_index = np.array([temp_jagged[i].size if type(temp_jagged[i]) != int else 1 \
+                                    for i in range(temp_jagged.shape[0])], dtype = np.int32)
             jagged_index = np.cumsum(jagged_index, dtype = np.int32)[:-1]
-            coarse_array = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat = True)
+            if len(temp_jagged.shape) == 1:
+                coarse_array = self.M.core.mb.tag_get_data(tg, temp_jagged, flat = True)
+            else:
+                coarse_array = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat = True)
             coarse_jagged = np.array(np.split(coarse_array, jagged_index), dtype=object)
             coarse_jagged = np.array([np.unique(coarse_jagged[i]) for i in range(coarse_jagged.shape[0])], dtype=object)
             indx = np.array([coarse_jagged[i].size>2 for i in range(coarse_jagged.shape[0])])
 
         boundaries = self.M.core.boundary_edges.get_array()
         self.all_edges_neighbors.insert(boundaries)
-        aux_tuple = self.M.core.mb.get_ord_adjacencies(boundaries, 3)
-        temp_jagged = np.delete(np.array(np.split(aux_tuple[0], aux_tuple[1]), dtype=object), -1)
-        jagged_index = np.array([temp_jagged[i].size for i in range(temp_jagged.shape[0])], dtype = np.int32)
+        aux_tuple = self.M.core.mb.get_ord_adjacencies(boundaries, self.M.dim)
+        temp_jagged = np.delete(np.array(np.split(aux_tuple[0], aux_tuple[1]), dtype=object), -1).astype(np.uint64)
+        jagged_index = np.array([temp_jagged[i].size if type(temp_jagged[i]) != int else 1 \
+                                 for i in range(temp_jagged.shape[0])], dtype = np.int32)
         jagged_index = np.cumsum(jagged_index, dtype = np.int32)[:-1]
-        boundary_parts = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat = True)
+        if len(temp_jagged.shape) == 1:
+            boundary_parts = self.M.core.mb.tag_get_data(tg, temp_jagged, flat = True)
+        else:
+            boundary_parts = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat = True)
         boundary_parts = np.array(np.split(boundary_parts, jagged_index), dtype=object)
-        boundary_parts = np.array([np.unique(boundary_parts[i]).astype(np.int32) for i in range(boundary_parts.shape[0])], dtype = np.object)
-        self._edges, self.num_internal_edges = self.M.core.mb.get_interface_entities2(self.edges_connectivities, inters_edges, coarse_jagged, indx, boundaries, boundary_parts, self.num_coarse, self._edges_neighbors)
+        boundary_parts = np.array([np.unique(boundary_parts[i]).astype(np.int32) \
+                                for i in range(boundary_parts.shape[0])], dtype = np.object)
+        import pdb; pdb.set_trace()
+        self._edges, self.num_internal_edges = self.M.core.mb.get_interface_entities2(\
+            self.edges_connectivities, \
+            inters_edges.reshape((-1, 1)), \
+            coarse_jagged, \
+            indx.reshape((-1, 1)), \
+            boundaries.reshape((-1, 1)), \
+            boundary_parts, \
+            self.num_coarse, \
+            self._edges_neighbors)
         print('Matrix of coarse edges adjacencies created')
         if(inters_faces.size == 0):
             inters_nodes = np.array([], dtype = np.uint64)
@@ -338,7 +361,7 @@ class MultiscaleCoarseGrid(object):
 
         boundaries = self.M.core.boundary_nodes.get_array()
         self.all_nodes_neighbors.insert(boundaries)
-        aux_tuple = self.M.core.mb.get_ord_adjacencies(boundaries, 3)
+        aux_tuple = self.M.core.mb.get_ord_adjacencies(boundaries, self.M.dim)
         temp_jagged = np.delete(np.array(np.split(aux_tuple[0], aux_tuple[1]), dtype=object), -1)
         jagged_index = np.array([temp_jagged[i].size for i in range(temp_jagged.shape[0])], dtype = np.int32)
         jagged_index = np.cumsum(jagged_index, dtype = np.int32)[:-1]

@@ -22,9 +22,6 @@ class GetItem(object):
     def __getitem__(self, item):
         return self.fun(item)
 
-
-
-
 class MeshEntities(object):
     def __init__(self, core, entity_type):
         self.mb = core.mb
@@ -123,8 +120,6 @@ class MeshEntities(object):
         el_handle = self.get_range_array(index)
         result_tuple = self.mb.get_ord_adjacencies(el_handle, dim_tag)
         return self.format_entities(result_tuple, el_handle.size, self.tag_handle)
-
-
 
     def _center(self,index):
         el_handle = self.get_range_array(index)
@@ -244,7 +239,6 @@ class MeshEntities(object):
         elif array == 'boundary':
             self.boundary_elements = GetItem(self.get_boundary)
 
-
     def get_range_array(self, index, search_range = None):
         el_handle = None
         if search_range == None:
@@ -351,12 +345,9 @@ class MeshEntities(object):
             return ret[0]
         return ret
 
-
 class MoabVariable(object):
     def __init__(self, core, name_tag, var_type="volumes", data_size=1, data_format="float", data_density="sparse",
                  entity_index=None, create = True):
-        # pdb.set_trace()
-
         dic_dtf = {'float': types.MB_TYPE_DOUBLE, 'int': types.MB_TYPE_INTEGER, 'bool': types.MB_TYPE_BIT}
         dic_dst = {'dense': types.MB_TAG_DENSE, 'sparse': types.MB_TAG_SPARSE, 'bit': types.MB_TAG_BIT}
         dic_elem = {'node': core.all_nodes, 'nodes': core.all_nodes,'edge': core.all_edges, 'edges': core.all_edges, 'face': core.all_faces, 'faces': core.all_faces, 'volume': core.all_volumes, 'volumes': core.all_volumes}

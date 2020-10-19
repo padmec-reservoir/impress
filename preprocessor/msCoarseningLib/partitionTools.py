@@ -376,7 +376,11 @@ class simplePartition(object):
         return self.scheme(nx, ny, nz)
 
     def scheme(self, nx=4, ny=4, nz=4):
-        centerCoord = self.M.volumes.center[:]
+        centerCoord = None
+        if self.M.core.dimension == 2:
+            centerCoord = self.M.faces.center[:]
+        elif self.M.core.dimension == 3:
+            centerCoord = self.M.volumes.center[:]
         num_of_vol = len(self.M)
         rx, ry, rz = self.M.rx, self.M.ry, self.M.rz
         if (rz[1] == 0) & (rz[0] == 0):
