@@ -63,6 +63,9 @@ class CoreMoab:
         self.skin = sk.Skinner(self.mb)
         print("Entering skinner test")
 
+        if self.all_volumes.empty() and self.dimension == 3:
+            raise ValueError("Empty volumes range for a tridimensional mesh.")
+
         if self.dimension == 3:
             faces_on_skin_handles = self.skin.find_skin(self.root_set, self.all_volumes)
             edges_on_skin_handles = self.mtu.get_bridge_adjacencies(faces_on_skin_handles, 2, 1)
