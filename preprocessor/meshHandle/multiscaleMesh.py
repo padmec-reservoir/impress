@@ -123,7 +123,6 @@ class FineScaleMeshMS(FineScaleMesh):
                                      data_density="sparse")
         return partition
 
-
 class CoarseVolume(FineScaleMeshMS):
     def __init__(self, father_core, dim, i, coarse_vec, var_config=None , load = False, mesh_file = None):
         self.var_config = var_config
@@ -195,7 +194,6 @@ class CoarseVolume(FineScaleMeshMS):
     def init_coarse_variables(self):
         pass
 
-
 class GetCoarseItem(object):
     def __init__(self, adj,tag, dic):
         self.fun = adj
@@ -230,7 +228,6 @@ class GetCoarseItem(object):
             for el in array:
                 s = np.concatenate((s, self.__getitem__(int(el))))
             return s
-
 
 class MultiscaleCoarseGrid(object):
     def __init__(self, M, var_config, load = False):
@@ -317,11 +314,13 @@ class MultiscaleCoarseGrid(object):
             self.all_edges_neighbors.insert(inters_edges)
             aux_tuple = self.M.core.mb.get_ord_adjacencies(inters_edges, self.M.dim)
             temp_jagged = np.delete(np.array(np.split(aux_tuple[0], aux_tuple[1]), dtype=object), -1)
-            jagged_index = np.array([temp_jagged[i].size for i in range(temp_jagged.shape[0])], dtype = np.int32)
+            jagged_index = np.array([temp_jagged[i].size 
+                for i in range(temp_jagged.shape[0])], dtype = np.int32)
             jagged_index = np.cumsum(jagged_index, dtype = np.int32)[:-1]
             coarse_array = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat = True)
             coarse_jagged = np.array(np.split(coarse_array, jagged_index), dtype=object)
-            coarse_jagged = np.array([np.unique(coarse_jagged[i]) for i in range(coarse_jagged.shape[0])], dtype=object)
+            coarse_jagged = np.array([np.unique(coarse_jagged[i]) 
+                for i in range(coarse_jagged.shape[0])], dtype=object)
             indx = np.array([coarse_jagged[i].size>2 for i in range(coarse_jagged.shape[0])])
 
         boundaries = self.M.core.boundary_edges.get_array()
@@ -354,7 +353,8 @@ class MultiscaleCoarseGrid(object):
             jagged_index = np.cumsum(jagged_index, dtype = np.int32)[:-1]
             coarse_array = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat = True)
             coarse_jagged = np.array(np.split(coarse_array, jagged_index), dtype=object)
-            coarse_jagged = np.array([np.unique(coarse_jagged[i]) for i in range(coarse_jagged.shape[0])], dtype=object)
+            coarse_jagged = np.array([np.unique(coarse_jagged[i]) 
+                for i in range(coarse_jagged.shape[0])], dtype=object)
             indx = np.array([coarse_jagged[i].size>2 for i in range(coarse_jagged.shape[0])])
 
         boundaries = self.M.core.boundary_nodes.get_array()
@@ -366,7 +366,8 @@ class MultiscaleCoarseGrid(object):
         jagged_index = np.cumsum(jagged_index, dtype = np.int32)[:-1]
         boundary_parts = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat=True)
         boundary_parts = np.array(np.split(boundary_parts, jagged_index), dtype=object)
-        boundary_parts = np.array([np.unique(boundary_parts[i]) for i in range(boundary_parts.shape[0])], dtype=object)
+        boundary_parts = np.array([np.unique(boundary_parts[i]) 
+            for i in range(boundary_parts.shape[0])], dtype=object)
         self._nodes, self.num_internal_nodes = self.M.core.mb.get_interface_entities2(
             self.nodes_connectivities, inters_nodes, coarse_jagged, indx, boundaries, 
             boundary_parts, self.num_coarse, self._nodes_neighbors)
@@ -412,27 +413,34 @@ class MultiscaleCoarseGrid(object):
     def neighbours(self, x,y, element):
           flag = self.num[element]
           if flag == 0:
-              return self.mb.tag_get_data(self.father_tag, self._nodes[self._nodes_neighbors[x,y]-1].get_array(), flat = True).astype(np.int64)
+              return self.mb.tag_get_data(self.father_tag, 
+                self._nodes[self._nodes_neighbors[x,y]-1].get_array(), flat = True).astype(np.int64)
           elif flag == 1:
-              return self.mb.tag_get_data(self.father_tag, self._edges[self._edges_neighbors[x,y]-1].get_array(), flat = True).astype(np.int64)
+              return self.mb.tag_get_data(self.father_tag, 
+                self._edges[self._edges_neighbors[x,y]-1].get_array(), flat = True).astype(np.int64)
           elif flag == 2:
-              return self.mb.tag_get_data(self.father_tag, self._faces[self._faces_neighbors[x,y]-1].get_array(), flat = True).astype(np.int64)
+              return self.mb.tag_get_data(self.father_tag, 
+                self._faces[self._faces_neighbors[x,y]-1].get_array(), flat = True).astype(np.int64)
 
     @property
     def all_interface_nodes(self):
-        return self.mb.tag_get_data(self.father_tag, self.all_nodes_neighbors.get_array(), flat = True).astype(np.int64)
+        return self.mb.tag_get_data(self.father_tag, 
+            self.all_nodes_neighbors.get_array(), flat = True).astype(np.int64)
 
     @property
     def all_interface_edges(self):
-        return self.mb.tag_get_data(self.father_tag, self.all_edges_neighbors.get_array(), flat = True).astype(np.int64)
+        return self.mb.tag_get_data(self.father_tag, 
+            self.all_edges_neighbors.get_array(), flat = True).astype(np.int64)
 
     @property
     def all_interface_faces(self):
-        return self.mb.tag_get_data(self.father_tag, self.all_faces_neighbors.get_array(), flat = True).astype(np.int64)
+        return self.mb.tag_get_data(self.father_tag, 
+            self.all_faces_neighbors.get_array(), flat = True).astype(np.int64)
 
     @property
     def all_interface_volumes(self):
-        return self.mb.tag_get_data(self.father_tag, self.all_volumes_neighbors.get_array(), flat = True).astype(np.int64)
+        return self.mb.tag_get_data(self.father_tag, 
+            self.all_volumes_neighbors.get_array(), flat = True).astype(np.int64)
 
     def create_range_vec(self, index):
         range_vec = None
