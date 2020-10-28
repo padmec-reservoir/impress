@@ -15,6 +15,7 @@ from preprocessor.meshHandle.multiscaleMesh import FineScaleMeshMS as msh
 import preprocessor.geoUtil.geoTools as gtool
 
 start = time.time()
-M = msh('mesh/fivespot105u.msh', dim=2)
+# M = msh('mesh/fivespot105u.msh', dim=2)
+M = msh('mesh/40.h5m', dim=3)
 end = time.time()
 print("The preprocessing step lasted {0}s".format(end-start))

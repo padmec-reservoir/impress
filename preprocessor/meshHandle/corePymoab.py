@@ -7,8 +7,6 @@ import numpy as np
 import yaml
 import time
 
-
-
 class CoreMoab:
     def __init__(self, mesh_file=None, dim=3):
         self.dimension = dim
@@ -164,10 +162,8 @@ class CoreMoab:
         # ie: for a volume, the faces, for a face the edges and for an edge the points.
         #
         vecdim = self.check_range_by_dimm(handle)
-        # pdb.set_trace()
-        all_adj = np.array([np.array(self.mb.get_adjacencies(el_handle, dim-1)) for dim, el_handle in zip(vecdim,handle)])
-        #unique_adj = np.unique(np.ma.concatenate(all_adj)).astype("uint64")
-        # print(handle,all_adj)
+        all_adj = np.array([np.array(self.mb.get_adjacencies(el_handle, dim-1)) 
+            for dim, el_handle in zip(vecdim,handle)])
         unique_adj = np.unique(np.concatenate(all_adj)).astype("uint64")
         return rng.Range(unique_adj)
 
