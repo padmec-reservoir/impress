@@ -1,8 +1,6 @@
 """
 Module for implementation of multiscale mesh and CoarseVolumes objects functionalities
 """
-
-import pdb
 from . finescaleMesh import FineScaleMesh
 from ..msCoarseningLib import algoritmo
 from ..msCoarseningLib.partitionTools import partitionManager
@@ -16,10 +14,7 @@ import numpy as np
 import pickle
 from scipy.sparse import lil_matrix
 
-
-
 print('Initializing Finescale Mesh for Multiscale Methods')
-
 
 class FineScaleMeshMS(FineScaleMesh):
     def __init__(self, mesh_file, dim=3, var_config=None, load=False):
