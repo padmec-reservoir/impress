@@ -18,8 +18,8 @@ print('Initializing Finescale Mesh for Multiscale Methods')
 
 class FineScaleMeshMS(FineScaleMesh):
     def __init__(self, mesh_file, dim=3, var_config=None, load=False):
-        if dim == 2:
-            raise ValueError("IMPRESS is currently not supporting 2D multiscale.")
+        # if dim == 2:
+        #     raise ValueError("IMPRESS is currently not supporting 2D multiscale.")
         self.var_config = var_config
         super().__init__(mesh_file, dim, load=load)
         print("Creating Coarse Grid")
@@ -90,10 +90,10 @@ class FineScaleMeshMS(FineScaleMesh):
         coarse_config = coarseningInit()
 
         partitioner = partitionManager(self, coarse_config)
-        [partition_tag, coarse_center] = partitioner()
+        [partition_tag, _] = partitioner()
         # create maob variabel
 
-        if isinstance(partition_tag, str) and partition == 'parallel':
+        if isinstance(partition_tag, str) and partition_tag == 'parallel':
             return self.init_partition_parallel()
         else:
             if self.dim == 2:
@@ -467,18 +467,18 @@ class MultiscaleCoarseGrid(object):
 
     def read_data(self, name_tag, index_vec = np.array([]), range_el = None):
         if range_el is None:
-            range_el = self.all_volumes
+            range_el = self._all_volumes
         if index_vec.size > 0:
             range_el = self.range_index(index_vec,range_el)
         try:
-            handle_tag = self.handleDic[name_tag]
+            handle_tag = self.M.core.handleDic[name_tag]
             return self.mb.tag_get_data(handle_tag, range_el)
         except KeyError:
             print("Tag not found")
 
     def range_index(self, vec_index, range_handle = None):
         if range_handle is None:
-            range_handle = self.all_volumes
+            range_handle = self._all_volumes
         if vec_index.dtype == "bool":
             vec = np.where(vec_index)[0]
         else:
