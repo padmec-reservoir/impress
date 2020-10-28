@@ -78,7 +78,6 @@ class CoreMoab:
         print("Skinning Operation Successful")
         return [nodes_on_skin_handles, edges_on_skin_handles, faces_on_skin_handles, volumes_on_skin_handles]
 
-
     def check_integrity(self):
         # check if the mesh contains
         check_list = [len(self.all_nodes), len(self.all_edges), len(self.all_faces), len(self.all_volumes)]
