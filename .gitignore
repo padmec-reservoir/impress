@@ -115,3 +115,6 @@ venv.bak/
 
 # Simulation Saves
 saves
+
+# Local files
+*.zip
