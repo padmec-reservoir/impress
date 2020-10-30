@@ -4,7 +4,6 @@ Generator of multiscale mesh entities and tags
 import numpy as np
 from . meshComponents import MoabVariable, MeshEntities
 from pymoab import types, rng
-#mport pdb
 
 
 class GetItem(object):
@@ -33,20 +32,21 @@ class MeshEntitiesMS(MeshEntities):
         el_handle = self.get_range_array(index)
         return self.mb.tag_get_data(self.father_handle, el_handle, flat = True).astype(np.int64)
 
-    def enhance(self,i, general):
+    def enhance(self, i, general):
         self._coarse_neighbors_dic = {}
         if self.vID == 0:
             index = np.where(general.connectivities[0][i, :].A[0])[0]
-            interfaces = general._nodes_neighbors[i, index].A[0].astype("uint64")-1
-            self._coarse_neighbors_dic = {x: general._nodes[y] for x,y in zip(index, interfaces)}
+            # BUG: interfaces contains indexes that do not fit general._nodes.
+            interfaces = general._nodes_neighbors[i, index].A[0].astype("uint64") - 1
+            self._coarse_neighbors_dic = {x: general._nodes[y] for x, y in zip(index, interfaces)}
         elif self.vID == 1:
             index = np.where(general.connectivities[1][i, :].A[0])[0]
-            interfaces = general._edges_neighbors[i, index].A[0].astype("uint64")-1
-            self._coarse_neighbors_dic = {x: general._edges[y] for x,y in zip(index, interfaces)}
+            interfaces = general._edges_neighbors[i, index].A[0].astype("uint64") - 1
+            self._coarse_neighbors_dic = {x: general._edges[y] for x, y in zip(index, interfaces)}
         elif self.vID == 2:
             index = np.where(general.connectivities[2][i, :].A[0])[0]
-            interfaces = general._faces_neighbors[i, index].A[0].astype("uint64")-1
-            self._coarse_neighbors_dic = {x: general._faces[y] for x,y in zip(index, interfaces)}
+            interfaces = general._faces_neighbors[i, index].A[0].astype("uint64") - 1
+            self._coarse_neighbors_dic = {x: general._faces[y] for x, y in zip(index, interfaces)}
         if self.vID < 3:
             self.coarse_neighbors = np.where(general.connectivities[self.vID][i, :].A[0])[0].astype("uint64")
             self.is_on_father_boundary = general.connectivities[self.vID][i, -1]

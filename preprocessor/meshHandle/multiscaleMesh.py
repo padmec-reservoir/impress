@@ -32,8 +32,8 @@ class FineScaleMeshMS(FineScaleMesh):
         return self.coarse.elements[key]
 
     def enhance_entities(self):
-        for i,el in zip(range(len(self.coarse.elements)), self.coarse.elements):
-            el(i,self.coarse)
+        for i, el in zip(range(len(self.coarse.elements)), self.coarse.elements):
+            el(i, self.coarse)
 
     def init_entities(self):
         self.nodes = MeshEntitiesMS(self.core, entity_type= "node")
@@ -160,7 +160,6 @@ class CoarseVolume(FineScaleMeshMS):
         for tags in tag_list:
             self.create_variable(name_tag = tags[0], var_type = tags[1], data_size = tags[2], data_format = tags[3], data_density = tags[4], level = self.level, coarse_num = self.coarse_num, create = False, suffix = name)
         return
-
 
     def create_variable(self, name_tag, var_type="volumes", data_size=1, data_format="float", data_density="sparse",
                  entity_index=None,  level=0, coarse_num=0, create = True, suffix = None):
@@ -290,9 +289,9 @@ class MultiscaleCoarseGrid(object):
         self.all_edges_neighbors = rng.Range()
         self.all_faces_neighbors = rng.Range()
 
-        self._faces_neighbors  = lil_matrix((self.num_coarse,self.num_coarse+1), dtype=np.uint32)
-        self._edges_neighbors  = lil_matrix((self.num_coarse,self.num_coarse+1), dtype=np.uint32)
-        self._nodes_neighbors  = lil_matrix((self.num_coarse,self.num_coarse+1), dtype=np.uint32)
+        self._faces_neighbors = lil_matrix((self.num_coarse,self.num_coarse+1), dtype=np.uint32)
+        self._edges_neighbors = lil_matrix((self.num_coarse,self.num_coarse+1), dtype=np.uint32)
+        self._nodes_neighbors = lil_matrix((self.num_coarse,self.num_coarse+1), dtype=np.uint32)
 
         self.faces_connectivities = lil_matrix((self.num_coarse,self.num_coarse+1), dtype=np.bool)
         self.edges_connectivities = lil_matrix((self.num_coarse,self.num_coarse+1), dtype=np.bool)
@@ -331,7 +330,6 @@ class MultiscaleCoarseGrid(object):
             # Argument 2 of aux_tuple was supposed to be an array. It's an int.
             aux_tuple = self.M.core.mb.get_ord_adjacencies(inters_nodes, 2)
             temp_jagged = np.delete(np.array(np.split(aux_tuple[0], aux_tuple[1]), dtype=object), -1)
-            import pdb; pdb.set_trace()
             jagged_index = np.array([temp_jagged[i].size 
                 for i in range(temp_jagged.shape[0])], dtype=np.int32)
             jagged_index = np.cumsum(jagged_index, dtype=np.int32)[:-1]
@@ -359,9 +357,9 @@ class MultiscaleCoarseGrid(object):
         
         print('Matrix of coarse nodes adjacencies created')
         
-        self._faces_neighbors  = self._faces_neighbors.tocsr()
-        self._edges_neighbors  = self._edges_neighbors.tocsr()
-        self._nodes_neighbors  = self._nodes_neighbors.tocsr()
+        self._faces_neighbors = self._faces_neighbors.tocsr()
+        self._edges_neighbors = self._edges_neighbors.tocsr()
+        self._nodes_neighbors = self._nodes_neighbors.tocsr()
         self.faces_connectivities = self.faces_connectivities.tocsr()
         self.edges_connectivities = self.edges_connectivities.tocsr()
         self.nodes_connectivities = self.nodes_connectivities.tocsr()
@@ -477,9 +475,9 @@ class MultiscaleCoarseGrid(object):
         
         print('Matrix of coarse nodes adjacencies created')
 
-        self._faces_neighbors  = self._faces_neighbors.tocsr()
-        self._edges_neighbors  = self._edges_neighbors.tocsr()
-        self._nodes_neighbors  = self._nodes_neighbors.tocsr()
+        self._faces_neighbors = self._faces_neighbors.tocsr()
+        self._edges_neighbors = self._edges_neighbors.tocsr()
+        self._nodes_neighbors = self._nodes_neighbors.tocsr()
         self.faces_connectivities = self.faces_connectivities.tocsr()
         self.edges_connectivities = self.edges_connectivities.tocsr()
         self.nodes_connectivities = self.nodes_connectivities.tocsr()
