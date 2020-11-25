@@ -36,7 +36,6 @@ class MeshEntitiesMS(MeshEntities):
         self._coarse_neighbors_dic = {}
         if self.vID == 0:
             index = np.where(general.connectivities[0][i, :].A[0])[0]
-            # BUG: interfaces contains indexes that do not fit general._nodes.
             interfaces = general._nodes_neighbors[i, index].A[0].astype("uint64") - 1
             self._coarse_neighbors_dic = {x: general._nodes[y] for x, y in zip(index, interfaces)}
         elif self.vID == 1:

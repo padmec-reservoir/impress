@@ -353,7 +353,7 @@ class MultiscaleCoarseGrid(object):
         
         self._nodes, self.num_internal_nodes = self.M.core.mb.get_interface_entities2(
             self.nodes_connectivities, inters_nodes, coarse_jagged, indx, 
-            boundaries, boundary_parts, self.num_coarse, self._edges_neighbors)
+            boundaries, boundary_parts, self.num_coarse, self._nodes_neighbors)
         
         print('Matrix of coarse nodes adjacencies created')
         
