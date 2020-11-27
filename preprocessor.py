@@ -15,7 +15,12 @@ from preprocessor.meshHandle.multiscaleMesh import FineScaleMeshMS as msh
 import preprocessor.geoUtil.geoTools as gtool
 
 start = time.time()
-# M = msh('mesh/fivespot105u.msh', dim=2)
-M = msh('mesh/40.h5m', dim=3)
+M = msh('mesh/fivespot105u.msh', dim=2)
+# M = msh('mesh/icecream.msh', dim=3)
+M.core.print(file='preprocessed_icream', extension='.vtk')
+for n, coarse_elem in zip(np.arange(len(M.coarse.elements)), M.coarse.elements):
+    print("writing element {}".format(n+1))
+    coarse_elem.core.print(file='preprocessed_icecream_{}'.format(n), extension='.vtk')
+# M.coarse.elements[0].core.print(file='teste_coarse_element', extension='.vtk')
 end = time.time()
 print("The preprocessing step lasted {0}s".format(end-start))
