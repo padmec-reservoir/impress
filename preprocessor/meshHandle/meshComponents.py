@@ -66,6 +66,8 @@ class MeshEntities(object):
             self.connectivities = GetItem(self._connectivities)
         self.classify_element = GetItem(self._classify_element)
         self.center = GetItem(self._center)
+        self.area = GetItem(self._area)
+        self.volume = GetItem(self._volume)
         # self.global_id = GetItem(self._global_id)
         # self.father_id = GetItem(self._father_id)
         if (self.vID == 1) & (core.dimension == 2):
@@ -148,6 +150,25 @@ class MeshEntities(object):
             return gtool.normal_vec(self._coords(v0), self._coords(v1),
                                     self._coords(v2))
             #return  gtool.normal_vec(self._coords(v0),self._coords(v1),self._coords(v2))
+
+    def _area(self, index):
+        if self.entity_type != "faces":
+            raise ValueError("Cannot compute area. Entity is not a face.")
+
+        el_handle = self.get_range_array(index)[0]
+        area = gtool.polygon_area(self.mb, el_handle)
+
+        return area
+    
+    def _volume(self, index):
+        if self.entity_type != "volumes":
+            raise ValueError("Cannot compute volume. Entity is not a volume.")
+
+        el_handle = self.get_range_array(index)[0]
+        center = self._center(index)
+        volume = gtool.polyhedron_volume(self.mb, el_handle, center)
+
+        return volume
 
     def _connectivities(self,index):
         el_handle = self.get_range_array(index)

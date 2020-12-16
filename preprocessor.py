@@ -16,15 +16,7 @@ from preprocessor.meshHandle.finescaleMesh import FineScaleMesh
 import preprocessor.geoUtil.geoTools as gtool
 
 start = time.time()
-M = msh('mesh/eyem.msh', dim=2)
-
-faces = M.core.all_faces[:]
-ifaces = M.coarse.all_interface_faces[:]
-iface_tag = M.core.mb.tag_get_handle("iface", size=1, tag_type=types.MB_TYPE_INTEGER, 
-                                    storage_type=types.MB_TAG_SPARSE, create_if_missing=True)
-M.core.mb.tag_set_data(iface_tag, faces[ifaces], np.ones(ifaces.size, dtype=int))
-
-M.core.print(file='preprocessed_eyem', extension='.vtk')
+M = msh('mesh/icecream.msh', dim=3)
 
 end = time.time()
 print("The preprocessing step lasted {0}s".format(end-start))
