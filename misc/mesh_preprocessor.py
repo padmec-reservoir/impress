@@ -135,7 +135,7 @@ class Mesh:
         return N_IJK, tan_JI, tan_JK
 
     def get_additional_vectors_and_height(self, faces, boundary=False):
-        """Complimentary information for calculations."""
+        """Complementary information for calculations."""
         N_IJK = self.construct_face_vectors(faces)[0]
         area = self.get_area(faces)
         j = self.get_position_IJK_verts(faces)[1]
@@ -169,7 +169,7 @@ class Mesh:
 
     # TODO: Go on a Cythonized func
     def get_volume(self, volumes):
-        """Return an arrey of volumes."""
+        """Return an array of volumes."""
         def _get_volume(volume):
             volume_verts = self.M.volumes.connectivities(volumes)[volume]
             verts_coords = self.M.nodes.coords(volume_verts)
@@ -202,20 +202,7 @@ class Mesh:
         self.b_area_tri = self.get_area(b_faces_tri)
         self.b_i_tri, self.b_j_tri, self.b_k_tri =\
             self.get_position_IJK_verts(b_faces_tri)
-
-        # self.b_left_volumes_quad =\
-        #     self.get_left_and_right_volumes(b_faces_quad, boundary=is_boundary)
-        # self.b_N_IJK_quad, self.b_tan_JI_quad, self.b_tan_JK_quad,\
-        #     self.b_tan_J2I_quad, self.b_tan_J2K_quad =\
-        #     self.construct_face_vectors(b_faces_quad, boundary=is_boundary)
-        # self.b_LJ_quad, self.b_h_L_quad, self.b_LJ2_quad =\
-        #     self.get_additional_vectors_and_height(b_faces_quad,
-        #                                            boundary=is_boundary)
-        # self.b_area_quad = self.get_area(b_faces_quad)
-        # self.b_i_quad, self.b_j_quad, self.b_k_quad, self.b_j2_quad =\
-        #     self.get_position_IJK_verts(b_faces_quad)
         is_boundary = False
-
         in_faces_tri, _ = self.screen_faces_by_verts(self.in_faces)
         self.in_left_volumes_tri, self.in_right_volumes_tri =\
             self.get_left_and_right_volumes(in_faces_tri)
@@ -226,15 +213,3 @@ class Mesh:
         self.in_area_tri = self.get_area(in_faces_tri)
         self.in_i_tri, self.in_j_tri, self.in_k_tri =\
             self.get_position_IJK_verts(in_faces_tri)
-
-        # in_faces_tri, in_faces_quad = self.screen_faces_by_verts(self.in_faces)
-        # self.in_left_volumes_quad, self.in_right_volumes_quad =\
-        #     self.get_left_and_right_volumes(in_faces_quad)
-        # self.b_N_IJK_quad, self.b_tan_JI_quad, self.b_tan_JK_quad,\
-        #     self.b_tan_J2I_quad, self.b_tan_J2K_quad =\
-        #     self.construct_face_vectors(in_faces_quad)
-        # self.in_LR_quad, self.in_h_L_quad, self.in_h_R_quad =\
-        #     self.get_additional_vectors_and_height(in_faces_quad)
-        # self.in_area_quad = self.get_area(in_faces_quad)
-        # self.in_i_quad, self.in_j_quad, self.in_k_quad, self.in_j2_quad =\
-        #     self.get_position_IJK_verts(in_faces_quad)
