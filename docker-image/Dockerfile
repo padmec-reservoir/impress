@@ -19,7 +19,7 @@ RUN set -x \
         libeigen3-dev libmetis-dev doxygen \
         liboce-foundation-dev liboce-modeling-dev liboce-ocaf-dev liboce-visualization-dev oce-draw \
         netgen libnglib-dev  \
-        build-essential bzip2 tar m4 file swig unzip \
+        build-essential bzip2 tar m4 file swig unzip libbz2-dev liblzma-dev \
 	tcl tk libssl-dev \
     && apt-get clean
 
@@ -108,7 +108,7 @@ RUN set -ex; \
 
 CMD ["/sbin/my_init"]
 
-RUN pip install cython numpy pytest colorlog configobj pytest-runner ipython pyyaml numba scipy
+RUN pip install cython numpy pytest colorlog configobj pytest-runner ipython pyyaml numba scipy pandas
 # Install mpi4py
 WORKDIR $HOME
 RUN cd $HOME \
