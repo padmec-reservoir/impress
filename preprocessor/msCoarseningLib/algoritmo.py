@@ -1,8 +1,6 @@
 """
 Schemes of partitioning
 """
-
-#import pdb
 import numpy as np
 from numba import jit
 
@@ -22,7 +20,7 @@ from numba import jit
 #por default a leitura dos elementos é float, caso necessário. converta para int
 #ex int(nx)
 
-def scheme1(centerCoord, num_of_vol, rx,ry,rz ,nx = 3, ny = 3, nz =3 ):
+def scheme1(centerCoord, num_of_vol, rx, ry, rz ,nx = 3, ny = 3, nz = 3):
     #input : centerCoord - > array with the center of elements
     #        num_of_vol = number of volumes
 
@@ -46,19 +44,13 @@ def scheme1(centerCoord, num_of_vol, rx,ry,rz ,nx = 3, ny = 3, nz =3 ):
         for y in range(ny):
             for z in range(nz):
                 inc = np.multiply(box[:,1], np.array([x,y,z]))
-
-                #cent = cent_coord_El1 + inc
                 coarseCenters[index] = cent_coord_El1 + inc
-                # pdb.set_trace()
-
-                #inc = np.array([(nx) * x, (ny) * y, (nz) * z])
                 boxMin = box[:,0] + inc + init_coords
                 boxMax = box[:,1] + inc + init_coords
                 point = checkinBox(centerCoord,x=(boxMin[0], boxMax[0]), y=(boxMin[1], boxMax[1]) , z=(boxMin[2], boxMax[2]))
                 tag[point] = index
                 index += 1
     return tagAdjust(tag,coarseCenters)
-
 
 def scheme2(centerCoord, num_of_vol, rx,ry,rz ,nx = 3, ny = 3, nz =3 ):
     #input : centerCoord - > array with the center of elements
@@ -82,15 +74,14 @@ def scheme2(centerCoord, num_of_vol, rx,ry,rz ,nx = 3, ny = 3, nz =3 ):
         for y in range(ny):
             for z in range(nz):
                 inc = np.multiply(box[:,1], np.array([x,y,z]))
-                #cent = cent_coord_El1 + inc
                 coarseCenters[index] = cent_coord_El1 + inc
-                #inc = np.array([(nx) * x, (ny) * y, (nz) * z])
                 boxMin = box[:,0] + inc
                 boxMax = box[:,1] + inc
                 point = checkinBox(centerCoord,x=(boxMin[0], boxMax[0]), y=(boxMin[1], boxMax[1]) , z=(boxMin[2], boxMax[2]))
                 tag[point] = index
                 index += 1
-    #return tagAdjust(tag,coarseCenters)
+    
+    return tagAdjust(tag,coarseCenters)
 
 
 def scheme3(centerCoord, num_of_vol, rx,ry,rz ,nx = 3, ny = 3, nz =3 ):
@@ -100,7 +91,6 @@ def scheme3(centerCoord, num_of_vol, rx,ry,rz ,nx = 3, ny = 3, nz =3 ):
     #        rx,ry,rz - (min, max) values of x,y,z of the phyisical domain
     #        nx, ny, nz
     # msh -> objeto da clase meshUtil
-    #centerCoord = msh.readData("CENTER")
     print("ESQUEMA 3")
     nx = int(nx)
     ny = int(ny)
@@ -114,9 +104,7 @@ def scheme3(centerCoord, num_of_vol, rx,ry,rz ,nx = 3, ny = 3, nz =3 ):
         for y in range(ny):
             for z in range(nz):
                 inc = np.multiply(box[:,1], np.array([x,y,z]))
-                #cent = cent_coord_El1 + inc
                 coarseCenters[index] = cent_coord_El1 + inc
-                #inc = np.array([(nx) * x, (ny) * y, (nz) * z])
                 boxMin = box[:,0] + inc
                 boxMax = box[:,1] + inc
                 point = checkinBox(centerCoord,x=(boxMin[0], boxMax[0]), y=(boxMin[1], boxMax[1]) , z=(boxMin[2], boxMax[2]))
@@ -124,18 +112,13 @@ def scheme3(centerCoord, num_of_vol, rx,ry,rz ,nx = 3, ny = 3, nz =3 ):
                 index += 1
     return tagAdjust(tag,coarseCenters)
 
-
-
 #checa se um ponto esta dentro de um cubo
-
 @jit(parallel=True)
 def checkinBox(coords, x , y, z):
     tag1 = (coords[:,0] > x[0])   &  (coords[:,0] < x[1])
     tag2 = (coords[:,1] > y[0])   &  (coords[:,1] < y[1])
     tag3 = (coords[:,2] > z[0])   &  (coords[:,2] < z[1])
     return tag1 & tag2 & tag3
-
-
 
 #função para corrigir os tags em caso que as malhas geradoras possuam volumes grossos sem celulas dentro
 #e remover as respectivas coordenadas do centro dos volumes das malhas primais

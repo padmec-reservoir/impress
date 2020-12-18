@@ -74,7 +74,6 @@ class MeshEntitiesMS(MeshEntities):
 class MoabVariableMS(MoabVariable):
     def __init__(self, core, name_tag, var_type="volumes", data_size=1, data_format="float", data_density="sparse",
                  entity_index=None, level=0, coarse_num=0, create = True):
-
         self.mb = core.mb
         self.var_type = var_type
         self.data_format = data_format
@@ -105,9 +104,6 @@ class MoabVariableMS(MoabVariable):
             data_format = types.MB_TYPE_BIT
         self.level = level
         self.coarse_num = coarse_num
-        #import pdb; pdb.set_trace()
-        #"-L" + str(self.level) + "-" + str(self.coarse_num)
-
         self.storage = 'moab'
         self.moab_updated = True
 
@@ -118,4 +114,5 @@ class MoabVariableMS(MoabVariable):
             self.tag_handle = self.mb.tag_get_handle(self.name_tag, data_size, data_format, data_density, True, 0)
         else:
             self.tag_handle = self.mb.tag_get_handle(self.name_tag)
+        
         print("Component class {0} successfully intialized".format(self.name_tag))

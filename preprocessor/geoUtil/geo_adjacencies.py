@@ -1,16 +1,11 @@
 # Procedure to get the relevant vertices for the geometric module in each type of elements
-
 from pymoab import core, topo_util, rng
-
 
 mb = core.Core()
 mesh_topo_util = topo_util.MeshTopoUtil(mb)
 
 # Piramide
-
-
 def get_pyramid_adjacencies(vertices, edges):
-
     # Creating used ranges
     aux1 = rng.Range()
     aux2 = rng.Range()
@@ -42,7 +37,6 @@ def get_pyramid_adjacencies(vertices, edges):
     return order
 
 def get_hexahedro_adjacencies(vertices, edges):
-
     # Creating used ranges
     aux1 = rng.Range()
     aux2 = rng.Range()

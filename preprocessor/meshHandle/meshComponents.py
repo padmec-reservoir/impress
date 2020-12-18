@@ -6,11 +6,6 @@ import pdb
 import numpy as np
 from pymoab import types, rng, topo_util
 from ..geoUtil import geoTools as gtool
-#from preprocessor.meshHandle.configTools.configClasses import variableInit
-
-
-
-
 
 class GetItem(object):
     def __init__(self, adj):
@@ -68,8 +63,6 @@ class MeshEntities(object):
         self.center = GetItem(self._center)
         self.area = GetItem(self._area)
         self.volume = GetItem(self._volume)
-        # self.global_id = GetItem(self._global_id)
-        # self.father_id = GetItem(self._father_id)
         if (self.vID == 1) & (core.dimension == 2):
             self.normal = GetItem(self._normal)
         elif (self.vID == 2) & (core.dimension == 3):
@@ -77,7 +70,6 @@ class MeshEntities(object):
         # initialize specific flag dic in accordance with type of the object create
         self.flag = {key: self.read(value[self.vID]) for key, value in core.flag_dic.items()
                      if value[self.vID].empty() is not True}
-        # print("Mesh Entity type {0} successfully initialized".format(entity_type))
 
     def bridge_adjacencies(self, index, interface, target):
         el_handle = self.get_range_array(index)
@@ -101,15 +93,6 @@ class MeshEntities(object):
               #para handle ele chama a funcao do moab
               #cada funcao retorna um range, que eh convertido em um array de handles, e depois em um array de IDs do IMPRESS
 
-    # def _global_id(self, index):
-    #     range_vec = self.create_range_vec(index)
-    #     elements_handle = self.range_index(range_vec)
-    #     return self.mb.tag_get_data(self.global_handle, elements_handle).ravel()
-    # def _father_id(self, index):
-    #     range_vec = self.create_range_vec(index)
-    #     elements_handle = self.range_index(range_vec)
-    #     return self.mb.tag_get_data(self.father_handle, elements_handle).ravel()
-
     def _adjacencies_for_nodes(self, index):
         return index
 
@@ -128,7 +111,6 @@ class MeshEntities(object):
         return self.mtu.get_ord_average_position(el_handle)
 
     def _normal(self,index):
-        #normal_vec = np.zeros(( np.shape(range_vec)[0],3 ))
         adj = self.connectivities[index]
         if adj.ndim==1:
             if self.vID == 1:
@@ -141,15 +123,10 @@ class MeshEntities(object):
         v1 = np.array([adj[i][1] for i in range (adj.shape[0])])
         if self.vID == 1:
             return gtool.normal_vec_2d(self._coords(v0),self._coords(v1))
-
-            #edges_adj = self.connectivities[range_vec]
-            #centers  = 0.5* (self._coords(edges_adj[:,0]) + self._coords(edges_adj[:,1]))
         elif self.vID == 2:
             v2 = np.array([adj[i][2] for i in range (adj.shape[0])])
-            #import pdb; pdb.set_trace()
             return gtool.normal_vec(self._coords(v0), self._coords(v1),
                                     self._coords(v2))
-            #return  gtool.normal_vec(self._coords(v0),self._coords(v1),self._coords(v2))
 
     def _area(self, index):
         if self.entity_type != "faces":
@@ -319,7 +296,6 @@ class MeshEntities(object):
     def all_flags(self):
         return np.array(list(self.flag.keys())).astype(int)
 
-
     @property
     def all(self):
         return self.read(self.elements_handle.get_array())
@@ -331,8 +307,6 @@ class MeshEntities(object):
     @property
     def internal(self):
         return self.read(self.internal_range.get_array())
-
-
 
     def get_all(self, index):
         if self.level==0 and isinstance(index, np.ndarray):
@@ -411,7 +385,6 @@ class MoabVariable(object):
         self.data = None
         self.moab_updated = True
 
-
     def __call__(self):
         if self.storage == 'moab':
             return self.mb.tag_get_data(self.tag_handle, self.elements_handle)
@@ -425,6 +398,7 @@ class MoabVariable(object):
             el_handle = self.elements_handle[index].get_array()
         else:
             el_handle = self.elements_handle.get_array(index)
+        
         if isinstance(data, int) or isinstance(data, float) or isinstance(data, bool):
             data = data * np.ones((el_handle.size, self.data_size)).astype(self.data_format)
         elif (isinstance(data, np.ndarray)) and (len(data) == self.data_size):
@@ -441,8 +415,6 @@ class MoabVariable(object):
                 data = data.flatten()
             self.data[index] = data
             self.moab_updated = False
-
-
 
     def __getitem__(self, index = None):
         if self.storage == 'moab':

@@ -6,6 +6,7 @@ class IMPRESSPickler(pickle.Pickler):
         super().__init__(file)
         self.file_name = file.name
         self.core_written = False
+    
     def persistent_id(self, obj):
         if isinstance(obj, core.Core):
             if not self.core_written:
@@ -22,8 +23,7 @@ class IMPRESSPickler(pickle.Pickler):
         elif isinstance(obj, tag.Tag):
             name = obj.get_name()
             return ("tag", name)
-        else:
-            return None
+        return None
 
 class IMPRESSUnpickler(pickle.Unpickler):
     def __init__(self, file):
@@ -32,6 +32,7 @@ class IMPRESSUnpickler(pickle.Unpickler):
         self.mb = None
         self.mtu = None
         self.skinner = None
+    
     def persistent_load(self, pid):
         type_tag = pid[0]
         if type_tag == "core":
@@ -44,7 +45,7 @@ class IMPRESSUnpickler(pickle.Unpickler):
             if self.mb is None:
                 raise pickle.UnpicklingError("core is missing")
             if self.mtu is None:
-                mtu = topo_util.MeshTopoUtil(self.mb)
+                self.mtu = topo_util.MeshTopoUtil(self.mb)
             return self.mtu
         elif type_tag == "skinner":
             if self.mb is None:
@@ -59,7 +60,5 @@ class IMPRESSUnpickler(pickle.Unpickler):
             if self.mb is None:
                 raise pickle.UnpicklingError("core is missing")
             return self.mb.tag_get_handle(pid[1])
-
-        else:
-            print()
-            raise pickle.UnpicklingError(f'unsupported persistent object {pid}')
+        
+        raise pickle.UnpicklingError(f'unsupported persistent object {pid}')

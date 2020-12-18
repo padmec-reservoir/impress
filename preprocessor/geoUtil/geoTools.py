@@ -6,7 +6,6 @@ Geometric methods to compute volumes, areas, distances of the mesh entities
 
 import numpy as np
 from pymoab import topo_util, types, rng
-from numba import njit
 
 def normal_vec_2d(coords0, coords1):
     vec = coords1 - coords0

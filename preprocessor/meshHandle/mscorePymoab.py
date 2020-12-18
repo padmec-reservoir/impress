@@ -1,12 +1,10 @@
 """
 Use of Pymoab methods to manage the multiscale mesh
 """
-#import pdb
 from . corePymoab import CoreMoab
 from pymoab import core, types, rng, topo_util
 from pymoab import skinner as sk
 import numpy as np
-import time
 
 
 class MsCoreMoab(CoreMoab):
@@ -17,7 +15,7 @@ class MsCoreMoab(CoreMoab):
         self.level = father_core.level + 1
         self.coarse_num = num
         self.father_root_set = father_core.root_set
-        self.root_set = self.mb.create_meshset(types.MESHSET_TRACK_OWNER) #types.MESHSET_TRACK_OWNER)
+        self.root_set = self.mb.create_meshset(types.MESHSET_TRACK_OWNER)
         self.mtu = father_core.mtu
         self.handleDic = father_core.handleDic
         if self.dimension == 3:
@@ -47,11 +45,7 @@ class MsCoreMoab(CoreMoab):
         else:
             self.father_id_name = self.father_core.id_name
             self.id_name = self.father_id_name + str("L") + str(self.level) + "-" + str(self.coarse_num)
-
-
         self.init_id()
-        # all_entities = self.mb.get_entities_by_handle(self.root_set)
-        # print(all_entities)
         self.flag_dic = {key:[rng.intersect(all_entities,el) for el in value] for (key, value) in father_core.flag_dic.items()}
 
     def skinner_operation(self):
@@ -65,5 +59,5 @@ class MsCoreMoab(CoreMoab):
             edges_on_skin_handles = self.skin.find_skin(0, self.all_faces)
             nodes_on_skin_handles = self.mtu.get_bridge_adjacencies(edges_on_skin_handles, 1, 0)
             faces_on_skin_handles = rng.intersect(self.mtu.get_bridge_adjacencies(edges_on_skin_handles, 0, 2), self.all_faces)
-            volumes_on_skin_handles = self.mtu.get_bridge_adjacencies(edges_on_skin_handles, 0, 3) #empty
+            volumes_on_skin_handles = self.mtu.get_bridge_adjacencies(edges_on_skin_handles, 0, 3)
         return [nodes_on_skin_handles, edges_on_skin_handles, faces_on_skin_handles, volumes_on_skin_handles]

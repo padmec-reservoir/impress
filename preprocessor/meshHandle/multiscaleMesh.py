@@ -18,8 +18,6 @@ print('Initializing Finescale Mesh for Multiscale Methods')
 
 class FineScaleMeshMS(FineScaleMesh):
     def __init__(self, mesh_file, dim=3, var_config=None, load=False):
-        # if dim == 2:
-        #     raise ValueError("IMPRESS is currently not supporting 2D multiscale.")
         self.var_config = var_config
         super().__init__(mesh_file, dim, load=load)
         print("Creating Coarse Grid")
@@ -43,22 +41,18 @@ class FineScaleMeshMS(FineScaleMesh):
             self.volumes = MeshEntitiesMS(self.core, entity_type="volumes")
 
     def save_variables(self, name_file):
-        self.core.mb.write_file('saves/'+name_file+'.h5m')
-        file = open('saves/'+name_file+'.imp', 'wb')
-        pickle.dump([(tags.name_tag, tags.var_type, tags.data_size, tags.data_format, tags.data_density) for tags in self.var_handle_list], file)
-        file.close()
+        self.core.mb.write_file('saves/' + name_file + '.h5m')
+        with open('saves/' + name_file + '.imp', 'wb') as fp:
+            pickle.dump([(tags.name_tag, tags.var_type, tags.data_size, tags.data_format, tags.data_density) for tags in self.var_handle_list], fp)
         for elements in self.coarse.elements:
             elements.save_variables(name_file)
-        return
 
     def load_variables(self):
         self.var_handle_list = []
-        file = open(self.mesh_file.split('.')[0]+'.imp', 'rb')
-        tag_list = pickle.load(file)
-        file.close()
+        with open(self.mesh_file.split('.')[0]+'.imp', 'rb') as fp:
+            tag_list = pickle.load(fp)
         for tags in tag_list:
             self.create_variable(name_tag = tags[0], var_type = tags[1], data_size = tags[2], data_format = tags[3], data_density = tags[4], create = False)
-        return
 
     def create_variable( self, name_tag, var_type= "volumes", data_size=1, data_format= "float", data_density= "sparse",
                  entity_index=None,  level=0, coarse_num=0, create = True):
@@ -91,7 +85,6 @@ class FineScaleMeshMS(FineScaleMesh):
 
         partitioner = partitionManager(self, coarse_config)
         [partition_tag, _] = partitioner()
-        # create maob variabel
 
         if isinstance(partition_tag, str) and partition_tag == 'parallel':
             return self.init_partition_parallel()
@@ -145,18 +138,15 @@ class CoarseVolume(FineScaleMeshMS):
     def save_variables(self, name_file):
         name = self.core.id_name
         name = name[(name.find("ID") + 3):]
-        file = open('saves/'+name_file+name+'.imp', 'wb')
-        pickle.dump([(tags.name_tag, tags.var_type, tags.data_size, tags.data_format, tags.data_density) for tags in self.var_handle_list], file)
-        file.close()
-        return
+        with open('saves/'+name_file+name+'.imp', 'wb') as fp:
+            pickle.dump([(tags.name_tag, tags.var_type, tags.data_size, tags.data_format, tags.data_density) for tags in self.var_handle_list], fp)
 
     def load_variables(self):
         self.var_handle_list = []
         name = self.core.id_name
         name = name[(name.find("ID") + 3):]
-        file = open(self.mesh_file.split('.')[0]+name+'.imp', 'rb')
-        tag_list = pickle.load(file)
-        file.close()
+        with open(self.mesh_file.split('.')[0]+name+'.imp', 'rb') as fp:
+            tag_list = pickle.load(fp)
         for tags in tag_list:
             self.create_variable(name_tag = tags[0], var_type = tags[1], data_size = tags[2], data_format = tags[3], data_density = tags[4], level = self.level, coarse_num = self.coarse_num, create = False, suffix = name)
         return
@@ -171,12 +161,12 @@ class CoarseVolume(FineScaleMeshMS):
         return var
 
     def to_moab(self):
-        for vars in self.var_handle_list:
-            vars.to_moab()
+        for variables in self.var_handle_list:
+            variables.to_moab()
 
     def to_numpy(self):
-        for vars in self.var_handle_list:
-            vars.to_numpy()
+        for variables in self.var_handle_list:
+            variables.to_numpy()
 
     def __call__(self, i, general):
         self.nodes.enhance(i, general)
@@ -189,7 +179,7 @@ class CoarseVolume(FineScaleMeshMS):
         pass
 
 class GetCoarseItem(object):
-    def __init__(self, adj,tag, dic):
+    def __init__(self, adj, tag, dic):
         self.fun = adj
         self.tag = tag
         self.dic = dic
@@ -327,7 +317,6 @@ class MultiscaleCoarseGrid(object):
             self.all_faces_neighbors.insert(adj_array.reshape(-1,2)[indx].ravel())
             inters_nodes = np.unique(self.mb.get_ord_adjacencies(inters_edges, 0)[0])
             self.all_nodes_neighbors.insert(inters_nodes)
-            # Argument 2 of aux_tuple was supposed to be an array. It's an int.
             aux_tuple = self.M.core.mb.get_ord_adjacencies(inters_nodes, 2)
             temp_jagged = np.delete(np.array(np.split(aux_tuple[0], aux_tuple[1]), dtype=object), -1)
             jagged_index = np.array([temp_jagged[i].size 
@@ -379,23 +368,21 @@ class MultiscaleCoarseGrid(object):
         self.edges_connectivities = lil_matrix((self.num_coarse,self.num_coarse+1), dtype=np.bool)
         self.nodes_connectivities = lil_matrix((self.num_coarse,self.num_coarse+1), dtype=np.bool)
 
-        # 1D arrays below
         faces_array = self.M.core.internal_faces.get_array()
         adj_array = self.mb.get_ord_adjacencies(faces_array, 3)[0]
 
         tg = self.mb.tag_get_handle('Partition')
         parts = self.mb.tag_get_data(tg, adj_array).reshape(-1,2)
 
-        boundaries = self.M.core.boundary_faces.get_array() # 1D array
-        boundary_vol = self.M.core.mb.get_ord_adjacencies(boundaries, 3)[0] # 1D array
+        boundaries = self.M.core.boundary_faces.get_array()
+        boundary_vol = self.M.core.mb.get_ord_adjacencies(boundaries, 3)[0]
         self.all_volumes_neighbors.insert(boundary_vol)
         self.all_faces_neighbors.insert(boundaries)
-        boundary_parts = self.mb.tag_get_data(tg, boundary_vol, flat=True) # 1D array
+        boundary_parts = self.mb.tag_get_data(tg, boundary_vol, flat=True)
 
-        indx = np.where(parts[:,0]!=parts[:,1])[0] # 1D array
-        parts = parts[indx] # n x 2 array
-        inters_faces = faces_array[indx] # 1D array
-        # list of ranges, int
+        indx = np.where(parts[:,0]!=parts[:,1])[0]
+        parts = parts[indx]
+        inters_faces = faces_array[indx]
         self._faces, self.num_internal_faces = self.M.core.mb.get_interface_faces2(
             self.faces_connectivities, parts, inters_faces, boundaries, boundary_parts, 
             self.num_coarse, self._faces_neighbors)
@@ -409,32 +396,31 @@ class MultiscaleCoarseGrid(object):
         else:
             self.all_faces_neighbors.insert(inters_faces)
             self.all_volumes_neighbors.insert(adj_array.reshape(-1,2)[indx].ravel())
-            inters_edges = np.unique(self.mb.get_ord_adjacencies(inters_faces, 1)[0]) # 1D array
+            inters_edges = np.unique(self.mb.get_ord_adjacencies(inters_faces, 1)[0])
             self.all_edges_neighbors.insert(inters_edges)
-            aux_tuple = self.M.core.mb.get_ord_adjacencies(inters_edges, 3) # (1D array, 1D array, bool)
-            temp_jagged = np.delete(np.array(np.split(aux_tuple[0], aux_tuple[1]), dtype=object), -1) # 1D array of arrays
+            aux_tuple = self.M.core.mb.get_ord_adjacencies(inters_edges, 3)
+            temp_jagged = np.delete(np.array(np.split(aux_tuple[0], aux_tuple[1]), dtype=object), -1)
             jagged_index = np.array([temp_jagged[i].size 
-                for i in range(temp_jagged.shape[0])], dtype=np.int32) # 1D array of ints
-            jagged_index = np.cumsum(jagged_index, dtype=np.int32)[:-1] # 1D array of ints
-            coarse_array = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat=True) # 1D array of ints
-            coarse_jagged = np.array(np.split(coarse_array, jagged_index), dtype=object) # Array of arrays
+                for i in range(temp_jagged.shape[0])], dtype=np.int32)
+            jagged_index = np.cumsum(jagged_index, dtype=np.int32)[:-1]
+            coarse_array = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat=True)
+            coarse_jagged = np.array(np.split(coarse_array, jagged_index), dtype=object)
             coarse_jagged = np.array([np.unique(coarse_jagged[i]) 
-                for i in range(coarse_jagged.shape[0])], dtype=object) # Array of arrays
-            indx = np.array([coarse_jagged[i].size > 2 for i in range(coarse_jagged.shape[0])]) # Array of bools
+                for i in range(coarse_jagged.shape[0])], dtype=object)
+            indx = np.array([coarse_jagged[i].size > 2 for i in range(coarse_jagged.shape[0])])
 
-        boundaries = self.M.core.boundary_edges.get_array() # 1D array
+        boundaries = self.M.core.boundary_edges.get_array()
         self.all_edges_neighbors.insert(boundaries)
-        aux_tuple = self.M.core.mb.get_ord_adjacencies(boundaries, 3) # (1D array, 1D array, bool)
-        temp_jagged = np.delete(np.array(np.split(aux_tuple[0], aux_tuple[1]), dtype=object), -1) # Array of arrays
-        jagged_index = np.array([temp_jagged[i].size for i in range(temp_jagged.shape[0])], dtype=np.int32) # Array of ints
-        jagged_index = np.cumsum(jagged_index, dtype=np.int32)[:-1] # Array of ints
+        aux_tuple = self.M.core.mb.get_ord_adjacencies(boundaries, 3)
+        temp_jagged = np.delete(np.array(np.split(aux_tuple[0], aux_tuple[1]), dtype=object), -1)
+        jagged_index = np.array([temp_jagged[i].size for i in range(temp_jagged.shape[0])], dtype=np.int32)
+        jagged_index = np.cumsum(jagged_index, dtype=np.int32)[:-1]
 
-        boundary_parts = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat=True) # Array of ints
-        boundary_parts = np.array(np.split(boundary_parts, jagged_index), dtype=object) # Array of ints
+        boundary_parts = self.M.core.mb.tag_get_data(tg, np.concatenate(temp_jagged), flat=True)
+        boundary_parts = np.array(np.split(boundary_parts, jagged_index), dtype=object)
         boundary_parts = np.array([np.unique(boundary_parts[i]).astype(np.int32) \
-                                for i in range(boundary_parts.shape[0])], dtype=np.object) # Array of array of ints
+                                for i in range(boundary_parts.shape[0])], dtype=np.object)
         
-        # List of ranges, int
         self._edges, self.num_internal_edges = self.M.core.mb.get_interface_entities2(
             self.edges_connectivities, inters_edges, coarse_jagged, indx, 
             boundaries, boundary_parts, self.num_coarse, self._edges_neighbors)
