@@ -2,7 +2,6 @@
 Generator of mesh entities and tags
 """
 
-import pdb
 import numpy as np
 from pymoab import types, rng, topo_util
 from ..geoUtil import geoTools as gtool
@@ -71,13 +70,28 @@ class MeshEntities(object):
         self.flag = {key: self.read(value[self.vID]) for key, value in core.flag_dic.items()
                      if value[self.vID].empty() is not True}
 
-    def bridge_adjacencies(self, index, interface, target):
+    def bridge_adjacencies(self, index, interface, target, sort_elements=False):
         el_handle = self.get_range_array(index)
         intersect_ent = None
-        if self.level>0:
+
+        if self.level > 0:
             intersect_ent = self.list_all[self.num[target]]
         result_tuple = self.mtu.get_ord_bridge_adjacencies(el_handle, self.num[interface], self.num[target], intersect_ent, self.level)
-        return self.format_entities(result_tuple, el_handle.size, self.tag_handle)
+
+        entities_array = self.format_entities(result_tuple, el_handle.size, self.tag_handle)
+
+        if sort_elements and self.num[target] >= 2 and self.entity_type in ("face", "faces"):
+            neighbor_interface = "face"
+            ordered_entities = [entities_array[0]]
+            while len(ordered_entities) < entities_array.shape[0]:
+                entity = ordered_entities[-1]
+                entity_neighbors = set(self.bridge_adjacencies(entity, neighbor_interface, self.entity_type))
+                other_entities = set(entities_array) - set(ordered_entities)
+                unordered_entity_neighbors = other_entities & entity_neighbors
+                ordered_entities.append(unordered_entity_neighbors.pop())
+            entities_array = np.array(ordered_entities)
+
+        return entities_array
 
     def _coords(self, index):
         el_handle = self.get_range_array(index, self.nodes)
