@@ -16,8 +16,8 @@ class MPFAD2DOrdering(BaseOrdering):
         """
         visited_entities = [elements[0]]
         elements_set = set(elements)
-        while len(visited_entities) < elements.shape[0]:
-            import pdb; pdb.set_trace()
+        num_elements = elements.shape[0]
+        while len(visited_entities) < num_elements:
             curr_entity = visited_entities[-1]
             interface_neighbors = self.mesh_entities.bridge_adjacencies(curr_entity, 
                                                                         self.interface_dim, self.target_dim)
