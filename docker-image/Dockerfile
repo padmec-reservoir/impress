@@ -159,3 +159,7 @@ RUN cd $HOME \
     && echo "export MOAB_DIR=$MOAB_DIR" >> $HOME/.bashrc \
     && echo "export PATH=$PATH:$MOAB_DIR/bin" >> $HOME/.bashrc \
     && echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MOAB_DIR/lib" >> $HOME/.bashrc
+
+RUN git clone -b feature/sort-elements https://github.com/padmec-reservoir/impress.git \
+	&& echo "export PYTHONPATH=${PYTHONPATH}:${HOME}/impress" >> ${HOME}/.bashrc \
+	&& echo "OKOKOK"
