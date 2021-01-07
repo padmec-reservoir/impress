@@ -6,8 +6,12 @@ class MPFAD2DOrdering(BaseOrdering):
     Implementation of the 2D MPFA-D entity ordering.
     """
 
-    def __init__(self, mesh_entities, target_dim, interface_dim):
-        super().__init__(mesh_entities, target_dim, interface_dim)
+    def __init__(self, mesh_entities, interface_dim):
+        """Constructor"""
+        super().__init__(mesh_entities, interface_dim)
+
+        if self.mesh_entities not in ("nodes", "edges", "faces"):
+            raise ValueError("Entities must be nodes, edges or faces")
     
     
     def sort_elements(self, elements):
