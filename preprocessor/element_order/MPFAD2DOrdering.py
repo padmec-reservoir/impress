@@ -10,13 +10,23 @@ class MPFAD2DOrdering(BaseOrdering):
         """Constructor"""
         super().__init__(mesh_entities, interface_dim)
 
-        if self.mesh_entities not in ("nodes", "edges", "faces"):
+        if self.mesh_entities.entity_type not in ("nodes", "edges", "faces"):
             raise ValueError("Entities must be nodes, edges or faces")
     
     
     def sort_elements(self, elements):
         """
         Sort elements according to the MPFA-D ordering.
+
+        Parameters
+        ----------
+        elements: Numpy array
+            Array containing the indices of the elements to be
+            ordered.
+        
+        Returns
+        -------
+        Numpy array of ordered elements.
         """
         visited_entities = [elements[0]]
         elements_set = set(elements)
