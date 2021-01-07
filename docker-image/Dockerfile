@@ -108,7 +108,8 @@ RUN set -ex; \
 
 CMD ["/sbin/my_init"]
 
-RUN pip install cython numpy pytest colorlog configobj pytest-runner ipython pyyaml numba scipy pandas
+RUN pip install cython numpy pytest colorlog configobj pytest-runner ipython pyyaml numba scipy pandas jedi==0.17.2
+
 # Install mpi4py
 WORKDIR $HOME
 RUN cd $HOME \
