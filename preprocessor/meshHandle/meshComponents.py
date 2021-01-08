@@ -18,19 +18,25 @@ class GetItem(object):
 
 class MeshEntities(object):
     def __init__(self, core, entity_type):
+        # Main MOAB structures.
         self.mb = core.mb
         self.mtu = core.mtu
         self.meshset = core.root_set
+
+        self.entity_type = entity_type
+
         self.nodes = core.all_nodes
-        self.num = {"nodes": 0, "node": 0, "edges": 1, "edge": 1, "faces": 2, "face": 2, "volumes": 3, "volume": 3,
+
+        # Map from string description to int.
+        self.entity_str_to_num = {"nodes": 0, "node": 0, 
+                    "edges": 1, "edge": 1, 
+                    "faces": 2, "face": 2, 
+                    "volumes": 3, "volume": 3,
                     0: 0, 1: 1, 2: 2, 3: 3}
-        string = {0: "nodes", 1: "edges", 2: "faces", 3: "volumes"}
-        entity_num = self.num[entity_type]
-        list_type = [(core.all_nodes, core.internal_nodes, core.boundary_nodes),
-                        (core.all_edges, core.internal_edges, core.boundary_edges),
-                        (core.all_faces, core.internal_faces, core.boundary_faces),
-                        (core.all_volumes, core.internal_volumes, core.boundary_volumes)]
-        self.list_all = [list_type[0][0], list_type[1][0], list_type[2][0], list_type[3][0]]
+
+        # List of elements of all dimensions.
+        self.list_all = [core.all_nodes, core.all_edges, core.all_faces, core.all_volumes]
+
         self.level = core.level
         if self.level == 0:
             self.id_name = "GLOBAL_ID"
@@ -41,13 +47,35 @@ class MeshEntities(object):
             self.id_name = "LOCAL_ID_L" + str(core.level) + "-" + str(core.coarse_num)
         else:
             self.father_id_name = core.father_core.id_name
-            self.id_name = self.father_id_name + str("L") + str(self.level) + "-" + str(core.coarse_num)
+            self.id_name = (self.father_id_name + str("L") + str(self.level) + "-"
+                + str(core.coarse_num))
 
-        (self.elements_handle, self.internal_range, self.boundary_range), self.vID = list_type[entity_num], entity_num
-        self.entity_type = string[entity_num]
+        # Set mesh entities.
+        self.vID = self.entity_str_to_num[entity_type]
+        if self.vID == 0:
+            self.elements_handle = core.all_nodes
+            self.internal_range = core.internal_nodes
+            self.boundary_range = core.boundary_nodes
+        elif self.vID == 1:
+            self.elements_handle = core.all_edges
+            self.internal_range = core.internal_edges
+            self.boundary_range = core.boundary_edges
+        elif self.vID == 2:
+            self.elements_handle = core.all_faces
+            self.internal_range = core.internal_faces
+            self.boundary_range = core.boundary_faces
+        elif self.vID == 3:
+            self.elements_handle = core.all_volumes
+            self.internal_range = core.internal_volumes
+            self.boundary_range = core.boundary_volumes
+        else:
+            raise ValueError("Invalid dimension for mesh entities.")
+
         self.tag_handle = core.handleDic[self.id_name]
         self.global_handle = core.handleDic['GLOBAL_ID']
         self.father_handle = core.handleDic[self.father_id_name]
+
+        # Set mesh entities properties.
         self.all_elements = GetItem(self.get_all)
         self.internal_elements = GetItem(self.get_internal)
         self.boundary_elements = GetItem(self.get_boundary)
@@ -65,7 +93,8 @@ class MeshEntities(object):
             self.normal = GetItem(self._normal)
         elif (self.vID == 2) & (core.dimension == 3):
             self.normal = GetItem(self._normal)
-        # initialize specific flag dic in accordance with type of the object create
+        
+        # Initialize specific flag dic according to the type of the object created.
         self.flag = {key: self.read(value[self.vID]) for key, value in core.flag_dic.items()
                      if value[self.vID].empty() is not True}
 
@@ -74,8 +103,8 @@ class MeshEntities(object):
         intersect_ent = None
 
         if self.level > 0:
-            intersect_ent = self.list_all[self.num[target]]
-        result_tuple = self.mtu.get_ord_bridge_adjacencies(el_handle, self.num[interface], self.num[target], intersect_ent, self.level)
+            intersect_ent = self.list_all[self.entity_str_to_num[target]]
+        result_tuple = self.mtu.get_ord_bridge_adjacencies(el_handle, self.entity_str_to_num[interface], self.entity_str_to_num[target], intersect_ent, self.level)
 
         entities_array = self.format_entities(result_tuple, el_handle.size, self.tag_handle)
 
