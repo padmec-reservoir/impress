@@ -98,13 +98,30 @@ class MeshEntities(object):
         self.flag = {key: self.read(value[self.vID]) for key, value in core.flag_dic.items()
                      if value[self.vID].empty() is not True}
 
+    def format_entities(self, input_tuple, input_size, tag = None):
+        entities, sizes, jagged = input_tuple
+        if tag is not None:
+            entities = self.mb.tag_get_data(tag, entities, flat = True).astype(np.int64)
+        if jagged:
+            entities = np.delete(np.array(np.split(entities, sizes), dtype=object), -1)
+        else:
+            entities = entities.reshape(-1, sizes)
+        
+        if input_size == 1:
+            entities = entities[0]
+        
+        return entities
+    
     def bridge_adjacencies(self, index, interface, target, ordering_inst=None):
         el_handle = self.get_range_array(index)
         intersect_ent = None
 
         if self.level > 0:
             intersect_ent = self.list_all[self.entity_str_to_num[target]]
-        result_tuple = self.mtu.get_ord_bridge_adjacencies(el_handle, self.entity_str_to_num[interface], self.entity_str_to_num[target], intersect_ent, self.level)
+        
+        result_tuple = self.mtu.get_ord_bridge_adjacencies(el_handle, 
+            self.entity_str_to_num[interface], self.entity_str_to_num[target], 
+            intersect_ent, self.level)
 
         entities_array = self.format_entities(result_tuple, el_handle.size, self.tag_handle)
 
@@ -118,14 +135,6 @@ class MeshEntities(object):
         if len(el_handle) == 1:
             return self.mb.get_coords(el_handle)
         return np.reshape(self.mb.get_coords(el_handle),(-1,3))
-
-
-
-        #pegar os IDS do IMPRESS
-        #converter em um array de handles
-        #enviar para a funcao do pymoab
-              #para handle ele chama a funcao do moab
-              #cada funcao retorna um range, que eh convertido em um array de handles, e depois em um array de IDs do IMPRESS
 
     def _adjacencies_for_nodes(self, index):
         return index
@@ -282,18 +291,6 @@ class MeshEntities(object):
         else:
             el_handle = search_range.get_array(index)
         return el_handle
-
-    def format_entities(self, input_tuple, input_size, tag = None):
-        entities, sizes, jagged = input_tuple
-        if tag is not None:
-            entities = self.mb.tag_get_data(tag, entities, flat = True).astype(np.int64)
-        if jagged:
-            entities = np.delete(np.array(np.split(entities, sizes), dtype=object), -1)
-        else:
-            entities = entities.reshape(-1, sizes)
-        if input_size == 1:
-            entities = entities[0]
-        return entities
 
     def range_index(self, vec_index, flag_nodes=False):
         if not flag_nodes:
