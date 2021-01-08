@@ -223,33 +223,6 @@ class MeshEntities(object):
             range_vec = np.array(index)
         return range_vec
 
-    # def init_partition(self):
-    #     config = self.read_config('msCoarse.yml')
-    #     particionador_type = config["Partitioner Scheme"]
-    #     specific_attributes = config["Coarsening"]
-    #     if particionador_type != '0':
-    #         if self.dim == 3:
-    #             partition = MoabVariable(self.core,data_size=1,var_type= "volumes",  data_format="int", name_tag="Partition",
-    #                                          data_density="sparse")
-    #             name_function = "scheme" + particionador_type
-    #             used_attributes = []
-    #             used_attributes.append(specific_attributes[0]["nx"])
-    #             used_attributes.append(specific_attributes[1]["ny"])
-    #             used_attributes.append(specific_attributes[2]["nz"])
-    #             [partition[:],coarse_center]  = getattr(algoritmo, name_function)(self.volumes.center[:],
-    #                        len(self), self.rx, self.ry, self.rz,*used_attributes)
-    #         elif self.dim == 2:
-    #             partition = MoabVariable(self.core,data_size=1,var_type= "faces",  data_format="int", name_tag="Partition",
-    #                                          data_density="sparse")
-    #             name_function = "scheme" + particionador_type
-    #             specific_attributes = config["Coarsening"]
-    #             used_attributes = []
-    #             used_attributes.append(specific_attributes[0]["nx"])
-    #             used_attributes.append(specific_attributes[1]["ny"])
-    #             [partition[:],coarse_center]  = getattr(algoritmo, name_function)(self.faces.center[:],
-    #                        len(self), self.rx, self.ry, self.rz,*used_attributes)
-    #         return partition
-
     def _classify_element(self, index):
         range_vec = self.create_range_vec(index)
         range = self.range_index(range_vec)
