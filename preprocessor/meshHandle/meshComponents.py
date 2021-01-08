@@ -41,10 +41,9 @@ class MeshEntities(object):
             self.id_name = "LOCAL_ID_L" + str(core.level) + "-" + str(core.coarse_num)
         else:
             self.father_id_name = core.father_core.id_name
-            self.id_name = self.father_id_name + str("L") + str(self.level) + "-" + str(self.coarse_num)
+            self.id_name = self.father_id_name + str("L") + str(self.level) + "-" + str(core.coarse_num)
 
         (self.elements_handle, self.internal_range, self.boundary_range), self.vID = list_type[entity_num], entity_num
-        # self.internal_elements_array = self.internal_elements.get_array()
         self.entity_type = string[entity_num]
         self.tag_handle = core.handleDic[self.id_name]
         self.global_handle = core.handleDic['GLOBAL_ID']
@@ -186,32 +185,32 @@ class MeshEntities(object):
             range_vec = np.array(index)
         return range_vec
 
-    def init_partition(self):
-        config = self.read_config('msCoarse.yml')
-        particionador_type = config["Partitioner Scheme"]
-        specific_attributes = config["Coarsening"]
-        if particionador_type != '0':
-            if self.dim == 3:
-                partition = MoabVariable(self.core,data_size=1,var_type= "volumes",  data_format="int", name_tag="Partition",
-                                             data_density="sparse")
-                name_function = "scheme" + particionador_type
-                used_attributes = []
-                used_attributes.append(specific_attributes[0]["nx"])
-                used_attributes.append(specific_attributes[1]["ny"])
-                used_attributes.append(specific_attributes[2]["nz"])
-                [partition[:],coarse_center]  = getattr(algoritmo, name_function)(self.volumes.center[:],
-                           len(self), self.rx, self.ry, self.rz,*used_attributes)
-            elif self.dim == 2:
-                partition = MoabVariable(self.core,data_size=1,var_type= "faces",  data_format="int", name_tag="Partition",
-                                             data_density="sparse")
-                name_function = "scheme" + particionador_type
-                specific_attributes = config["Coarsening"]
-                used_attributes = []
-                used_attributes.append(specific_attributes[0]["nx"])
-                used_attributes.append(specific_attributes[1]["ny"])
-                [partition[:],coarse_center]  = getattr(algoritmo, name_function)(self.faces.center[:],
-                           len(self), self.rx, self.ry, self.rz,*used_attributes)
-            return partition
+    # def init_partition(self):
+    #     config = self.read_config('msCoarse.yml')
+    #     particionador_type = config["Partitioner Scheme"]
+    #     specific_attributes = config["Coarsening"]
+    #     if particionador_type != '0':
+    #         if self.dim == 3:
+    #             partition = MoabVariable(self.core,data_size=1,var_type= "volumes",  data_format="int", name_tag="Partition",
+    #                                          data_density="sparse")
+    #             name_function = "scheme" + particionador_type
+    #             used_attributes = []
+    #             used_attributes.append(specific_attributes[0]["nx"])
+    #             used_attributes.append(specific_attributes[1]["ny"])
+    #             used_attributes.append(specific_attributes[2]["nz"])
+    #             [partition[:],coarse_center]  = getattr(algoritmo, name_function)(self.volumes.center[:],
+    #                        len(self), self.rx, self.ry, self.rz,*used_attributes)
+    #         elif self.dim == 2:
+    #             partition = MoabVariable(self.core,data_size=1,var_type= "faces",  data_format="int", name_tag="Partition",
+    #                                          data_density="sparse")
+    #             name_function = "scheme" + particionador_type
+    #             specific_attributes = config["Coarsening"]
+    #             used_attributes = []
+    #             used_attributes.append(specific_attributes[0]["nx"])
+    #             used_attributes.append(specific_attributes[1]["ny"])
+    #             [partition[:],coarse_center]  = getattr(algoritmo, name_function)(self.faces.center[:],
+    #                        len(self), self.rx, self.ry, self.rz,*used_attributes)
+    #         return partition
 
     def _classify_element(self, index):
         range_vec = self.create_range_vec(index)
