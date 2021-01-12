@@ -378,10 +378,15 @@ class MoabVariable(object):
 
         if var_type in dic_elem:
             self.elements_handle = dic_elem[var_type]
+        else:
+            raise ValueError('var_type must be "nodes", "edges", "faces" or "volumes"')
+
         if data_density not in dic_density:
             raise ValueError('Data density must be "dense", "sparse" or "bit".')
+        
         if data_format not in dic_data_format:
             raise ValueError('Data format must be "float", "int" or "bool".')
+        
         if create == True:
             self.tag_handle = self.mb.tag_get_handle(name_tag, data_size, 
                                                     dic_data_format[data_format], 
