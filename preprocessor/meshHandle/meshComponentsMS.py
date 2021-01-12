@@ -3,18 +3,8 @@ Generator of multiscale mesh entities and tags
 """
 import numpy as np
 from . meshComponents import MoabVariable, MeshEntities
+from .get_item import GetItem
 from pymoab import types, rng
-
-
-class GetItem(object):
-    def __init__(self, adj):
-        self.fun = adj
-
-    def __call__(self, item):
-        return self.fun(item)
-
-    def __getitem__(self, item):
-        return self.fun(item)
 
 
 class MeshEntitiesMS(MeshEntities):

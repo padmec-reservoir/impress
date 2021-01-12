@@ -5,16 +5,7 @@ Generator of mesh entities and tags
 import numpy as np
 from pymoab import types, rng, topo_util
 from ..geoUtil import geoTools as gtool
-
-class GetItem(object):
-    def __init__(self, adj):
-        self.fun = adj
-
-    def __call__(self, item):
-        return self.fun(item)
-
-    def __getitem__(self, item):
-        return self.fun(item)
+from .get_item import GetItem
 
 class MeshEntities(object):
     def __init__(self, core, entity_type):
