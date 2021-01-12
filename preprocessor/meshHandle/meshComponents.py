@@ -213,6 +213,7 @@ class MeshEntities(object):
 
     def create_range_vec(self, index):
         range_vec = None
+
         if isinstance(index, int) or isinstance(index, np.integer):
             range_vec = np.array([index]).astype("uint")
         elif isinstance(index, np.ndarray):
@@ -221,9 +222,7 @@ class MeshEntities(object):
             else:
                 range_vec = index
         elif isinstance(index, slice):
-            start = index.start
-            stop = index.stop
-            step = index.step
+            start, stop, step = index.start, index.stop, index.step
             if start is None:
                 start = 0
             if stop is None:
@@ -237,15 +236,16 @@ class MeshEntities(object):
             range_vec = np.arange(start, stop, step).astype('uint')
         elif isinstance(index, list):
             range_vec = np.array(index)
+        
         return range_vec
 
     def _classify_element(self, index):
         range_vec = self.create_range_vec(index)
-        range = self.range_index(range_vec)
-        type_list = np.array([self.mb.type_from_handle(el) for el in range])
+        a_range = self.range_index(range_vec)
+        type_list = np.array([self.mb.type_from_handle(el) for el in a_range])
         return type_list
 
-    def load_array(self, array = None):
+    def load_array(self, array=None):
         if array == None:
             self.all_elements = self.all_elements[:]
             self.internal_elements = self.internal_elements[:]
@@ -257,7 +257,7 @@ class MeshEntities(object):
         elif array == 'boundary':
             self.boundary_elements = self.boundary_elements[:]
 
-    def unload_array(self, array = None):
+    def unload_array(self, array=None):
         if array == None:
             self.all_elements = GetItem(self.get_all)
             self.internal_elements = GetItem(self.get_internal)
@@ -269,7 +269,7 @@ class MeshEntities(object):
         elif array == 'boundary':
             self.boundary_elements = GetItem(self.get_boundary)
 
-    def get_range_array(self, index, search_range = None):
+    def get_range_array(self, index, search_range=None):
         el_handle = None
         if search_range == None:
             search_range = self.elements_handle
@@ -292,14 +292,13 @@ class MeshEntities(object):
             vec = vec_index.astype("uint")
         handles = np.asarray(range_handle)[vec.astype("uint")].astype("uint")
         return handles
-        # return rng.Range(handles)
 
     def read(self, handle):
         return self.mb.tag_get_data(self.tag_handle, handle, flat = True).astype(np.int64)
 
     @property
     def all_flagged_elements(self):
-        return np.array(  list(self.flag.values())).astype(int)
+        return np.array(list(self.flag.values())).astype(int)
 
     @property
     def all_flags(self):
@@ -318,40 +317,51 @@ class MeshEntities(object):
         return self.read(self.internal_range.get_array())
 
     def get_all(self, index):
-        if self.level==0 and isinstance(index, np.ndarray):
+        if self.level == 0 and isinstance(index, np.ndarray):
             ret = index.astype(np.int64)
-        elif self.level==0 and isinstance(index, slice):
+        elif self.level == 0 and isinstance(index, slice):
             if index.start == None and index.stop == None:
                 ret = np.arange(self.elements_handle.size())
             elif index.start == None:
-                ret = np.arange(0, min(index.stop, self.elements_handle.size()), index.step, dtype = np.int64)
+                ret = np.arange(0, min(index.stop, self.elements_handle.size()), 
+                                index.step, dtype = np.int64)
             elif index.stop == None:
-                ret = np.arange(index.start, self.elements_handle.size(), index.step, dtype = np.int64)
+                ret = np.arange(index.start, self.elements_handle.size(), 
+                                index.step, dtype = np.int64)
             else:
-                ret = np.arange(index.start, min(index.stop, self.elements_handle.size()), index.step, dtype = np.int64)
+                ret = np.arange(index.start, min(index.stop, self.elements_handle.size()), 
+                                index.step, dtype = np.int64)
         else:
             ret = self.read(self.elements_handle[index])
-        if len(ret)==1:
-            return ret[0]
+        
+        if len(ret) == 1:
+            ret = ret[0]
+        
         return ret
 
     def get_boundary(self, index):
         el_range = self.get_range_array(index, self.boundary_range)
         ret = self.read(el_range)
-        if len(ret)==1:
-            return ret[0]
+
+        if len(ret) == 1:
+            ret = ret[0]
+        
         return ret
 
     def get_internal(self, index):
         el_range = self.get_range_array(index, self.internal_range)
         ret = self.read(el_range)
-        if len(ret)==1:
-            return ret[0]
+
+        if len(ret) == 1:
+            ret = ret[0]
+        
         return ret
 
 class MoabVariable(object):
-    def __init__(self, core, name_tag, var_type="volumes", data_size=1, data_format="float", data_density="sparse",
-                 entity_index=None, create = True):
+    def __init__(self, core, name_tag, var_type="volumes", 
+                data_size=1, data_format="float", 
+                data_density="sparse", entity_index=None, 
+                create = True):
         dic_dtf = {'float': types.MB_TYPE_DOUBLE, 'int': types.MB_TYPE_INTEGER, 'bool': types.MB_TYPE_BIT}
         dic_dst = {'dense': types.MB_TAG_DENSE, 'sparse': types.MB_TAG_SPARSE, 'bit': types.MB_TAG_BIT}
         dic_elem = {'node': core.all_nodes, 'nodes': core.all_nodes,'edge': core.all_edges, 'edges': core.all_edges, 'face': core.all_faces, 'faces': core.all_faces, 'volume': core.all_volumes, 'volumes': core.all_volumes}
