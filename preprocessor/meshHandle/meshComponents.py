@@ -362,9 +362,21 @@ class MoabVariable(object):
                 data_size=1, data_format="float", 
                 data_density="sparse", entity_index=None, 
                 create = True):
-        dic_dtf = {'float': types.MB_TYPE_DOUBLE, 'int': types.MB_TYPE_INTEGER, 'bool': types.MB_TYPE_BIT}
-        dic_dst = {'dense': types.MB_TAG_DENSE, 'sparse': types.MB_TAG_SPARSE, 'bit': types.MB_TAG_BIT}
-        dic_elem = {'node': core.all_nodes, 'nodes': core.all_nodes,'edge': core.all_edges, 'edges': core.all_edges, 'face': core.all_faces, 'faces': core.all_faces, 'volume': core.all_volumes, 'volumes': core.all_volumes}
+        dic_data_format = {'float': types.MB_TYPE_DOUBLE, 
+                            'int': types.MB_TYPE_INTEGER, 
+                            'bool': types.MB_TYPE_BIT}
+        dic_density = {'dense': types.MB_TAG_DENSE, 
+                        'sparse': types.MB_TAG_SPARSE, 
+                        'bit': types.MB_TAG_BIT}
+        dic_elem = {'node': core.all_nodes, 
+                    'nodes': core.all_nodes, 
+                    'edge': core.all_edges, 
+                    'edges': core.all_edges, 
+                    'face': core.all_faces, 
+                    'faces': core.all_faces, 
+                    'volume': core.all_volumes, 
+                    'volumes': core.all_volumes}
+        
         self.data = None
         self.mb = core.mb
         self.var_type = var_type
@@ -372,38 +384,24 @@ class MoabVariable(object):
         self.data_size = data_size
         self.data_density = data_density
         self.name_tag = name_tag
+
         if var_type in dic_elem:
             self.elements_handle = dic_elem[var_type]
-        if data_density not in dic_dst:
-            print("Please define a valid tag type")
-        if data_format not in dic_dtf:
-            print("Please define a valid data format")
+        if data_density not in dic_density:
+            raise ValueError('Data density must be "dense", "sparse" or "bit".')
+        if data_format not in dic_data_format:
+            raise ValueError('Data format must be "float", "int" or "bool".')
         if create == True:
-            self.tag_handle = self.mb.tag_get_handle(name_tag, data_size, dic_dtf[data_format], dic_dst[data_density], True, 0)
+            self.tag_handle = self.mb.tag_get_handle(name_tag, data_size, 
+                                                    dic_data_format[data_format], 
+                                                    dic_density[data_density], 
+                                                    True, 0)
         else:
             self.tag_handle = self.mb.tag_get_handle(name_tag)
         self.storage = 'moab'
         self.moab_updated = True
         print("Component class {0} successfully intialized".format(self.name_tag))
-
-    def to_numpy(self):
-        if self.storage == 'numpy':
-            print('Variable is already on numpy')
-            return
-        self.storage = 'numpy'
-        self.data = self.mb.tag_get_data(self.tag_handle, self.elements_handle)
-        if self.data_size == 1:
-            self.data = self.data.flatten()
-
-    def to_moab(self):
-        if self.storage == 'moab':
-            print('Variable is already on moab')
-            return
-        self.storage = 'moab'
-        self.mb.tag_set_data(self.tag_handle, self.elements_handle, self.data)
-        self.data = None
-        self.moab_updated = True
-
+    
     def __call__(self):
         if self.storage == 'moab':
             return self.mb.tag_get_data(self.tag_handle, self.elements_handle)
@@ -449,11 +447,7 @@ class MoabVariable(object):
                 return self.data[index]
             else:
                 return self.data
-
-    def update_moab(self):
-        self.mb.tag_set_data(self.tag_handle, self.elements_handle, self.data)
-        self.moab_updated = True
-
+    
     def __str__(self):
         string = "{0} variable: {1} based - Type: {2} - Length: {3} - Data Type: {4}"\
             .format(self.name_tag.capitalize(), self.var_type.capitalize(), self.data_format.capitalize(),
@@ -462,3 +456,25 @@ class MoabVariable(object):
 
     def __len__(self):
         return len(self.elements_handle)
+
+    def to_numpy(self):
+        if self.storage == 'numpy':
+            print('Variable is already on numpy')
+            return
+        self.storage = 'numpy'
+        self.data = self.mb.tag_get_data(self.tag_handle, self.elements_handle)
+        if self.data_size == 1:
+            self.data = self.data.flatten()
+
+    def to_moab(self):
+        if self.storage == 'moab':
+            print('Variable is already on moab')
+            return
+        self.storage = 'moab'
+        self.mb.tag_set_data(self.tag_handle, self.elements_handle, self.data)
+        self.data = None
+        self.moab_updated = True
+
+    def update_moab(self):
+        self.mb.tag_set_data(self.tag_handle, self.elements_handle, self.data)
+        self.moab_updated = True
