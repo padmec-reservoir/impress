@@ -15,7 +15,7 @@ class MPFAD2DOrdering(BaseOrdering):
             raise ValueError("Entities must be nodes, edges or faces")
     
     
-    def sort_elements(self, elements):
+    def sort_elements(self, elements, center):
         """
         Sort elements according to the MPFA-D ordering.
 
@@ -24,7 +24,8 @@ class MPFAD2DOrdering(BaseOrdering):
         elements: Numpy array
             Array containing the indices of the elements to be
             ordered.
-        
+        from_element: Numpy array
+            Array containing the centroid of the elements distribution.
         Returns
         -------
         Numpy array of ordered elements.
@@ -43,13 +44,17 @@ class MPFAD2DOrdering(BaseOrdering):
         
         ordered_elements = np.array(visited_entities)
 
+        elements_centers = self.mesh_entities.center[ordered_elements][:, 0:2]
         if num_elements > 2:
             # Check the orientation of the elements.
-            centers = self.mesh_entities.center[ordered_elements][:, 0:2]
-            A, B, C = centers[0], centers[1], centers[2]
+            A, B, C = elements_centers[0], elements_centers[1], elements_centers[2]
 
             # If clockwise, reverse so it is counterclockwise.
             if (B[0] - A[0])*(C[1] - A[1]) - (C[0] - A[0])*(B[1] - A[1]) < 0:
+                ordered_elements = np.flip(ordered_elements)
+        elif num_elements == 2:
+            A, B = elements_centers[0], elements_centers[1]
+            if np.cross(center[0, 0:2] - A, center[0, 0:2] - B) < 0:
                 ordered_elements = np.flip(ordered_elements)
 
         return ordered_elements

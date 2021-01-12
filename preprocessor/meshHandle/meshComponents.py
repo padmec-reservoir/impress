@@ -81,7 +81,7 @@ class MeshEntities(object):
         entities_array = self.format_entities(result_tuple, el_handle.size, self.tag_handle)
 
         if ordering_inst != None:
-            entities_array = ordering_inst.sort_elements(entities_array)
+            entities_array = ordering_inst.sort_elements(entities_array, self.center[index])
 
         return entities_array
 
