@@ -98,6 +98,17 @@ class MeshEntities(object):
         self.flag = {key: self.read(value[self.vID]) for key, value in core.flag_dic.items()
                      if value[self.vID].empty() is not True}
 
+    def __str__(self):
+        string = "{0} object \n Total of {1} {0} \n {2}  boundary {0} \n {3} internal {0}".format(self.entity_type,
+            len(self.elements_handle), len(self.boundary_elements), len(self.internal_elements))
+        return string
+
+    def __len__(self):
+        return len(self.elements_handle)
+
+    def __call__(self):
+        return self.all
+
     def format_entities(self, input_tuple, input_size, tag = None):
         entities, sizes, jagged = input_tuple
         if tag is not None:
@@ -149,27 +160,32 @@ class MeshEntities(object):
         result_tuple = self.mb.get_ord_adjacencies(el_handle, dim_tag)
         return self.format_entities(result_tuple, el_handle.size, self.tag_handle)
 
-    def _center(self,index):
+    def _center(self, index):
         el_handle = self.get_range_array(index)
         return self.mtu.get_ord_average_position(el_handle)
 
-    def _normal(self,index):
+    def _normal(self, index):
         adj = self.connectivities[index]
-        if adj.ndim==1:
-            if self.vID == 1:
-                return gtool.normal_vec_2d(self._coords(adj[0]).reshape(1,3), self._coords(adj[1]).reshape(1,3))[0]
-            elif self.vID == 2:
+        normal = None
 
-                return gtool.normal_vec(self._coords(adj[0]),self._coords(adj[1]),self._coords(adj[2]))
-            return
-        v0 = np.array([adj[i][0] for i in range (adj.shape[0])])
-        v1 = np.array([adj[i][1] for i in range (adj.shape[0])])
-        if self.vID == 1:
-            return gtool.normal_vec_2d(self._coords(v0),self._coords(v1))
-        elif self.vID == 2:
-            v2 = np.array([adj[i][2] for i in range (adj.shape[0])])
-            return gtool.normal_vec(self._coords(v0), self._coords(v1),
-                                    self._coords(v2))
+        if adj.ndim == 1 and self.vID == 1:
+            normal = gtool.normal_vec_2d(self._coords(adj[0]).reshape(1,3), 
+                                        self._coords(adj[1]).reshape(1,3))[0]
+        elif adj.ndim == 1 and self.vID == 2:
+            normal = gtool.normal_vec(self._coords(adj[0]), 
+                                    self._coords(adj[1]), 
+                                    self._coords(adj[2]))
+        else:
+            v0 = np.array([adj[i][0] for i in range (adj.shape[0])])
+            v1 = np.array([adj[i][1] for i in range (adj.shape[0])])
+            if self.vID == 1:
+                normal = gtool.normal_vec_2d(self._coords(v0),self._coords(v1))
+            elif self.vID == 2:
+                v2 = np.array([adj[i][2] for i in range (adj.shape[0])])
+                normal = gtool.normal_vec(self._coords(v0), self._coords(v1),
+                                        self._coords(v2))
+        
+        return normal
 
     def _area(self, index):
         if self.entity_type != "faces":
@@ -277,17 +293,6 @@ class MeshEntities(object):
         handles = np.asarray(range_handle)[vec.astype("uint")].astype("uint")
         return handles
         # return rng.Range(handles)
-
-    def __str__(self):
-        string = "{0} object \n Total of {1} {0} \n {2}  boundary {0} \n {3} internal {0}".format(self.entity_type,
-            len(self.elements_handle), len(self.boundary_elements), len(self.internal_elements))
-        return string
-
-    def __len__(self):
-        return len(self.elements_handle)
-
-    def __call__(self):
-        return self.all
 
     def read(self, handle):
         return self.mb.tag_get_data(self.tag_handle, handle, flat = True).astype(np.int64)
