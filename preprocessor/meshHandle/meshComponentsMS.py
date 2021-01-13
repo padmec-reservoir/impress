@@ -16,24 +16,23 @@ class MeshEntitiesMS(MeshEntities):
 
     def enhance(self, i, general):
         self._coarse_neighbors_dic = {}
-        index = np.where(general.connectivities[self.vID][i, :].A[0])[0]
-        if self.vID == 0:
-            interfaces = general._nodes_neighbors[i, index].A[0].astype("uint64") - 1
-            self._coarse_neighbors_dic = {x: general._nodes[y] 
-                                        for x, y in zip(index, interfaces)}
-        elif self.vID == 1:
-            interfaces = general._edges_neighbors[i, index].A[0].astype("uint64") - 1
-            self._coarse_neighbors_dic = {x: general._edges[y] 
-                                        for x, y in zip(index, interfaces)}
-        elif self.vID == 2:
-            interfaces = general._faces_neighbors[i, index].A[0].astype("uint64") - 1
-            self._coarse_neighbors_dic = {x: general._faces[y] 
-                                        for x, y in zip(index, interfaces)}
-        
         if self.vID < 3:
-            self.coarse_neighbors = np.where(general.connectivities[self.vID][i, :].A[0])[0]
-                                        .astype("uint64")
-            self.is_on_father_boundary = general.connectivities[self.vID][i, -1]
+            index = np.where(general.connectivities[self.vID][i, :].A[0])[0]
+            if self.vID == 0:
+                interfaces = general._nodes_neighbors[i, index].A[0].astype("uint64") - 1
+                self._coarse_neighbors_dic = {x: general._nodes[y] 
+                                            for x, y in zip(index, interfaces)}
+            elif self.vID == 1:
+                interfaces = general._edges_neighbors[i, index].A[0].astype("uint64") - 1
+                self._coarse_neighbors_dic = {x: general._edges[y] 
+                                            for x, y in zip(index, interfaces)}
+            elif self.vID == 2:
+                interfaces = general._faces_neighbors[i, index].A[0].astype("uint64") - 1
+                self._coarse_neighbors_dic = {x: general._faces[y] 
+                                            for x, y in zip(index, interfaces)}
+            
+                self.coarse_neighbors = np.where(general.connectivities[self.vID][i, :].A[0])[0].astype("uint64")
+                self.is_on_father_boundary = general.connectivities[self.vID][i, -1]
         
         self.neighborhood = GetItem(self._elements_in_coarse_neighborhood)
 
@@ -72,49 +71,34 @@ class MoabVariableMS(MoabVariable):
                 data_size=1, data_format="float", 
                 data_density="sparse", entity_index=None, 
                 level=0, coarse_num=0, create=True):
-        self.mb = core.mb
-        self.var_type = var_type
-        self.data_format = data_format
-        self.data_size = data_size
-        self.data_density = data_density
-        self.name_tag = name_tag
-
-        if var_type == "nodes":
-            self.elements_handle = core.all_nodes
-        elif var_type == "edges":
-            self.elements_handle = core.all_edges
-        elif var_type == "faces":
-            self.elements_handle = core.all_faces
-        elif var_type == "volumes":
-            self.elements_handle = core.all_volumes
+        super.__init__(core, name_tag, var_type, data_size, data_format, 
+                        data_density, entity_index, False)
         
         if data_density == "dense":
-            data_density = types.MB_TAG_DENSE
+            moab_data_density = types.MB_TAG_DENSE
         elif data_density == "sparse":
-            data_density = types.MB_TAG_SPARSE
+            moab_data_density = types.MB_TAG_SPARSE
         elif data_density == "bit":
-            data_density = types.MB_TAG_BIT
-        else:
-            print("Please define a valid tag type")
+            moab_data_density = types.MB_TAG_BIT
         
         if data_format == 'float':
-            data_format = types.MB_TYPE_DOUBLE
+            moab_data_format = types.MB_TYPE_DOUBLE
         elif data_format == "int":
-            data_format = types.MB_TYPE_INTEGER
+            moab_data_format = types.MB_TYPE_INTEGER
         elif data_format == "bool":
-            data_format = types.MB_TYPE_BIT
-        
+            moab_data_format = types.MB_TYPE_BIT
+
         self.level = level
         self.coarse_num = coarse_num
-        self.storage = 'moab'
-        self.moab_updated = True
 
         if create:
             name = core.id_name
             name = name[(name.find("ID") + 3):]
             self.name_tag = self.name_tag  + name
-            self.tag_handle = self.mb.tag_get_handle(self.name_tag, data_size, data_format, data_density, True, 0)
+            self.tag_handle = self.mb.tag_get_handle(self.name_tag, data_size, 
+                                                    moab_data_format, moab_data_density, 
+                                                    True, 0)
         else:
             self.tag_handle = self.mb.tag_get_handle(self.name_tag)
         
-        print("Component class {0} successfully intialized".format(self.name_tag))
+        print("Component class MS {0} successfully intialized".format(self.name_tag))
