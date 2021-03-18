@@ -13,8 +13,6 @@ A Docker image with a complete workspace for IMPRESS is available. To download i
 ## License
 Distributed under the MIT License. See `LICENSE` for more information.
 
-## Results obtained with IMPRESS
-
 ## Maintainers and contributors
 
 [Artur Castiel](https://arturcastiel.github.io/) (creator and maintainer)
