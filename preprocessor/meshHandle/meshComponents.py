@@ -182,20 +182,25 @@ class MeshEntities(object):
         if self.entity_type != "faces":
             raise ValueError("Cannot compute area. Entity is not a face.")
 
-        el_handle = self.get_range_array(index)[0]
-        area = gtool.polygon_area(self.mb, el_handle)
+        handles = self.get_range_array(index)
 
-        return area
+        list_of_areas = [gtool.polygon_area(self.mb, el_handle) for el_handle in handles]
+        array_of_areas = np.array(list_of_areas)
+
+        return array_of_areas
     
     def _volume(self, index):
         if self.entity_type != "volumes":
             raise ValueError("Cannot compute volume. Entity is not a volume.")
 
-        el_handle = self.get_range_array(index)[0]
-        center = self._center(index)
-        volume = gtool.polyhedron_volume(self.mb, el_handle, center)
+        handles = self.get_range_array(index)
+        centers = self._center(index)
 
-        return volume
+        list_of_volumes = [gtool.polyhedron_volume(self.mb, el_handle, center)
+                           for el_handle, center in zip(handles, centers)]
+        array_of_volumes = np.array(list_of_volumes)
+
+        return array_of_volumes
 
     def _connectivities(self,index):
         el_handle = self.get_range_array(index)
