@@ -20,3 +20,5 @@ Distributed under the MIT License. See `LICENSE` for more information.
 [Filipe Cumaru](https://github.com/Filipe-Cumaru) (maintainer)
 
 Gabriel Mendes (contributor)
+
+[Renata Tavares](https://github.com/renatattavares) (contributor)
