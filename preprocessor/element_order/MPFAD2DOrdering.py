@@ -1,6 +1,6 @@
-from .BaseOrdering import BaseOrdering 
-from functools import cmp_to_key
+from .BaseOrdering import BaseOrdering
 import numpy as np
+
 
 class MPFAD2DOrdering(BaseOrdering):
     """
@@ -13,8 +13,7 @@ class MPFAD2DOrdering(BaseOrdering):
 
         if self.mesh_entities.entity_type not in ("nodes", "edges", "faces"):
             raise ValueError("Entities must be nodes, edges or faces")
-    
-    
+
     def sort_elements(self, elements, center):
         """
         Sort elements according to the MPFA-D ordering.
@@ -30,18 +29,24 @@ class MPFAD2DOrdering(BaseOrdering):
         -------
         Numpy array of ordered elements.
         """
-        visited_entities = [elements[0]]
+        all_interface_neighbors = self.mesh_entities.bridge_adjacencies(
+            elements, self.interface_dim, self.target_dim)
+        num_neighbors = np.array(
+            [np.intersect1d(elements, ns).shape[0]
+             for ns in all_interface_neighbors])
+
+        visited_entities = [elements[num_neighbors.argmin()]]
+
         elements_set = set(elements)
         num_elements = elements.shape[0]
         while len(visited_entities) < num_elements:
             curr_entity = visited_entities[-1]
-            interface_neighbors = self.mesh_entities.bridge_adjacencies(curr_entity, 
-                                                                        self.interface_dim, 
-                                                                        self.target_dim)
+            interface_neighbors = self.mesh_entities.bridge_adjacencies(
+                curr_entity, self.interface_dim, self.target_dim)
             unvisited_entities = elements_set - set(visited_entities)
             next_entities = unvisited_entities & set(interface_neighbors)
             visited_entities.append(next_entities.pop())
-        
+
         ordered_elements = np.array(visited_entities)
 
         elements_centers = self.mesh_entities.center[ordered_elements][:, 0:2]
