@@ -1,4 +1,4 @@
-FROM phusion/baseimage:master
+FROM phusion/baseimage:focal-1.2.0
 LABEL author="Filipe Cumaru <facsa@cin.ufpe.br>"
 
 ENV HOME /home/scientific
@@ -30,10 +30,10 @@ RUN cd /usr/bin \
 	&& ln -s python3-config python-config
 
 
-RUN pip install cython numpy \
-	pytest colorlog configobj \
-	pytest-runner ipython pyyaml \
-	scipy jedi==0.17.2
+RUN pip install cython==0.29.32 numpy==1.23.1 \
+	pytest==7.1.2 colorlog==6.6.0 configobj==5.0.6 \
+	pytest-runner==6.0.0 ipython==8.4.0 pyyaml==5.3.1 \
+	scipy==1.9.0 jedi==0.17.2
 
 # # Install modified version of MOAB and PyMOAB.
 WORKDIR $HOME
